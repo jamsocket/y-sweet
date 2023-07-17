@@ -1,5 +1,10 @@
 use clap::{Parser, Subcommand};
-use std::net::IpAddr;
+use server::Server;
+use std::{
+    net::{IpAddr, Ipv4Addr, SocketAddr},
+    path::PathBuf,
+};
+use stores::FileSystemStore;
 
 mod server;
 mod stores;
@@ -16,17 +21,43 @@ struct Opts {
 #[derive(Subcommand)]
 enum ServSubcommand {
     Serve {
-        #[clap(short, long, default_value = "8080")]
+        #[clap(default_value = "8000")]
         port: u16,
-        #[clap(short, long)]
         host: Option<IpAddr>,
-        #[clap(short, long, default_value = "30")]
-        checkpoint_freq_seconds: u32,
+        #[clap(default_value = "30")]
+        checkpoint_freq_seconds: u64,
     },
 
     Dump,
 }
 
-fn main() {
-    println!("Hello, world!");
+#[tokio::main]
+async fn main() {
+    let opts = Opts::parse();
+
+    match opts.subcmd {
+        ServSubcommand::Serve {
+            port,
+            host,
+            checkpoint_freq_seconds,
+        } => {
+            let addr = SocketAddr::new(
+                host.unwrap_or(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1))),
+                port,
+            );
+
+            let store = FileSystemStore::new(PathBuf::from(opts.store_path));
+
+            let server = Server {
+                store,
+                addr,
+                checkpoint_freq: std::time::Duration::from_secs(checkpoint_freq_seconds),
+            };
+
+            server.serve().await.unwrap();
+        }
+        ServSubcommand::Dump => {
+            todo!()
+        }
+    }
 }

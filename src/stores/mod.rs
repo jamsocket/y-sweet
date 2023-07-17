@@ -2,7 +2,7 @@ use std::{path::PathBuf, fs::remove_file, error::Error};
 use async_trait::async_trait;
 
 #[async_trait]
-pub trait Store {
+pub trait Store: Send + Sync {
     async fn get(&self, key: &str) -> Result<Option<Vec<u8>>, Box<dyn Error>>;
     async fn set(&mut self, key: &str, value: Vec<u8>) -> Result<(), Box<dyn Error>>;
     async fn remove(&mut self, key: &str) -> Result<(), Box<dyn Error>>;
@@ -13,7 +13,7 @@ pub struct FileSystemStore {
 }
 
 impl FileSystemStore {
-    fn new(base_path: PathBuf) -> Self {
+    pub fn new(base_path: PathBuf) -> Self {
         Self { base_path }
     }
 }

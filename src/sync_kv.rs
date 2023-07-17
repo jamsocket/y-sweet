@@ -8,29 +8,19 @@ use std::{
         Arc, Mutex,
     },
 };
-use yrs_kvstore::KVEntry;
+use yrs_kvstore::{DocOps, KVEntry};
 
 const DATA_FILENAME: &str = "data.bin";
 
-enum SyncKvCommand {
-    Get(Vec<u8>),
-    Set(Vec<u8>, Vec<u8>),
-    Remove(Vec<u8>),
-    RemoveRange(Vec<u8>, Vec<u8>),
-}
-
-struct SyncKv {
+pub struct SyncKv {
     data: Arc<Mutex<BTreeMap<Vec<u8>, Vec<u8>>>>,
-    store: Box<dyn Store>,
+    store: Arc<Mutex<Box<dyn Store>>>,
     dirty: AtomicBool,
-    dirty_callback: Box<dyn Fn()>,
+    dirty_callback: Box<dyn Fn() + Send + Sync>,
 }
 
 impl SyncKv {
-    async fn new(
-        store: Box<dyn Store>,
-        dirty_callback: Box<dyn Fn()>,
-    ) -> Result<Self, Box<dyn std::error::Error>> {
+    pub async fn new<S: Store + 'static, Callback: Fn() + Send + Sync + 'static>(store: S, callback: Callback) -> Result<Self, Box<dyn std::error::Error>> {
         let data = if let Some(snapshot) = store.get(DATA_FILENAME).await? {
             bincode::deserialize(&snapshot)?
         } else {
@@ -39,9 +29,9 @@ impl SyncKv {
 
         Ok(Self {
             data: Arc::new(Mutex::new(data)),
-            store,
+            store: Arc::new(Mutex::new(Box::new(store))),
             dirty: AtomicBool::new(false),
-            dirty_callback,
+            dirty_callback: Box::new(callback),
         })
     }
 
@@ -52,10 +42,10 @@ impl SyncKv {
         }
     }
 
-    async fn persist(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn persist(&self) -> Result<(), Box<dyn std::error::Error>> {
         let data = self.data.lock().unwrap();
         let snapshot = bincode::serialize(&*data)?;
-        self.store.set(DATA_FILENAME, snapshot).await?;
+        self.store.lock().unwrap().set(DATA_FILENAME, snapshot).await?;
         self.dirty.store(false, Ordering::Relaxed);
         Ok(())
     }
@@ -72,7 +62,9 @@ impl SyncKv {
     }
 }
 
-struct SyncKvEntry {
+impl<'d> DocOps<'d> for SyncKv {}
+
+pub struct SyncKvEntry {
     key: Vec<u8>,
     value: Vec<u8>,
 }
@@ -87,7 +79,7 @@ impl KVEntry for SyncKvEntry {
     }
 }
 
-struct SyncKvCursor {
+pub struct SyncKvCursor {
     data: Arc<Mutex<BTreeMap<Vec<u8>, Vec<u8>>>>,
     next_key: Bound<Vec<u8>>,
     to: Vec<u8>,
@@ -167,7 +159,7 @@ mod test {
     use super::*;
     use async_trait::async_trait;
     use dashmap::DashMap;
-    use std::{error::Error, sync::mpsc::channel};
+    use std::{error::Error, sync::atomic::AtomicUsize};
     use tokio;
 
     #[derive(Default, Clone)]
@@ -192,31 +184,43 @@ mod test {
         }
     }
 
+    #[derive(Default, Clone)]
+    struct CallbackCounter {
+        data: Arc<AtomicUsize>,
+    }
+
+    impl CallbackCounter {
+        fn callback(&self) -> Box<dyn Fn() + Send + Sync> {
+            let data = self.data.clone();
+            Box::new(move || {
+                data.fetch_add(1, Ordering::Relaxed);
+            })
+        }
+
+        fn count(&self) -> usize {
+            self.data.load(Ordering::Relaxed)
+        }
+    }
+
     #[tokio::test]
     async fn calls_sync_callback() {
-        let (send, recv) = channel();
         let store = MemoryStore::default();
-        let sync_kv = SyncKv::new(
-            Box::new(store.clone()),
-            Box::new(move || {
-                send.send(()).unwrap();
-            }),
-        )
-        .await
-        .unwrap();
+        let c = CallbackCounter::default();
+        let mut sync_kv = SyncKv::new(store.clone(), c.callback()).await.unwrap();
 
+        assert_eq!(c.count(), 0);
         sync_kv.set(b"foo", b"bar");
         assert_eq!(sync_kv.get(b"foo"), Some(b"bar".to_vec()));
 
         assert!(store.data.is_empty());
 
         // We should have received a dirty callback.
-        recv.try_recv().unwrap();
+        assert_eq!(c.count(), 1);
 
         sync_kv.set(b"abc", b"def");
 
         // We should not receive a dirty callback.
-        recv.try_recv().unwrap_err();
+        assert_eq!(c.count(), 1);
     }
 
     #[tokio::test]
@@ -224,9 +228,7 @@ mod test {
         let store = MemoryStore::default();
 
         {
-            let mut sync_kv = SyncKv::new(Box::new(store.clone()), Box::new(|| {}))
-                .await
-                .unwrap();
+            let mut sync_kv = SyncKv::new(store.clone(), || ()).await.unwrap();
 
             sync_kv.set(b"foo", b"bar");
             assert_eq!(sync_kv.get(b"foo"), Some(b"bar".to_vec()));
@@ -237,9 +239,7 @@ mod test {
         }
 
         {
-            let sync_kv = SyncKv::new(Box::new(store.clone()), Box::new(|| {}))
-                .await
-                .unwrap();
+            let sync_kv = SyncKv::new(store.clone(), || ()).await.unwrap();
 
             assert_eq!(sync_kv.get(b"foo"), Some(b"bar".to_vec()));
         }
