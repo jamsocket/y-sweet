@@ -1,7 +1,7 @@
 use super::Store;
+use anyhow::Result;
 use async_trait::async_trait;
 use std::{
-    error::Error,
     fs::{create_dir_all, remove_file},
     path::PathBuf,
 };
@@ -18,7 +18,7 @@ impl FileSystemStore {
 
 #[async_trait]
 impl Store for FileSystemStore {
-    async fn get(&self, key: &str) -> Result<Option<Vec<u8>>, Box<dyn Error>> {
+    async fn get(&self, key: &str) -> Result<Option<Vec<u8>>> {
         let path = self.base_path.join(key);
         let contents = std::fs::read(path);
         match contents {
@@ -28,14 +28,14 @@ impl Store for FileSystemStore {
         }
     }
 
-    async fn set(&self, key: &str, value: Vec<u8>) -> Result<(), Box<dyn Error>> {
+    async fn set(&self, key: &str, value: Vec<u8>) -> Result<()> {
         create_dir_all(self.base_path.clone())?;
         let path = self.base_path.join(key);
         std::fs::write(path, value)?;
         Ok(())
     }
 
-    async fn remove(&self, key: &str) -> Result<(), Box<dyn Error>> {
+    async fn remove(&self, key: &str) -> Result<()> {
         let path = self.base_path.join(key);
         remove_file(path)?;
         Ok(())

@@ -1,5 +1,5 @@
 use crate::{stores::Store, sync_kv::SyncKv};
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use axum::{
     extract::{
         ws::{Message, WebSocket},
@@ -96,7 +96,7 @@ impl Server {
             throttle.call();
         })
         .await
-        .map_err(|_| anyhow!("Failed to create SyncKv"))?;
+        .context("Failed to create SyncKv")?;
 
         let sync_kv = Arc::new(sync_kv);
 

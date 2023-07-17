@@ -8,6 +8,7 @@ use std::{
         Arc, Mutex,
     },
 };
+use anyhow::Result;
 use yrs_kvstore::{DocOps, KVEntry};
 
 const DATA_FILENAME: &str = "data.bin";
@@ -23,7 +24,7 @@ impl SyncKv {
     pub async fn new<Callback: Fn() + Send + Sync + 'static>(
         store: Box<dyn Store>,
         callback: Callback,
-    ) -> Result<Self, Box<dyn std::error::Error>> {
+    ) -> Result<Self> {
         let data = if let Some(snapshot) = store.get(DATA_FILENAME).await? {
             bincode::deserialize(&snapshot)?
         } else {
@@ -174,16 +175,16 @@ mod test {
 
     #[async_trait]
     impl Store for MemoryStore {
-        async fn get(&self, key: &str) -> Result<Option<Vec<u8>>, Box<dyn Error>> {
+        async fn get(&self, key: &str) -> Result<Option<Vec<u8>>> {
             Ok(self.data.get(key.as_bytes()).map(|v| v.clone()))
         }
 
-        async fn set(&self, key: &str, value: Vec<u8>) -> Result<(), Box<dyn Error>> {
+        async fn set(&self, key: &str, value: Vec<u8>) -> Result<()> {
             self.data.insert(key.as_bytes().to_vec(), value);
             Ok(())
         }
 
-        async fn remove(&self, key: &str) -> Result<(), Box<dyn Error>> {
+        async fn remove(&self, key: &str) -> Result<()> {
             self.data.remove(key.as_bytes());
             Ok(())
         }
