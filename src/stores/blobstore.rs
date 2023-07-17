@@ -1,11 +1,10 @@
+use super::Store;
 use anyhow::Result;
 use async_trait::async_trait;
 use s3::bucket::Bucket;
 use s3::creds::Credentials;
 use s3::error::S3Error;
 use s3::region::Region;
-
-use super::Store;
 
 pub struct S3Store {
     bucket: Bucket,

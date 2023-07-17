@@ -26,6 +26,7 @@ impl SyncKv {
         callback: Callback,
     ) -> Result<Self> {
         let data = if let Some(snapshot) = store.get(DATA_FILENAME).await? {
+            tracing::info!(size=?snapshot.len(), "Loaded snapshot");
             bincode::deserialize(&snapshot)?
         } else {
             BTreeMap::new()
