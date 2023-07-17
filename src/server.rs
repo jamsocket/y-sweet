@@ -1,7 +1,4 @@
-use crate::{
-    stores::Store,
-    sync_kv::{self, SyncKv},
-};
+use crate::{stores::Store, sync_kv::SyncKv};
 use axum::{
     extract::{
         ws::{Message, WebSocket},
@@ -13,7 +10,7 @@ use axum::{
 };
 use futures::{SinkExt, StreamExt};
 use std::{convert::Infallible, future::ready, net::SocketAddr, sync::Arc, time::Duration};
-use tokio::sync::{mpsc::Receiver, Mutex, RwLock};
+use tokio::{sync::{mpsc::{Receiver, Sender}, Mutex, RwLock}, task::JoinHandle, time::Instant};
 use y_sync::{awareness::Awareness, net::BroadcastGroup};
 use yrs::{Doc, Options, Transact};
 use yrs_kvstore::DocOps;
@@ -26,21 +23,60 @@ pub struct Server<S: Store + 'static> {
     pub checkpoint_freq: Duration,
 }
 
-enum ServerMessage {
-    Persist,
-    Shutdown,
+struct Throttle {
+    last: std::sync::Mutex<Option<Instant>>,
+    freq: Duration,
+    sender: Sender<()>,
+    handle: std::sync::Mutex<Option<JoinHandle<()>>>,
+}
+
+impl Throttle {
+    fn new(freq: Duration, sender: Sender<()>) -> Self {
+        Self {
+            last: std::sync::Mutex::new(None),
+            freq,
+            handle: std::sync::Mutex::new(None),
+            sender,
+        }
+    }
+
+    fn call(&self) {
+        println!("throttle called");
+        let mut handle = self.handle.lock().unwrap();
+        if handle.is_some() {
+            println!("handle already set; ignoring");
+            return;
+        }
+        let now = Instant::now();
+        println!("current time {:?}", now);
+        let mut last = self.last.lock().unwrap();
+        if let Some(last) = last.clone() {
+            if now - last < self.freq {
+                println!("too recent; deferring.");
+                let freq = self.freq;
+                let sender = self.sender.clone();
+                handle.replace(tokio::spawn(async move {
+                    println!("sleeping");
+                    tokio::time::sleep_until(last + freq).await;
+                    println!("sending deferred");
+                    sender.try_send(()).unwrap();
+                }));
+                return;
+            }
+        }
+        println!("sending");
+        self.sender.try_send(()).unwrap();
+        last.replace(now);
+    }
 }
 
 impl<S: Store> Server<S> {
-    async fn persist_loop(sync_kv: Arc<SyncKv>, mut receiver: Receiver<ServerMessage>) {
+    async fn persist_loop(sync_kv: Arc<SyncKv>, mut receiver: Receiver<()>) {
         loop {
             match receiver.recv().await {
-                Some(ServerMessage::Persist) => {
+                Some(_) => {
                     println!("persisting");
                     sync_kv.persist().await.unwrap();
-                }
-                Some(ServerMessage::Shutdown) => {
-                    return;
                 }
                 None => {
                     println!("persist loop ended");
@@ -52,9 +88,13 @@ impl<S: Store> Server<S> {
     pub async fn serve(self) -> Result<(), &'static str> {
         let (sender, receiver) = tokio::sync::mpsc::channel(1);
 
-        let sync_kv = SyncKv::new(self.store, move || sender.try_send(ServerMessage::Persist).unwrap())
-            .await
-            .map_err(|_| "Failed to create SyncKv")?;
+        let throttle = Throttle::new(self.checkpoint_freq, sender.clone());
+
+        let sync_kv = SyncKv::new(self.store, move || {
+            throttle.call();
+        })
+        .await
+        .map_err(|_| "Failed to create SyncKv")?;
 
         let sync_kv = Arc::new(sync_kv);
 

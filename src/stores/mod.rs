@@ -1,4 +1,4 @@
-use std::{path::PathBuf, fs::remove_file, error::Error};
+use std::{path::PathBuf, fs::{remove_file, create_dir_all}, error::Error};
 use async_trait::async_trait;
 
 #[async_trait]
@@ -31,6 +31,7 @@ impl Store for FileSystemStore {
     }
 
     async fn set(&self, key: &str, value: Vec<u8>) -> Result<(), Box<dyn Error>> {
+        create_dir_all(self.base_path.clone())?;
         let path = self.base_path.join(key);
         std::fs::write(path, value)?;
         Ok(())
