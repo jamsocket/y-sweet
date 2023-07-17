@@ -2,6 +2,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use s3::bucket::Bucket;
 use s3::creds::Credentials;
+use s3::error::S3Error;
 use s3::region::Region;
 
 use super::Store;
@@ -26,8 +27,13 @@ impl S3Store {
 #[async_trait]
 impl Store for S3Store {
     async fn get(&self, key: &str) -> Result<Option<Vec<u8>>> {
-        let response = self.bucket.get_object(&self.make_key(key)).await?;
-        Ok(Some(response.to_vec()))
+        let response = self.bucket.get_object(&self.make_key(key)).await;
+
+        match response {
+            Ok(result) => Ok(Some(result.to_vec())),
+            Err(S3Error::Http(404, _)) => Ok(None),
+            Err(e) => Err(e.into()),
+        }
     }
 
     async fn set(&self, key: &str, value: Vec<u8>) -> Result<()> {
