@@ -10,15 +10,22 @@ use axum::{
 };
 use futures::{SinkExt, StreamExt};
 use std::{convert::Infallible, future::ready, net::SocketAddr, sync::Arc, time::Duration};
-use tokio::{sync::{mpsc::{Receiver, Sender}, Mutex, RwLock}, task::JoinHandle, time::Instant};
+use tokio::{
+    sync::{
+        mpsc::{Receiver, Sender},
+        Mutex, RwLock,
+    },
+    task::JoinHandle,
+    time::Instant,
+};
 use y_sync::{awareness::Awareness, net::BroadcastGroup};
 use yrs::{Doc, Options, Transact};
 use yrs_kvstore::DocOps;
 
 const DOC_NAME: &str = "doc";
 
-pub struct Server<S: Store + 'static> {
-    pub store: S,
+pub struct Server {
+    pub store: Box<dyn Store>,
     pub addr: SocketAddr,
     pub checkpoint_freq: Duration,
 }
@@ -64,7 +71,7 @@ impl Throttle {
     }
 }
 
-impl<S: Store> Server<S> {
+impl Server {
     async fn persist_loop(sync_kv: Arc<SyncKv>, mut receiver: Receiver<()>) {
         loop {
             match receiver.recv().await {

@@ -20,7 +20,10 @@ pub struct SyncKv {
 }
 
 impl SyncKv {
-    pub async fn new<S: Store + 'static, Callback: Fn() + Send + Sync + 'static>(store: S, callback: Callback) -> Result<Self, Box<dyn std::error::Error>> {
+    pub async fn new<Callback: Fn() + Send + Sync + 'static>(
+        store: Box<dyn Store>,
+        callback: Callback,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
         let data = if let Some(snapshot) = store.get(DATA_FILENAME).await? {
             bincode::deserialize(&snapshot)?
         } else {
@@ -29,7 +32,7 @@ impl SyncKv {
 
         Ok(Self {
             data: Arc::new(Mutex::new(data)),
-            store: Arc::new(Box::new(store)),
+            store: Arc::new(store),
             dirty: AtomicBool::new(false),
             dirty_callback: Box::new(callback),
         })
@@ -208,7 +211,9 @@ mod test {
     async fn calls_sync_callback() {
         let store = MemoryStore::default();
         let c = CallbackCounter::default();
-        let mut sync_kv = SyncKv::new(store.clone(), c.callback()).await.unwrap();
+        let mut sync_kv = SyncKv::new(Box::new(store.clone()), c.callback())
+            .await
+            .unwrap();
 
         assert_eq!(c.count(), 0);
         sync_kv.set(b"foo", b"bar");
@@ -230,7 +235,7 @@ mod test {
         let store = MemoryStore::default();
 
         {
-            let mut sync_kv = SyncKv::new(store.clone(), || ()).await.unwrap();
+            let sync_kv = SyncKv::new(Box::new(store.clone()), || ()).await.unwrap();
 
             sync_kv.set(b"foo", b"bar");
             assert_eq!(sync_kv.get(b"foo"), Some(b"bar".to_vec()));
@@ -241,7 +246,7 @@ mod test {
         }
 
         {
-            let sync_kv = SyncKv::new(store.clone(), || ()).await.unwrap();
+            let sync_kv = SyncKv::new(Box::new(store.clone()), || ()).await.unwrap();
 
             assert_eq!(sync_kv.get(b"foo"), Some(b"bar".to_vec()));
         }

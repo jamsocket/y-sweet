@@ -5,6 +5,7 @@ use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     path::PathBuf,
 };
+use stores::Store;
 use tracing::metadata::LevelFilter;
 use tracing_subscriber::{
     prelude::__tracing_subscriber_SubscriberExt, util::SubscriberInitExt, EnvFilter,
@@ -35,6 +36,10 @@ enum ServSubcommand {
     Dump,
 }
 
+fn get_store_from_opts(opts: &Opts) -> Box<dyn Store> {
+    Box::new(FileSystemStore::new(PathBuf::from(&opts.store_path)))
+}
+
 #[tokio::main]
 async fn main() {
     let opts = Opts::parse();
@@ -58,7 +63,7 @@ async fn main() {
                 port,
             );
 
-            let store = FileSystemStore::new(PathBuf::from(opts.store_path));
+            let store = get_store_from_opts(&opts);
 
             let server = Server {
                 store,

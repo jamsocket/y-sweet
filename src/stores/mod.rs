@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use std::error::Error;
 
+pub mod blobstore;
 pub mod filesystem;
 
 #[async_trait]
