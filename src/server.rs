@@ -37,7 +37,7 @@ impl<S: Store> Server<S> {
             match receiver.recv().await {
                 Some(ServerMessage::Persist) => {
                     println!("persisting");
-                    //sync_kv.persist().await.unwrap();
+                    sync_kv.persist().await.unwrap();
                 }
                 Some(ServerMessage::Shutdown) => {
                     return;

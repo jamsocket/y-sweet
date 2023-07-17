@@ -14,7 +14,7 @@ const DATA_FILENAME: &str = "data.bin";
 
 pub struct SyncKv {
     data: Arc<Mutex<BTreeMap<Vec<u8>, Vec<u8>>>>,
-    store: Arc<Mutex<Box<dyn Store>>>,
+    store: Arc<Box<dyn Store>>,
     dirty: AtomicBool,
     dirty_callback: Box<dyn Fn() + Send + Sync>,
 }
@@ -29,7 +29,7 @@ impl SyncKv {
 
         Ok(Self {
             data: Arc::new(Mutex::new(data)),
-            store: Arc::new(Mutex::new(Box::new(store))),
+            store: Arc::new(Box::new(store)),
             dirty: AtomicBool::new(false),
             dirty_callback: Box::new(callback),
         })
@@ -43,9 +43,11 @@ impl SyncKv {
     }
 
     pub async fn persist(&self) -> Result<(), Box<dyn std::error::Error>> {
-        let data = self.data.lock().unwrap();
-        let snapshot = bincode::serialize(&*data)?;
-        self.store.lock().unwrap().set(DATA_FILENAME, snapshot).await?;
+        let snapshot = {
+            let data = self.data.lock().unwrap();
+            bincode::serialize(&*data)?
+        };
+        self.store.set(DATA_FILENAME, snapshot).await?;
         self.dirty.store(false, Ordering::Relaxed);
         Ok(())
     }
@@ -173,12 +175,12 @@ mod test {
             Ok(self.data.get(key.as_bytes()).map(|v| v.clone()))
         }
 
-        async fn set(&mut self, key: &str, value: Vec<u8>) -> Result<(), Box<dyn Error>> {
+        async fn set(&self, key: &str, value: Vec<u8>) -> Result<(), Box<dyn Error>> {
             self.data.insert(key.as_bytes().to_vec(), value);
             Ok(())
         }
 
-        async fn remove(&mut self, key: &str) -> Result<(), Box<dyn Error>> {
+        async fn remove(&self, key: &str) -> Result<(), Box<dyn Error>> {
             self.data.remove(key.as_bytes());
             Ok(())
         }
