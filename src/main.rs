@@ -1,11 +1,13 @@
 use crate::stores::filesystem::FileSystemStore;
+use anyhow::Result;
 use clap::{Parser, Subcommand};
+use s3::Region;
 use server::Server;
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     path::PathBuf,
 };
-use stores::Store;
+use stores::{blobstore::S3Store, Store};
 use tracing::metadata::LevelFilter;
 use tracing_subscriber::{
     prelude::__tracing_subscriber_SubscriberExt, util::SubscriberInitExt, EnvFilter,
@@ -36,12 +38,31 @@ enum ServSubcommand {
     Dump,
 }
 
-fn get_store_from_opts(opts: &Opts) -> Box<dyn Store> {
-    Box::new(FileSystemStore::new(PathBuf::from(&opts.store_path)))
+fn get_store_from_opts(opts: &Opts) -> Result<Box<dyn Store>> {
+    if opts.store_path.starts_with("s3://") {
+        let region = Region::UsEast1;
+
+        let url = url::Url::parse(&opts.store_path)?;
+        if url.scheme() != "s3" {
+            return Err(anyhow::anyhow!("Invalid S3 URL"));
+        }
+        let bucket = url
+            .host_str()
+            .ok_or_else(|| anyhow::anyhow!("Invalid S3 URL"))?
+            .to_owned();
+        let prefix = url.path().trim_start_matches('/').to_owned();
+
+        let store = S3Store::new(region, bucket, prefix)?;
+        Ok(Box::new(store))
+    } else {
+        Ok(Box::new(FileSystemStore::new(PathBuf::from(
+            &opts.store_path,
+        ))))
+    }
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<()> {
     let opts = Opts::parse();
 
     let filter = EnvFilter::builder()
@@ -63,7 +84,7 @@ async fn main() {
                 port,
             );
 
-            let store = get_store_from_opts(&opts);
+            let store = get_store_from_opts(&opts)?;
 
             let server = Server {
                 store,
@@ -74,10 +95,12 @@ async fn main() {
             let address = format!("http://{}:{}", server.addr.ip(), server.addr.port());
             tracing::info!(%address, "Listening");
 
-            server.serve().await.unwrap();
+            server.serve().await?;
         }
         ServSubcommand::Dump => {
             todo!()
         }
     }
+
+    Ok(())
 }

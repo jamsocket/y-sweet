@@ -12,11 +12,7 @@ pub struct S3Store {
 }
 
 impl S3Store {
-    pub async fn new(
-        region: Region,
-        bucket: String,
-        prefix: String,
-    ) -> Result<Self, Box<dyn Error>> {
+    pub fn new(region: Region, bucket: String, prefix: String) -> Result<Self, anyhow::Error> {
         let credentials = Credentials::default()?;
         let bucket = Bucket::new(&bucket, region, credentials)?;
         Ok(Self { bucket, prefix })

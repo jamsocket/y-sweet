@@ -1,4 +1,5 @@
 use crate::{stores::Store, sync_kv::SyncKv};
+use anyhow::anyhow;
 use axum::{
     extract::{
         ws::{Message, WebSocket},
@@ -86,7 +87,7 @@ impl Server {
         }
     }
 
-    pub async fn serve(self) -> Result<(), &'static str> {
+    pub async fn serve(self) -> Result<(), anyhow::Error> {
         let (sender, receiver) = tokio::sync::mpsc::channel(1);
 
         let throttle = Throttle::new(self.checkpoint_freq, sender.clone());
@@ -95,7 +96,7 @@ impl Server {
             throttle.call();
         })
         .await
-        .map_err(|_| "Failed to create SyncKv")?;
+        .map_err(|_| anyhow!("Failed to create SyncKv"))?;
 
         let sync_kv = Arc::new(sync_kv);
 
@@ -107,7 +108,7 @@ impl Server {
             let mut txn = doc.transact_mut();
             sync_kv
                 .load_doc(DOC_NAME, &mut txn)
-                .map_err(|_| "Failed to load doc")?;
+                .map_err(|_| anyhow!("Failed to load doc"))?;
         }
 
         let _subscription_guard = doc
@@ -117,7 +118,7 @@ impl Server {
                     .flush_doc_with(DOC_NAME, Options::default())
                     .unwrap();
             })
-            .map_err(|_| "Failed to subscribe to updates")?;
+            .map_err(|_| anyhow!("Failed to subscribe to updates"))?;
 
         let awareness = Arc::new(RwLock::new(Awareness::new(doc)));
         let broadcast_group = Arc::new(BroadcastGroup::new(awareness, 32).await);
@@ -129,7 +130,7 @@ impl Server {
         axum::Server::bind(&self.addr)
             .serve(app.into_make_service())
             .await
-            .map_err(|_| "Failed to serve")?;
+            .map_err(|_| anyhow!("Failed to serve"))?;
 
         Ok(())
     }
