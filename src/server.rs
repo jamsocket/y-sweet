@@ -41,30 +41,24 @@ impl Throttle {
     }
 
     fn call(&self) {
-        println!("throttle called");
         let mut handle = self.handle.lock().unwrap();
         if handle.is_some() {
-            println!("handle already set; ignoring");
             return;
         }
         let now = Instant::now();
-        println!("current time {:?}", now);
         let mut last = self.last.lock().unwrap();
         if let Some(last) = last.clone() {
             if now - last < self.freq {
-                println!("too recent; deferring.");
                 let freq = self.freq;
                 let sender = self.sender.clone();
                 handle.replace(tokio::spawn(async move {
-                    println!("sleeping");
                     tokio::time::sleep_until(last + freq).await;
-                    println!("sending deferred");
                     sender.try_send(()).unwrap();
                 }));
                 return;
             }
         }
-        println!("sending");
+
         self.sender.try_send(()).unwrap();
         last.replace(now);
     }
@@ -75,11 +69,11 @@ impl<S: Store> Server<S> {
         loop {
             match receiver.recv().await {
                 Some(_) => {
-                    println!("persisting");
+                    tracing::info!("Persisting");
                     sync_kv.persist().await.unwrap();
                 }
                 None => {
-                    println!("persist loop ended");
+                    tracing::info!("Persist loop ended.");
                 }
             }
         }
@@ -138,7 +132,6 @@ async fn handler(
     ws: WebSocketUpgrade,
     State(broadcast_group): State<Arc<BroadcastGroup>>,
 ) -> Response {
-    println!("connection opened");
     ws.on_upgrade(move |socket| handle_socket(socket, broadcast_group.clone()))
 }
 
@@ -147,8 +140,9 @@ async fn handle_socket(socket: WebSocket, broadcast_group: Arc<BroadcastGroup>) 
 
     let stream = tokio_stream::StreamExt::filter_map(stream, |d| match d {
         Ok(Message::Binary(s)) => Some(Ok::<_, Infallible>(s)),
-        _ => {
-            println!("got here");
+        Ok(Message::Close(_)) => None,
+        msg => {
+            tracing::warn!(?msg, "Received non-binary message");
             None
         }
     });
@@ -158,7 +152,7 @@ async fn handle_socket(socket: WebSocket, broadcast_group: Arc<BroadcastGroup>) 
     let sub = broadcast_group.subscribe(sink, stream);
 
     match sub.completed().await {
-        Ok(_) => println!("socket closed"),
-        Err(e) => println!("socket closed with error: {}", e),
+        Ok(_) => tracing::info!("Socket closed"),
+        Err(e) => tracing::warn!(?e, "Socket closed with error"),
     }
 }

@@ -1,10 +1,14 @@
+use crate::stores::filesystem::FileSystemStore;
 use clap::{Parser, Subcommand};
 use server::Server;
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     path::PathBuf,
 };
-use stores::FileSystemStore;
+use tracing::metadata::LevelFilter;
+use tracing_subscriber::{
+    prelude::__tracing_subscriber_SubscriberExt, util::SubscriberInitExt, EnvFilter,
+};
 
 mod server;
 mod stores;
@@ -35,6 +39,14 @@ enum ServSubcommand {
 async fn main() {
     let opts = Opts::parse();
 
+    let filter = EnvFilter::builder()
+        .with_default_directive(LevelFilter::INFO.into())
+        .from_env_lossy();
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::fmt::layer())
+        .with(filter)
+        .init();
+
     match opts.subcmd {
         ServSubcommand::Serve {
             port,
@@ -53,6 +65,9 @@ async fn main() {
                 addr,
                 checkpoint_freq: std::time::Duration::from_secs(checkpoint_freq_seconds),
             };
+
+            let address = format!("http://{}:{}", server.addr.ip(), server.addr.port());
+            tracing::info!(%address, "Listening");
 
             server.serve().await.unwrap();
         }

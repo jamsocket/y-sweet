@@ -16,6 +16,8 @@ rust-s3 = "0.33.0"
 serde = { version = "1.0.171", features = ["derive"] }
 tokio = { version = "1.29.1", features = ["macros", "rt-multi-thread"] }
 tokio-stream = "0.1.14"
+tracing = "0.1.37"
+tracing-subscriber = { version = "0.3.17", features = ["env-filter", "fmt"] }
 y-sync = { version = "0.3.1", features = ["net"] }
 yrs = "0.16.9"
 yrs-kvstore = "0.1.0"
