@@ -31,44 +31,57 @@ pub struct Server {
     pub checkpoint_freq: Duration,
 }
 
+#[derive(Default)]
+struct ThrottleInner {
+    last: Option<Instant>,
+    handle: Option<JoinHandle<()>>,
+}
+
 struct Throttle {
-    last: std::sync::Mutex<Option<Instant>>,
     freq: Duration,
     sender: Sender<()>,
-    handle: std::sync::Mutex<Option<JoinHandle<()>>>,
+    inner: Arc<std::sync::Mutex<ThrottleInner>>,
 }
 
 impl Throttle {
     fn new(freq: Duration, sender: Sender<()>) -> Self {
         Self {
-            last: std::sync::Mutex::new(None),
             freq,
-            handle: std::sync::Mutex::new(None),
             sender,
+            inner: Arc::default(),
         }
     }
 
     fn call(&self) {
-        let mut handle = self.handle.lock().unwrap();
-        if handle.is_some() {
+        tracing::info!("Throttle called");
+        let mut inner = self.inner.lock().unwrap();
+        if inner.handle.is_some() {
+            tracing::info!("Throttle already deferred.");
             return;
         }
         let now = Instant::now();
-        let mut last = self.last.lock().unwrap();
-        if let Some(last) = last.clone() {
+        if let Some(last) = inner.last {
             if now - last < self.freq {
+                tracing::info!("Deferring throttle");
                 let freq = self.freq;
                 let sender = self.sender.clone();
-                handle.replace(tokio::spawn(async move {
+                let inner_clone = self.inner.clone();
+                inner.handle.replace(tokio::spawn(async move {
                     tokio::time::sleep_until(last + freq).await;
+                    tracing::info!("Deferred throttle ready.");
                     sender.try_send(()).unwrap();
+
+                    let mut inner_clone = inner_clone.lock().unwrap();
+                    inner_clone.last.replace(now);
+                    inner_clone.handle.take();
                 }));
                 return;
             }
         }
 
+        tracing::info!("Persisting.");
         self.sender.try_send(()).unwrap();
-        last.replace(now);
+        inner.last.replace(now);
     }
 }
 

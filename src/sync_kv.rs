@@ -1,4 +1,5 @@
 use crate::stores::Store;
+use anyhow::Result;
 use std::{
     collections::BTreeMap,
     convert::Infallible,
@@ -8,7 +9,6 @@ use std::{
         Arc, Mutex,
     },
 };
-use anyhow::Result;
 use yrs_kvstore::{DocOps, KVEntry};
 
 const DATA_FILENAME: &str = "data.bin";
@@ -52,6 +52,7 @@ impl SyncKv {
             let data = self.data.lock().unwrap();
             bincode::serialize(&*data)?
         };
+        tracing::info!(size=?snapshot.len(), "Persisting snapshot");
         self.store.set(DATA_FILENAME, snapshot).await?;
         self.dirty.store(false, Ordering::Relaxed);
         Ok(())
@@ -166,7 +167,7 @@ mod test {
     use super::*;
     use async_trait::async_trait;
     use dashmap::DashMap;
-    use std::{error::Error, sync::atomic::AtomicUsize};
+    use std::sync::atomic::AtomicUsize;
     use tokio;
 
     #[derive(Default, Clone)]
@@ -213,7 +214,7 @@ mod test {
     async fn calls_sync_callback() {
         let store = MemoryStore::default();
         let c = CallbackCounter::default();
-        let mut sync_kv = SyncKv::new(Box::new(store.clone()), c.callback())
+        let sync_kv = SyncKv::new(Box::new(store.clone()), c.callback())
             .await
             .unwrap();
 

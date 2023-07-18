@@ -31,7 +31,7 @@ enum ServSubcommand {
         #[clap(default_value = "8000")]
         port: u16,
         host: Option<IpAddr>,
-        #[clap(default_value = "30")]
+        #[clap(default_value = "10")]
         checkpoint_freq_seconds: u64,
     },
 
