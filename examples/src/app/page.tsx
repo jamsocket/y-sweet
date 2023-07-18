@@ -1,4 +1,4 @@
-import { HomeInner } from '@/components/HomeInner'
+import { ToDoList } from '@/components/ToDoList'
 import { createRoom, authDoc } from '../lib/yserv'
 import { YjsProvider } from '@/lib/provider'
 
@@ -9,10 +9,9 @@ export default async function Home() {
   return (
     <div>
       <h1>Room: {room.doc_id}</h1>
-      <h2>Auth: {auth.url}</h2>
 
-      <YjsProvider url={auth.url}>
-        <HomeInner />
+      <YjsProvider base_url={auth.base_url} doc_id={auth.doc_id}>
+        <ToDoList />
       </YjsProvider>
     </div>
   )

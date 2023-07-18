@@ -19,7 +19,8 @@ export type AuthDocRequest = {
 }
 
 export type AuthDocResponse = {
-    url: string,
+    base_url: string,
+    doc_id: string,
 }
 
 export async function authDoc(doc_id: string, request: AuthDocRequest): Promise<AuthDocResponse> {

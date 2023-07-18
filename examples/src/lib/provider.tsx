@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useEffect, useMemo, useRef } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
@@ -12,11 +12,12 @@ export function useYjs() {
 
 type YjsProviderProps = {
     children: React.ReactNode
-    url: string
+    base_url: string
+    doc_id: string
 }
 
 export function YjsProvider(props: YjsProviderProps) {
-    const { children, url } = props
+    const { children, base_url, doc_id } = props
 
     const docRef = useRef<Y.Doc | null>(null)
     if (docRef.current === null) {
@@ -25,7 +26,7 @@ export function YjsProvider(props: YjsProviderProps) {
 
     useEffect(() => {
         new WebsocketProvider(
-            url, 'my-demo', docRef.current!
+            base_url, doc_id, docRef.current!
         )
     })
 
@@ -34,8 +35,31 @@ export function YjsProvider(props: YjsProviderProps) {
     )
 }
 
-export function useMap(name: string): Y.Map<any> | undefined {
-    let doc = useYjs()
-    let map = useMemo(() => doc?.getMap(name), [doc, name])
-    return map
+function useRedraw() {
+    const [_, setRedraw] = useState(0)
+    return () => setRedraw((x) => x + 1)
+}
+
+export function useMap<T>(name: string): Y.Map<T> | undefined {
+    const doc = useYjs()
+    const map = useMemo(() => doc?.getMap(name), [doc, name])
+    const redraw = useRedraw()
+
+    useEffect(() => {
+        map?.observe(redraw)
+    }, [map, redraw])
+
+    return map as Y.Map<T>
+}
+
+export function useArray<T>(name: string): Y.Array<T> | undefined {
+    const doc = useYjs()
+    const array = useMemo(() => doc?.getArray(name), [doc, name])
+    const redraw = useRedraw()
+    
+    useEffect(() => {
+        array?.observe(redraw)
+    }, [array, redraw])
+
+    return array as Y.Array<T>
 }

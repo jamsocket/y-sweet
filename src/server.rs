@@ -81,7 +81,7 @@ impl Server {
             .on_response(DefaultOnResponse::new().level(Level::INFO));
 
         let app = Router::new()
-            .route("/doc/:doc_id/connect", get(handler))
+            .route("/doc/ws/:doc_id", get(handler))
             .route("/doc/new", post(new_doc))
             .route("/doc/:doc_id/auth", post(auth_doc))
             .with_state(server_state)
@@ -173,7 +173,8 @@ struct AuthDocRequest {
 
 #[derive(Serialize)]
 struct AuthDocResponse {
-    url: String,
+    base_url: String,
+    doc_id: String,
 }
 
 async fn auth_doc(
@@ -190,7 +191,7 @@ async fn auth_doc(
         .docs
         .get(&doc_id)
         .ok_or(StatusCode::NOT_FOUND)?;
-    let url = format!("ws://{}/doc/{}/connect", host, doc_id);
+    let base_url = format!("ws://{}/doc/ws", host);
 
-    Ok(Json(AuthDocResponse { url }))
+    Ok(Json(AuthDocResponse { base_url, doc_id }))
 }
