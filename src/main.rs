@@ -2,7 +2,6 @@ use crate::stores::filesystem::FileSystemStore;
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use s3::Region;
-use server::Server;
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     path::PathBuf,
@@ -13,9 +12,8 @@ use tracing_subscriber::{
     prelude::__tracing_subscriber_SubscriberExt, util::SubscriberInitExt, EnvFilter,
 };
 
-mod api;
-mod doc_service;
 mod server;
+mod doc_service;
 mod stores;
 mod sync_kv;
 mod throttle;
@@ -36,6 +34,10 @@ enum ServSubcommand {
         host: Option<IpAddr>,
         #[clap(default_value = "10")]
         checkpoint_freq_seconds: u64,
+
+        /// Bearer token required for document management API
+        /// (not for direct client connections).
+        bearer_token: Option<String>,
     },
 
     Dump,
@@ -76,29 +78,30 @@ async fn main() -> Result<()> {
         .with(filter)
         .init();
 
-    match opts.subcmd {
+    match &opts.subcmd {
         ServSubcommand::Serve {
             port,
             host,
             checkpoint_freq_seconds,
+            bearer_token,
         } => {
             let addr = SocketAddr::new(
                 host.unwrap_or(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1))),
-                port,
+                *port,
             );
 
             let store = get_store_from_opts(&opts)?;
 
-            let server = Server {
+            let server = server::Server::new(
                 store,
-                addr,
-                checkpoint_freq: std::time::Duration::from_secs(checkpoint_freq_seconds),
-            };
+                std::time::Duration::from_secs(*checkpoint_freq_seconds),
+                bearer_token.clone(),
+            ).await?;
 
-            let address = format!("http://{}:{}", server.addr.ip(), server.addr.port());
+            let address = format!("http://{}:{}", addr.ip(), addr.port());
             tracing::info!(%address, "Listening");
 
-            server.serve().await?;
+            server.serve(&addr).await?;
         }
         ServSubcommand::Dump => {
             todo!()

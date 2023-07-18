@@ -12,7 +12,7 @@ use yrs_kvstore::DocOps;
 const DOC_NAME: &str = "doc";
 
 pub struct DocService {
-    pub broadcast_group: Option<BroadcastGroup>,
+    pub broadcast_group: Arc<BroadcastGroup>,
     pub handle: JoinHandle<()>,
     pub subscription: Subscription<Arc<dyn Fn(&TransactionMut<'_>, &UpdateEvent)>>,
 }
@@ -66,7 +66,7 @@ impl DocService {
             .map_err(|_| anyhow!("Failed to subscribe to updates"))?;
 
         let awareness = Arc::new(RwLock::new(Awareness::new(doc)));
-        let broadcast_group = Some(BroadcastGroup::new(awareness, 32).await);
+        let broadcast_group = Arc::new(BroadcastGroup::new(awareness, 32).await);
 
         Ok(DocService {
             broadcast_group,
