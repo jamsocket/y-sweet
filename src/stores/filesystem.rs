@@ -11,8 +11,9 @@ pub struct FileSystemStore {
 }
 
 impl FileSystemStore {
-    pub fn new(base_path: PathBuf) -> Self {
-        Self { base_path }
+    pub fn new(base_path: PathBuf) -> Result<Self, std::io::Error> {
+        create_dir_all(base_path.clone())?;
+        Ok(Self { base_path })
     }
 }
 
@@ -29,7 +30,6 @@ impl Store for FileSystemStore {
     }
 
     async fn set(&self, key: &str, value: Vec<u8>) -> Result<()> {
-        create_dir_all(self.base_path.clone())?;
         let path = self.base_path.join(key);
         std::fs::write(path, value)?;
         Ok(())

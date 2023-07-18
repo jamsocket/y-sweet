@@ -12,8 +12,8 @@ use tracing_subscriber::{
     prelude::__tracing_subscriber_SubscriberExt, util::SubscriberInitExt, EnvFilter,
 };
 
-mod server;
 mod doc_service;
+mod server;
 mod stores;
 mod sync_kv;
 mod throttle;
@@ -29,14 +29,16 @@ struct Opts {
 #[derive(Subcommand)]
 enum ServSubcommand {
     Serve {
-        #[clap(default_value = "8000")]
+        #[clap(long, default_value = "8080")]
         port: u16,
+        #[clap(long)]
         host: Option<IpAddr>,
-        #[clap(default_value = "10")]
+        #[clap(long, default_value = "10")]
         checkpoint_freq_seconds: u64,
 
         /// Bearer token required for document management API
         /// (not for direct client connections).
+        #[clap(long)]
         bearer_token: Option<String>,
     },
 
@@ -62,7 +64,7 @@ fn get_store_from_opts(opts: &Opts) -> Result<Box<dyn Store>> {
     } else {
         Ok(Box::new(FileSystemStore::new(PathBuf::from(
             &opts.store_path,
-        ))))
+        ))?))
     }
 }
 
@@ -85,6 +87,10 @@ async fn main() -> Result<()> {
             checkpoint_freq_seconds,
             bearer_token,
         } => {
+            if bearer_token.is_none() {
+                tracing::warn!("No bearer token set. Only use this for local development!");
+            }
+
             let addr = SocketAddr::new(
                 host.unwrap_or(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1))),
                 *port,
@@ -96,7 +102,8 @@ async fn main() -> Result<()> {
                 store,
                 std::time::Duration::from_secs(*checkpoint_freq_seconds),
                 bearer_token.clone(),
-            ).await?;
+            )
+            .await?;
 
             let address = format!("http://{}:{}", addr.ip(), addr.port());
             tracing::info!(%address, "Listening");
