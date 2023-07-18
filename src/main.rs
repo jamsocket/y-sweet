@@ -16,6 +16,7 @@ use tracing_subscriber::{
 mod server;
 mod stores;
 mod sync_kv;
+mod throttle;
 
 #[derive(Parser)]
 struct Opts {

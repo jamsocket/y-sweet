@@ -1,4 +1,4 @@
-use crate::{stores::Store, sync_kv::SyncKv};
+use crate::{stores::Store, sync_kv::SyncKv, throttle::Throttle};
 use anyhow::{anyhow, Context};
 use axum::{
     extract::{
@@ -11,14 +11,7 @@ use axum::{
 };
 use futures::{SinkExt, StreamExt};
 use std::{convert::Infallible, future::ready, net::SocketAddr, sync::Arc, time::Duration};
-use tokio::{
-    sync::{
-        mpsc::{Receiver, Sender},
-        Mutex, RwLock,
-    },
-    task::JoinHandle,
-    time::Instant,
-};
+use tokio::sync::{mpsc::Receiver, Mutex, RwLock};
 use y_sync::{awareness::Awareness, net::BroadcastGroup};
 use yrs::{Doc, Options, Transact};
 use yrs_kvstore::DocOps;
@@ -29,60 +22,6 @@ pub struct Server {
     pub store: Box<dyn Store>,
     pub addr: SocketAddr,
     pub checkpoint_freq: Duration,
-}
-
-#[derive(Default)]
-struct ThrottleInner {
-    last: Option<Instant>,
-    handle: Option<JoinHandle<()>>,
-}
-
-struct Throttle {
-    freq: Duration,
-    sender: Sender<()>,
-    inner: Arc<std::sync::Mutex<ThrottleInner>>,
-}
-
-impl Throttle {
-    fn new(freq: Duration, sender: Sender<()>) -> Self {
-        Self {
-            freq,
-            sender,
-            inner: Arc::default(),
-        }
-    }
-
-    fn call(&self) {
-        tracing::info!("Throttle called");
-        let mut inner = self.inner.lock().unwrap();
-        if inner.handle.is_some() {
-            tracing::info!("Throttle already deferred.");
-            return;
-        }
-        let now = Instant::now();
-        if let Some(last) = inner.last {
-            if now - last < self.freq {
-                tracing::info!("Deferring throttle");
-                let freq = self.freq;
-                let sender = self.sender.clone();
-                let inner_clone = self.inner.clone();
-                inner.handle.replace(tokio::spawn(async move {
-                    tokio::time::sleep_until(last + freq).await;
-                    tracing::info!("Deferred throttle ready.");
-                    sender.try_send(()).unwrap();
-
-                    let mut inner_clone = inner_clone.lock().unwrap();
-                    inner_clone.last.replace(now);
-                    inner_clone.handle.take();
-                }));
-                return;
-            }
-        }
-
-        tracing::info!("Persisting.");
-        self.sender.try_send(()).unwrap();
-        inner.last.replace(now);
-    }
 }
 
 impl Server {
