@@ -13,6 +13,7 @@ use tracing_subscriber::{
     prelude::__tracing_subscriber_SubscriberExt, util::SubscriberInitExt, EnvFilter,
 };
 
+mod api;
 mod server;
 mod stores;
 mod sync_kv;
