@@ -14,6 +14,7 @@ use tracing_subscriber::{
 };
 
 mod api;
+mod doc_service;
 mod server;
 mod stores;
 mod sync_kv;
