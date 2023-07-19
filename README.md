@@ -1,12 +1,16 @@
 # y-serv
 
 `y-serv` is a standalone yjs server with batteries included:
-- Persistence to local disk, NFS, or S3-compatible blob storage (no database required!)
-- PASETO-based authorization system.
-- Built-in debug interface.
-- History API.
+- [x] Persistence to local disk, NFS, or S3-compatible blob storage (no database required!)
+- [ ] PASETO-based authorization system.
+- [ ] Built-in debug interface.
+- [ ] History API.
 
 ## Usage
+
+### Install the server
+
+    cargo install --path=./
 
 ### Run a local server
 
