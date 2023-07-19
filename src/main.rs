@@ -151,31 +151,36 @@ async fn main() -> Result<()> {
 }
 
 fn dump_object_inner(result: &Any, indent: usize) {
-    let indent_str = " ".repeat(indent);
+    let indent_str = "  ".repeat(indent);
 
     match result {
         Any::Map(map) => {
+            println!("{{");
             for (key, value) in map.iter() {
-                println!("{}{}:", indent_str, key);
-                dump_object_inner(value, indent + 2);
+                print!("  {}{}: ", indent_str, key);
+                dump_object_inner(value, indent + 1);
             }
+            println!("{}}}", indent_str);
         }
         Any::Array(array) => {
+            println!("[");
             for value in array.iter() {
-                dump_object_inner(value, indent + 2);
+                print!("{}  ", indent_str);
+                dump_object_inner(value, indent + 1);
             }
+            println!("{}]", indent_str);
         }
         Any::String(string) => {
-            println!("{}{}", indent_str, string);
+            println!("\"{}\"", string.replace("\"", "\\\""));
         }
         Any::Number(number) => {
-            println!("{}{}", indent_str, number);
+            println!("{}", number);
         }
         Any::Bool(boolean) => {
-            println!("{}{}", indent_str, boolean);
+            println!("{}", boolean);
         }
         Any::Null => {
-            println!("{}null", indent_str);
+            println!("null");
         }
         Any::Undefined => todo!(),
         Any::BigInt(_) => todo!(),
