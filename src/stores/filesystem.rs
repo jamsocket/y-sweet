@@ -41,4 +41,9 @@ impl Store for FileSystemStore {
         remove_file(path)?;
         Ok(())
     }
+
+    async fn exists(&self, key: &str) -> Result<bool> {
+        let path = self.base_path.join(key);
+        Ok(path.exists())
+    }
 }

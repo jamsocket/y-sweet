@@ -186,12 +186,28 @@ async fn auth_doc(
 ) -> Result<Json<AuthDocResponse>, StatusCode> {
     server_state.check_auth(authorization)?;
 
-    // Make sure the doc exists.
-    server_state
-        .docs
-        .get(&doc_id)
-        .ok_or(StatusCode::NOT_FOUND)?;
-    let base_url = format!("ws://{}/doc/ws", host);
+    if !server_state.docs.contains_key(&doc_id) {
+        if server_state
+            .store
+            .exists(&format!("{}/data.bin", doc_id))
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        {
+            let doc_service = DocService::new(
+                server_state.store.clone(),
+                doc_id.clone(),
+                server_state.checkpoint_freq,
+            )
+            .await
+            .unwrap(); // todo: handle error
+            server_state.docs.insert(doc_id.clone(), doc_service);
 
+            tracing::info!(doc_id=?doc_id, "Loaded doc from snapshot");
+        } else {
+            return Err(StatusCode::NOT_FOUND);
+        }
+    }
+
+    let base_url = format!("ws://{}/doc/ws", host);
     Ok(Json(AuthDocResponse { base_url, doc_id }))
 }

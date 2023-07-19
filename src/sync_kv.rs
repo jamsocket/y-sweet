@@ -173,23 +173,27 @@ mod test {
 
     #[derive(Default, Clone)]
     struct MemoryStore {
-        data: Arc<DashMap<Vec<u8>, Vec<u8>>>,
+        data: Arc<DashMap<String, Vec<u8>>>,
     }
 
     #[async_trait]
     impl Store for MemoryStore {
         async fn get(&self, key: &str) -> Result<Option<Vec<u8>>> {
-            Ok(self.data.get(key.as_bytes()).map(|v| v.clone()))
+            Ok(self.data.get(key).map(|v| v.clone()))
         }
 
         async fn set(&self, key: &str, value: Vec<u8>) -> Result<()> {
-            self.data.insert(key.as_bytes().to_vec(), value);
+            self.data.insert(key.to_owned(), value);
             Ok(())
         }
 
         async fn remove(&self, key: &str) -> Result<()> {
-            self.data.remove(key.as_bytes());
+            self.data.remove(key);
             Ok(())
+        }
+
+        async fn exists(&self, key: &str) -> Result<bool> {
+            Ok(self.data.contains_key(key))
         }
     }
 

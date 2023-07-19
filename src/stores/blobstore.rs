@@ -44,4 +44,14 @@ impl Store for S3Store {
         let _code = self.bucket.delete_object(&self.make_key(key)).await?;
         Ok(())
     }
+
+    async fn exists(&self, key: &str) -> Result<bool> {
+        let response = self.bucket.head_object(&self.make_key(key)).await;
+
+        match response {
+            Ok(_) => Ok(true),
+            Err(S3Error::Http(404, _)) => Ok(false),
+            Err(e) => Err(e.into()),
+        }
+    }
 }
