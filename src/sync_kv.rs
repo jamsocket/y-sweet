@@ -11,11 +11,10 @@ use std::{
 };
 use yrs_kvstore::{DocOps, KVEntry};
 
-const DATA_FILENAME: &str = "data.bin";
-
 pub struct SyncKv {
     data: Arc<Mutex<BTreeMap<Vec<u8>, Vec<u8>>>>,
     store: Arc<Box<dyn Store>>,
+    key: String,
     dirty: AtomicBool,
     dirty_callback: Box<dyn Fn() + Send + Sync>,
 }
@@ -23,9 +22,11 @@ pub struct SyncKv {
 impl SyncKv {
     pub async fn new<Callback: Fn() + Send + Sync + 'static>(
         store: Arc<Box<dyn Store>>,
+        key: &str,
         callback: Callback,
     ) -> Result<Self> {
-        let data = if let Some(snapshot) = store.get(DATA_FILENAME).await? {
+        let key = format!("{}/data.bin", key);
+        let data = if let Some(snapshot) = store.get(&key).await? {
             tracing::info!(size=?snapshot.len(), "Loaded snapshot");
             bincode::deserialize(&snapshot)?
         } else {
@@ -34,7 +35,8 @@ impl SyncKv {
 
         Ok(Self {
             data: Arc::new(Mutex::new(data)),
-            store: store,
+            store,
+            key,
             dirty: AtomicBool::new(false),
             dirty_callback: Box::new(callback),
         })
@@ -53,7 +55,7 @@ impl SyncKv {
             bincode::serialize(&*data)?
         };
         tracing::info!(size=?snapshot.len(), "Persisting snapshot");
-        self.store.set(DATA_FILENAME, snapshot).await?;
+        self.store.set(&self.key, snapshot).await?;
         self.dirty.store(false, Ordering::Relaxed);
         Ok(())
     }
@@ -128,12 +130,11 @@ impl<'a> yrs_kvstore::KVStore<'a> for SyncKv {
     }
 
     fn iter_range(&self, from: &[u8], to: &[u8]) -> Result<Self::Cursor, Self::Error> {
-        let result = Ok(SyncKvCursor {
+        Ok(SyncKvCursor {
             data: self.data.clone(),
             next_key: Bound::Included(from.to_vec()),
             to: to.to_vec(),
-        });
-        result
+        })
     }
 
     fn peek_back(&self, key: &[u8]) -> Result<Option<Self::Entry>, Self::Error> {
@@ -214,7 +215,7 @@ mod test {
     async fn calls_sync_callback() {
         let store = MemoryStore::default();
         let c = CallbackCounter::default();
-        let sync_kv = SyncKv::new(Arc::new(Box::new(store.clone())), c.callback())
+        let sync_kv = SyncKv::new(Arc::new(Box::new(store.clone())), "foo", c.callback())
             .await
             .unwrap();
 
@@ -238,7 +239,7 @@ mod test {
         let store = MemoryStore::default();
 
         {
-            let sync_kv = SyncKv::new(Arc::new(Box::new(store.clone())), || ())
+            let sync_kv = SyncKv::new(Arc::new(Box::new(store.clone())), "foo", || ())
                 .await
                 .unwrap();
 
@@ -251,7 +252,7 @@ mod test {
         }
 
         {
-            let sync_kv = SyncKv::new(Arc::new(Box::new(store.clone())), || ())
+            let sync_kv = SyncKv::new(Arc::new(Box::new(store.clone())), "foo", || ())
                 .await
                 .unwrap();
 

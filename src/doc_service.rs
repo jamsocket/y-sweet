@@ -32,12 +32,16 @@ async fn persist_loop(sync_kv: Arc<SyncKv>, mut receiver: Receiver<()>) {
 }
 
 impl DocService {
-    pub async fn new(store: Arc<Box<dyn Store>>, checkpoint_freq: Duration) -> Result<Self> {
+    pub async fn new(
+        store: Arc<Box<dyn Store>>,
+        key: String,
+        checkpoint_freq: Duration,
+    ) -> Result<Self> {
         let (sender, receiver) = tokio::sync::mpsc::channel(1);
 
         let throttle = Throttle::new(checkpoint_freq, sender.clone());
 
-        let sync_kv = SyncKv::new(store, move || {
+        let sync_kv = SyncKv::new(store, &key, move || {
             throttle.call();
         })
         .await

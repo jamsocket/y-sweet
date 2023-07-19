@@ -15,13 +15,13 @@ use dashmap::DashMap;
 use futures::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use tower_http::trace::{TraceLayer, DefaultMakeSpan, DefaultOnRequest, DefaultOnResponse};
-use tracing::Level;
 use std::{
     collections::HashMap, convert::Infallible, future::ready, net::SocketAddr, sync::Arc,
     time::Duration,
 };
 use tokio::sync::Mutex;
+use tower_http::trace::{DefaultMakeSpan, DefaultOnRequest, DefaultOnResponse, TraceLayer};
+use tracing::Level;
 use y_sync::net::BroadcastGroup;
 
 pub struct Server {
@@ -40,8 +40,8 @@ impl Server {
         Ok(Self {
             docs: DashMap::new(),
             store: Arc::new(store),
-            checkpoint_freq: checkpoint_freq,
-            bearer_token: bearer_token,
+            checkpoint_freq,
+            bearer_token,
         })
     }
 
@@ -62,7 +62,7 @@ impl Server {
 
     pub async fn create_doc(&self) -> String {
         let doc_id = nanoid::nanoid!();
-        let doc_service = DocService::new(self.store.clone(), self.checkpoint_freq)
+        let doc_service = DocService::new(self.store.clone(), doc_id.clone(), self.checkpoint_freq)
             .await
             .unwrap(); // todo: handle error
         self.docs.insert(doc_id.clone(), doc_service);
@@ -106,7 +106,7 @@ async fn handler(
     };
 
     let broadcast_group = doc_service.broadcast_group.clone();
-    Ok(ws.on_upgrade(move |socket| handle_socket(socket, broadcast_group.clone())))
+    Ok(ws.on_upgrade(move |socket| handle_socket(socket, broadcast_group)))
 }
 
 async fn handle_socket(socket: WebSocket, broadcast_group: Arc<BroadcastGroup>) {
@@ -164,7 +164,7 @@ impl Authorization {
 
 #[derive(Deserialize)]
 struct AuthDocRequest {
-    #[serde(default="Authorization::full")]
+    #[serde(default = "Authorization::full")]
     authorization: Authorization,
     user_id: Option<String>,
     #[serde(default)]

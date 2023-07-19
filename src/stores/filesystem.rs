@@ -31,6 +31,7 @@ impl Store for FileSystemStore {
 
     async fn set(&self, key: &str, value: Vec<u8>) -> Result<()> {
         let path = self.base_path.join(key);
+        create_dir_all(path.parent().expect("Bad parent"))?;
         std::fs::write(path, value)?;
         Ok(())
     }
