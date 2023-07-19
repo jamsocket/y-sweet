@@ -1,10 +1,14 @@
 use crate::stores::filesystem::FileSystemStore;
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use clap::{Parser, Subcommand};
+use doc_service::DOC_NAME;
+use lib0::any::Any;
 use s3::Region;
+use yrs::{Doc, Transact, ReadTxn, types::ToJson, Array};
+use yrs_kvstore::DocOps;
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
-    path::PathBuf,
+    path::PathBuf, sync::Arc, collections::HashMap,
 };
 use stores::{blobstore::S3Store, Store};
 use tracing::metadata::LevelFilter;
@@ -42,7 +46,9 @@ enum ServSubcommand {
         bearer_token: Option<String>,
     },
 
-    Dump,
+    Dump {
+        doc_id: String,
+    },
 }
 
 fn get_store_from_opts(opts: &Opts) -> Result<Box<dyn Store>> {
@@ -110,10 +116,73 @@ async fn main() -> Result<()> {
 
             server.serve(&addr).await?;
         }
-        ServSubcommand::Dump => {
-            todo!()
+        ServSubcommand::Dump { doc_id } => {
+            let store = get_store_from_opts(&opts)?;
+            let sync_kv = sync_kv::SyncKv::new(Arc::new(store), doc_id, || {}).await?;
+            let doc = Doc::new();
+            
+            {
+                let mut txn = doc.transact_mut();
+                sync_kv.load_doc(DOC_NAME, &mut txn).map_err(|e| anyhow!("Error loading doc: {:?}", e))?;
+
+                let root_keys = txn.root_keys();
+
+                let mut map: HashMap<String, Any> = HashMap::new();
+
+                for key in root_keys {
+                    let value = txn.get_array(&key).expect("Failed to get array");
+                    if value.len(&txn) > 0 {
+                        map.insert(key.to_string(), value.to_json(&txn));
+                        continue;
+                    }
+
+                    let value = txn.get_map(&key).expect("Failed to get map");
+                    map.insert(key.to_string(), value.to_json(&txn));
+                }
+
+                let result = Any::Map(Box::new(map));
+
+                dump_object(&result);
+            }
         }
     }
 
     Ok(())
+}
+
+fn dump_object_inner(result: &Any, indent: usize) {
+    let indent_str = " ".repeat(indent);
+
+    match result {
+        Any::Map(map) => {
+            for (key, value) in map.iter() {
+                println!("{}{}:", indent_str, key);
+                dump_object_inner(value, indent + 2);
+            }
+        }
+        Any::Array(array) => {
+            for value in array.iter() {
+                dump_object_inner(value, indent + 2);
+            }
+        }
+        Any::String(string) => {
+            println!("{}{}", indent_str, string);
+        }
+        Any::Number(number) => {
+            println!("{}{}", indent_str, number);
+        }
+        Any::Bool(boolean) => {
+            println!("{}{}", indent_str, boolean);
+        }
+        Any::Null => {
+            println!("{}null", indent_str);
+        }
+        Any::Undefined => todo!(),
+        Any::BigInt(_) => todo!(),
+        Any::Buffer(_) => todo!(),
+    }
+}
+
+fn dump_object(result: &Any) {
+    dump_object_inner(result, 0);
 }

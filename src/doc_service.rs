@@ -9,7 +9,7 @@ use y_sync::{awareness::Awareness, net::BroadcastGroup};
 use yrs::{Doc, Options, Subscription, Transact, TransactionMut, UpdateEvent};
 use yrs_kvstore::DocOps;
 
-const DOC_NAME: &str = "doc";
+pub const DOC_NAME: &str = "doc";
 
 pub struct DocService {
     pub broadcast_group: Arc<BroadcastGroup>,

@@ -875,8 +875,7 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 [[package]]
 name = "lib0"
 version = "0.16.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "40eeae16c4b8d30d57b19fe2db02fb84633854de945a8be877d1e96cf8aeb7bc"
+source = "git+https://github.com/paulgb/y-crdt.git?branch=paulgb/add-root-keys#343eef45b0e9919ba0d30848a96f186262d2bb13"
 dependencies = [
  "thiserror",
 ]
@@ -2285,6 +2284,7 @@ dependencies = [
  "clap",
  "dashmap",
  "futures",
+ "lib0",
  "nanoid",
  "rust-s3",
  "serde",
@@ -2316,8 +2316,7 @@ dependencies = [
 [[package]]
 name = "yrs"
 version = "0.16.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "602a92ff0f51cf8106cb483b69ceb71fb56ebe5ba64bd142f48d5fa5597813ea"
+source = "git+https://github.com/paulgb/y-crdt.git?branch=paulgb/add-root-keys#343eef45b0e9919ba0d30848a96f186262d2bb13"
 dependencies = [
  "atomic_refcell",
  "lib0",

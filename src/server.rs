@@ -189,7 +189,7 @@ async fn auth_doc(
     if !server_state.docs.contains_key(&doc_id) {
         if server_state
             .store
-            .exists(&format!("{}/data.bin", doc_id))
+            .exists(&format!("{}/data.bin", doc_id)) // TODO: this should live elsewhere?
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         {
