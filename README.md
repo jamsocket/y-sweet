@@ -8,6 +8,10 @@
 
 ## Usage
 
+### Install the server
+
+    cargo install --path=./
+
 ### Run a local server
 
 You can run `y-serv` locally like this:
