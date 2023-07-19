@@ -5,6 +5,7 @@ export type FetchResult = {
 export async function createRoom(): Promise<FetchResult> {
     const result = await fetch('http://127.0.0.1:8080/doc/new', {
         method: 'POST',
+        // cache: 'no-store',
     })
     if (!result.ok) {
         throw new Error(`Failed to create room: ${result.status} ${result.statusText}`)
@@ -30,6 +31,7 @@ export async function authDoc(doc_id: string, request: AuthDocRequest): Promise<
             'Content-Type': 'application/json',
         },
         body: JSON.stringify(request),
+        // cache: 'no-store',
     })
     if (!result.ok) {
         throw new Error(`Failed to auth doc ${doc_id}: ${result.status} ${result.statusText}`)

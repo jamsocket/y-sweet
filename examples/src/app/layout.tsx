@@ -13,7 +13,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <div className='md:w-[800px] m-auto md:my-20'>
+          {children}
+        </div>
+      </body>
     </html>
   )
 }

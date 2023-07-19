@@ -43,11 +43,7 @@ function useRedraw() {
 export function useMap<T>(name: string): Y.Map<T> | undefined {
     const doc = useYjs()
     const map = useMemo(() => doc?.getMap(name), [doc, name])
-    const redraw = useRedraw()
-
-    useEffect(() => {
-        map?.observe(redraw)
-    }, [map, redraw])
+    useObserve(map!)
 
     return map as Y.Map<T>
 }
@@ -55,11 +51,19 @@ export function useMap<T>(name: string): Y.Map<T> | undefined {
 export function useArray<T>(name: string): Y.Array<T> | undefined {
     const doc = useYjs()
     const array = useMemo(() => doc?.getArray(name), [doc, name])
-    const redraw = useRedraw()
-    
-    useEffect(() => {
-        array?.observe(redraw)
-    }, [array, redraw])
+    useObserve(array!)
 
     return array as Y.Array<T>
+}
+
+export function useObserve(object: Y.Map<any> | Y.Array<any>) {
+    const redraw = useRedraw()
+
+    useEffect(() => {
+        object.observe(redraw)
+
+        return () => {
+            object.unobserve(redraw)
+        }
+    })
 }
