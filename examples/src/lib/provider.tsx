@@ -12,12 +12,13 @@ export function useYjs() {
 
 type YjsProviderProps = {
     children: React.ReactNode
-    base_url: string
-    doc_id: string
+    baseUrl: string
+    docId: string
+    setQueryParam?: string
 }
 
 export function YjsProvider(props: YjsProviderProps) {
-    const { children, base_url, doc_id } = props
+    const { children, baseUrl: base_url, docId: doc_id } = props
 
     const docRef = useRef<Y.Doc | null>(null)
     if (docRef.current === null) {
@@ -28,6 +29,12 @@ export function YjsProvider(props: YjsProviderProps) {
         new WebsocketProvider(
             base_url, doc_id, docRef.current!
         )
+
+        if (props.setQueryParam) {
+            const url = new URL(window.location.href)
+            url.searchParams.set(props.setQueryParam, doc_id)
+            window.history.replaceState({}, '', url.toString())
+        }
     })
 
     return (
