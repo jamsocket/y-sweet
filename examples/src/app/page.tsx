@@ -1,6 +1,6 @@
 import { ToDoList } from '@/components/ToDoList'
-import { createRoom, authDoc } from '../lib/yserv'
 import { YjsProvider } from '@/lib/provider'
+import { authDoc, createRoom } from '../lib/yserv'
 
 export default async function Home() {
   let room = await createRoom()
@@ -12,4 +12,3 @@ export default async function Home() {
     </YjsProvider>
   )
 }
-
