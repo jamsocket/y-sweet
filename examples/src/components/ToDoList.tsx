@@ -1,6 +1,6 @@
 "use client"
 
-import { useArray, useObserve } from "@/lib/provider";
+import { useArray } from "@/lib/provider";
 import { useCallback, useState } from "react";
 import * as Y from 'yjs';
 
@@ -45,8 +45,6 @@ type ToDoItemProps = {
 }
 
 export function ToDoItem({item}: ToDoItemProps) {
-    useObserve(item)
-
     const clickCallback = useCallback(() => {
         item.set("done", !item.get("done"))
     }, [item])

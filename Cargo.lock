@@ -297,9 +297,9 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "clap"
-version = "4.3.12"
+version = "4.3.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3eab9e8ceb9afdade1ab3f0fd8dbce5b1b2f468ad653baf10e771781b2b67b73"
+checksum = "5b0827b011f6f8ab38590295339817b0d26f344aa4932c3ced71b45b0c54b4a9"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -308,9 +308,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.3.12"
+version = "4.3.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f2763db829349bf00cfc06251268865ed4363b93a943174f638daf3ecdba2cd"
+checksum = "9441b403be87be858db6a23edb493e7f694761acdc3343d5a0fcaafd304cbc9e"
 dependencies = [
  "anstream",
  "anstyle",
@@ -875,7 +875,7 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 [[package]]
 name = "lib0"
 version = "0.16.9"
-source = "git+https://github.com/paulgb/y-crdt.git?branch=paulgb/add-root-keys#343eef45b0e9919ba0d30848a96f186262d2bb13"
+source = "git+https://github.com/paulgb/y-crdt.git?branch=paulgb/add-root-keys#4866d4f1eb2fad2bc67a712da75cafdd29050954"
 dependencies = [
  "thiserror",
 ]
@@ -1881,9 +1881,9 @@ dependencies = [
 
 [[package]]
 name = "tower-http"
-version = "0.4.1"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a8bd22a874a2d0b70452d5597b12c537331d49060824a95f49f108994f94aa4c"
+checksum = "7ac8060a61f8758a61562f6fb53ba3cbe1ca906f001df2e53cccddcdbee91e7c"
 dependencies = [
  "bitflags 2.3.3",
  "bytes",
@@ -2316,7 +2316,7 @@ dependencies = [
 [[package]]
 name = "yrs"
 version = "0.16.9"
-source = "git+https://github.com/paulgb/y-crdt.git?branch=paulgb/add-root-keys#343eef45b0e9919ba0d30848a96f186262d2bb13"
+source = "git+https://github.com/paulgb/y-crdt.git?branch=paulgb/add-root-keys#4866d4f1eb2fad2bc67a712da75cafdd29050954"
 dependencies = [
  "atomic_refcell",
  "lib0",

@@ -63,12 +63,16 @@ export function useArray<T>(name: string): Y.Array<T> | undefined {
     return array as Y.Array<T>
 }
 
-export function useObserve(object: Y.Map<any> | Y.Array<any>) {
+function useObserve(object: Y.Map<any> | Y.Array<any>, deep = true) {
     const redraw = useRedraw()
 
     useEffect(() => {
-        object.observe(redraw)
-
+        if (deep) {
+            object.observeDeep(redraw)
+        } else {
+            object.observe(redraw)
+        }
+        
         return () => {
             object.unobserve(redraw)
         }
