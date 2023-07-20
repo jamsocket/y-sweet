@@ -14,24 +14,24 @@ use axum::{
 use base64::{engine::general_purpose, Engine};
 use dashmap::DashMap;
 use futures::{SinkExt, StreamExt};
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
-use std::{
-    collections::HashMap, convert::Infallible, future::ready, net::SocketAddr, sync::Arc,
-    time::Duration,
-};
+use serde::Deserialize;
+use std::{convert::Infallible, future::ready, net::SocketAddr, sync::Arc, time::Duration};
 use tokio::sync::Mutex;
 use tower_http::trace::{DefaultMakeSpan, DefaultOnRequest, DefaultOnResponse, TraceLayer};
 use tracing::Level;
-use y_serve_core::{auth::Authenticator, store::Store};
+use y_serve_core::{
+    api_types::{AuthDocRequest, AuthDocResponse, NewDocResponse},
+    auth::Authenticator,
+    store::Store,
+};
 use y_sync::net::BroadcastGroup;
 
 pub struct Server {
     docs: DashMap<String, DocService>,
-    pub store: Arc<Box<dyn Store>>,
-    pub checkpoint_freq: Duration,
-    pub bearer_token: Option<String>,
-    pub authenticator: Option<Authenticator>,
+    store: Arc<Box<dyn Store>>,
+    checkpoint_freq: Duration,
+    bearer_token: Option<String>,
+    authenticator: Option<Authenticator>,
 }
 
 impl Server {
@@ -158,52 +158,14 @@ async fn handle_socket(socket: WebSocket, broadcast_group: Arc<BroadcastGroup>) 
     }
 }
 
-#[derive(Serialize)]
-struct DocResponse {
-    doc_id: String,
-}
-
 async fn new_doc(
     authorization: Option<TypedHeader<headers::Authorization<Bearer>>>,
     State(server_state): State<Arc<Server>>,
-) -> Result<Json<DocResponse>, StatusCode> {
+) -> Result<Json<NewDocResponse>, StatusCode> {
     server_state.check_auth(authorization)?;
 
     let doc_id = server_state.create_doc().await;
-    Ok(Json(DocResponse { doc_id }))
-}
-
-#[derive(Deserialize)]
-pub enum Authorization {
-    #[serde(rename = "none")]
-    Nothing,
-    #[serde(rename = "readonly")]
-    ReadOnly,
-    #[serde(rename = "full")]
-    Full,
-}
-
-impl Authorization {
-    fn full() -> Self {
-        Self::Full
-    }
-}
-
-#[derive(Deserialize)]
-#[allow(unused)]
-struct AuthDocRequest {
-    #[serde(default = "Authorization::full")]
-    authorization: Authorization,
-    user_id: Option<String>,
-    #[serde(default)]
-    metadata: HashMap<String, Value>,
-}
-
-#[derive(Serialize)]
-struct AuthDocResponse {
-    base_url: String,
-    doc_id: String,
-    token: Option<String>,
+    Ok(Json(NewDocResponse { doc_id }))
 }
 
 async fn auth_doc(
