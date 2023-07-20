@@ -10,7 +10,7 @@
 
 ### Install the server
 
-    cargo install --path=./
+    cargo install --path=y-serve
 
 ### Run a local server
 
