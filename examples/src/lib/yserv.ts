@@ -78,6 +78,7 @@ export type AuthDocRequest = {
 export type ConnectionKey = {
     base_url: string,
     doc_id: string,
+    token?: string,
 }
 
 export async function getOrCreateDoc(docId?: string, options?: DocumentManagerOptions): Promise<ConnectionKey> {

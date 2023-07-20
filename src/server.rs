@@ -1,4 +1,4 @@
-use crate::{doc_service::DocService, stores::Store};
+use crate::{auth::Authenticator, doc_service::DocService, stores::Store};
 use anyhow::{anyhow, Result};
 use axum::{
     extract::{
@@ -13,6 +13,7 @@ use axum::{
 };
 use dashmap::DashMap;
 use futures::{SinkExt, StreamExt};
+use pasetors::{claims::Claims, keys::SymmetricKey, local::encrypt, version4::V4};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{
@@ -29,6 +30,7 @@ pub struct Server {
     pub store: Arc<Box<dyn Store>>,
     pub checkpoint_freq: Duration,
     pub bearer_token: Option<String>,
+    pub authenticator: Option<Authenticator>,
 }
 
 impl Server {
@@ -36,12 +38,14 @@ impl Server {
         store: Box<dyn Store>,
         checkpoint_freq: Duration,
         bearer_token: Option<String>,
+        authenticator: Option<Authenticator>,
     ) -> Result<Self> {
         Ok(Self {
             docs: DashMap::new(),
             store: Arc::new(store),
             checkpoint_freq,
             bearer_token,
+            authenticator,
         })
     }
 
@@ -175,6 +179,7 @@ struct AuthDocRequest {
 struct AuthDocResponse {
     base_url: String,
     doc_id: String,
+    token: Option<String>,
 }
 
 async fn auth_doc(
@@ -208,6 +213,17 @@ async fn auth_doc(
         }
     }
 
+    let token = if let Some(paseto) = &server_state.authenticator {
+        let token = paseto.gen_token(&doc_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        Some(token)
+    } else {
+        None
+    };
+
     let base_url = format!("ws://{}/doc/ws", host);
-    Ok(Json(AuthDocResponse { base_url, doc_id }))
+    Ok(Json(AuthDocResponse {
+        base_url,
+        doc_id,
+        token,
+    }))
 }

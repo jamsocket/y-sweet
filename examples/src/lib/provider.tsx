@@ -5,6 +5,7 @@ import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 import { ConnectionKey } from './yserv';
 import type { Awareness } from 'y-protocols/awareness'
+import { connect } from 'http2';
 
 type YjsContextType = {
     doc: Y.Doc
