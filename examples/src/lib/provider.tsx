@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 import { ConnectionKey } from './yserv';
@@ -62,7 +62,7 @@ export function YDocProvider(props: YDocProviderProps) {
 
 function useRedraw() {
     const [_, setRedraw] = useState(0)
-    return () => setRedraw((x) => x + 1)
+    return useCallback(() => setRedraw((x) => x + 1), [setRedraw])
 }
 
 export function useMap<T>(name: string): Y.Map<T> | undefined {
@@ -100,7 +100,11 @@ function useObserve(object: Y.Map<any> | Y.Array<any> | Y.Text, deep = true) {
         }
         
         return () => {
-            object.unobserve(redraw)
+            if (deep) {
+                object.unobserveDeep(redraw)
+            } else {
+                object.unobserve(redraw)
+            }
         }
     })
 }

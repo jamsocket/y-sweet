@@ -1,24 +1,33 @@
 "use client"
 
 import { useAwareness, useText } from "@/lib/provider"
-import type { Editor } from "codemirror"
+import { useCallback, useRef } from "react"
+import type { CodemirrorBinding } from "y-codemirror"
+import type { EditorFromTextArea } from "codemirror"
+
 import "codemirror/lib/codemirror.css"
 import "codemirror/mode/javascript/javascript"
-import { useCallback, useRef } from "react"
 import "./caret.css"
 
 export function CodeEditor() {
     const yText = useText('text')
     const awareness = useAwareness()
-    const editorRef = useRef<Editor | null>(null)
+    const editorRef = useRef<EditorFromTextArea | null>(null)
+    const bindingRef = useRef<CodemirrorBinding | null>(null)
 
     const codeMirrorRef = useCallback(
         (ref: HTMLTextAreaElement | null) => {
             if (ref == null) {
                 if (editorRef.current != null) {
-                    ; (editorRef.current as any).toTextArea()
+                    editorRef.current.toTextArea()
                     editorRef.current = null
                 }
+
+                if (bindingRef.current != null) {
+                    bindingRef.current.destroy()
+                    bindingRef.current = null
+                }
+
                 return
             }
 
@@ -33,7 +42,7 @@ export function CodeEditor() {
                 mode: 'javascript',
             })
 
-            new CodemirrorBinding(yText!, editorRef.current, awareness)
+            bindingRef.current = new CodemirrorBinding(yText!, editorRef.current, awareness)
         },
         [yText, awareness]
     )
