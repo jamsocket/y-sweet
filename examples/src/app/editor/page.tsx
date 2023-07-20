@@ -1,4 +1,4 @@
-import { ToDoList } from './ToDoList'
+import { CodeEditor } from './Editor'
 import { YDocProvider } from '@/lib/provider'
 import { getOrCreateDoc } from '@/lib/yserv'
 
@@ -7,11 +7,11 @@ type HomeProps = {
 }
 
 export default async function Home({ searchParams }: HomeProps) {
-  const connectionKey = await getOrCreateDoc(searchParams.ydoc)
+  const connectionKey = await getOrCreateDoc(searchParams.doc)
 
   return (
     <YDocProvider connectionKey={connectionKey} setQueryParam='doc'>
-      <ToDoList />
+      <CodeEditor />
     </YDocProvider>
   )
 }

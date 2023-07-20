@@ -9,6 +9,7 @@ export default async function Home({ searchParams }: HomeProps) {
     <div className="space-y-4">
       <h1 className="text-xl font-bold">Home</h1>
       <div><Link href="/todos" className="text-blue-500 underline">To Do List</Link></div>
+      <div><Link href="/editor" className="text-blue-500 underline">Code Editor</Link></div>
     </div>
   )
 }

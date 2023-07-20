@@ -68,7 +68,15 @@ export function useArray<T>(name: string): Y.Array<T> | undefined {
     return array as Y.Array<T>
 }
 
-function useObserve(object: Y.Map<any> | Y.Array<any>, deep = true) {
+export function useText(name: string): Y.Text | undefined {
+    const doc = useYDoc()
+    const text = useMemo(() => doc?.getText(name), [doc, name])
+    useObserve(text!)
+
+    return text as Y.Text
+}
+
+function useObserve(object: Y.Map<any> | Y.Array<any> | Y.Text, deep = true) {
     const redraw = useRedraw()
 
     useEffect(() => {
