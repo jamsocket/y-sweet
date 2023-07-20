@@ -2,7 +2,7 @@
 
 `y-serve` is a standalone yjs server with batteries included:
 - [x] Persistence to local disk, NFS, or S3-compatible blob storage (no database required!)
-- [ ] PASETO-based authorization system.
+- [x] PASETO-based authorization system.
 - [ ] Built-in debug interface.
 - [ ] History API.
 

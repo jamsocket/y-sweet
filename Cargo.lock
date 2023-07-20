@@ -2332,6 +2332,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "axum",
+ "base64 0.21.2",
  "bincode",
  "clap",
  "dashmap",

@@ -7,6 +7,7 @@ edition = "2021"
 anyhow = "1.0.72"
 async-trait = "0.1.71"
 axum = { version = "0.6.19", features = ["ws", "headers"] }
+base64 = "0.21.2"
 bincode = "1.3.3"
 clap = { version = "4.3.12", features = ["derive"] }
 dashmap = "5.5.0"

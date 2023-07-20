@@ -11,6 +11,7 @@ use axum::{
     routing::{get, post},
     Json, Router, TypedHeader,
 };
+use base64::{engine::general_purpose, Engine};
 use dashmap::DashMap;
 use futures::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
@@ -54,7 +55,8 @@ impl Server {
     ) -> Result<(), StatusCode> {
         if let Some(token) = &self.bearer_token {
             if let Some(TypedHeader(headers::Authorization(bearer))) = header {
-                if bearer.token() == token {
+                let bytes = general_purpose::STANDARD.decode(bearer.token()).map_err(|_| StatusCode::BAD_REQUEST)?;
+                if bytes == token.as_bytes() {
                     return Ok(());
                 }
             }

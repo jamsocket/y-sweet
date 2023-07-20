@@ -7,7 +7,7 @@ type HomeProps = {
 }
 
 export default async function Home({ searchParams }: HomeProps) {
-  const connectionKey = await getOrCreateDoc(searchParams.doc)
+  const connectionKey = await getOrCreateDoc(searchParams.doc, {token: 'foobar'})
 
   return (
     <YDocProvider connectionKey={connectionKey} setQueryParam='doc'>
