@@ -2274,7 +2274,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "y-serv"
+name = "y-serve"
 version = "0.1.0"
 dependencies = [
  "anyhow",

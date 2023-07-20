@@ -1,4 +1,4 @@
-import { ToDoList } from '@/components/ToDoList'
+import { ToDoList } from '@/app/todos/ToDoList'
 import { YDocProvider } from '@/lib/provider'
 import { getOrCreateDoc } from '../../lib/yserv'
 
