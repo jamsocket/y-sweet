@@ -5,7 +5,6 @@ import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 import { ConnectionKey } from './yserv';
 import type { Awareness } from 'y-protocols/awareness'
-import { connect } from 'http2';
 
 type YjsContextType = {
     doc: Y.Doc
@@ -45,8 +44,9 @@ export function YDocProvider(props: YDocProviderProps) {
     }
 
     useEffect(() => {
+        const params = auth.token ? { token: auth.token } : undefined
         ctxRef.current!.provider = new WebsocketProvider(
-            auth.base_url, auth.doc_id, ctxRef.current!.doc
+            auth.base_url, auth.doc_id, ctxRef.current!.doc, { params }
         )
 
         if (props.setQueryParam) {

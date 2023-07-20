@@ -11,10 +11,12 @@ use yrs_kvstore::DocOps;
 
 pub const DOC_NAME: &str = "doc";
 
+type UpdateSubscription = Subscription<Arc<dyn Fn(&TransactionMut<'_>, &UpdateEvent)>>;
+
 pub struct DocService {
     pub broadcast_group: Arc<BroadcastGroup>,
     pub handle: JoinHandle<()>,
-    pub subscription: Subscription<Arc<dyn Fn(&TransactionMut<'_>, &UpdateEvent)>>,
+    pub subscription: UpdateSubscription,
 }
 
 async fn persist_loop(sync_kv: Arc<SyncKv>, mut receiver: Receiver<()>) {

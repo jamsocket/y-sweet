@@ -3,7 +3,7 @@ use anyhow::{anyhow, Result};
 use axum::{
     extract::{
         ws::{Message, WebSocket},
-        Path, State, WebSocketUpgrade,
+        Path, Query, State, WebSocketUpgrade,
     },
     headers::{self, authorization::Bearer},
     http::StatusCode,
@@ -13,7 +13,6 @@ use axum::{
 };
 use dashmap::DashMap;
 use futures::{SinkExt, StreamExt};
-use pasetors::{claims::Claims, keys::SymmetricKey, local::encrypt, version4::V4};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{
@@ -100,11 +99,30 @@ impl Server {
     }
 }
 
+#[derive(Deserialize)]
+struct HandlerParams {
+    token: Option<String>,
+}
+
 async fn handler(
     ws: WebSocketUpgrade,
     Path(doc_id): Path<String>,
+    Query(params): Query<HandlerParams>,
     State(server_state): State<Arc<Server>>,
 ) -> Result<Response, StatusCode> {
+    if let Some(authenticator) = &server_state.authenticator {
+        if let Some(token) = params.token {
+            if !authenticator
+                .verify_token(&token, &doc_id)
+                .unwrap_or_default()
+            {
+                return Err(StatusCode::UNAUTHORIZED);
+            }
+        } else {
+            return Err(StatusCode::UNAUTHORIZED);
+        }
+    }
+
     let Some(doc_service) = server_state.docs.get(&doc_id) else {
         return Err(StatusCode::NOT_FOUND);
     };
@@ -167,6 +185,7 @@ impl Authorization {
 }
 
 #[derive(Deserialize)]
+#[allow(unused)]
 struct AuthDocRequest {
     #[serde(default = "Authorization::full")]
     authorization: Authorization,
@@ -187,7 +206,7 @@ async fn auth_doc(
     TypedHeader(host): TypedHeader<headers::Host>,
     State(server_state): State<Arc<Server>>,
     Path(doc_id): Path<String>,
-    Json(body): Json<AuthDocRequest>,
+    Json(_body): Json<AuthDocRequest>,
 ) -> Result<Json<AuthDocResponse>, StatusCode> {
     server_state.check_auth(authorization)?;
 
@@ -214,7 +233,9 @@ async fn auth_doc(
     }
 
     let token = if let Some(paseto) = &server_state.authenticator {
-        let token = paseto.gen_token(&doc_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        let token = paseto
+            .gen_token(&doc_id)
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
         Some(token)
     } else {
         None

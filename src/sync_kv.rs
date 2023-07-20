@@ -60,11 +60,13 @@ impl SyncKv {
         Ok(())
     }
 
+    #[cfg(test)]
     fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
         let map = self.data.lock().unwrap();
         map.get(key).cloned()
     }
 
+    #[cfg(test)]
     fn set(&self, key: &[u8], value: &[u8]) {
         let mut map = self.data.lock().unwrap();
         map.insert(key.to_vec(), value.to_vec());

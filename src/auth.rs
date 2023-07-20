@@ -8,6 +8,7 @@ use pasetors::{
     version4::V4,
     Local,
 };
+use serde_json::Value;
 
 pub struct Authenticator {
     pub paseto: SymmetricKey<V4>,
@@ -21,7 +22,7 @@ impl Authenticator {
 
     pub fn gen_token(&self, doc_id: &str) -> Result<String> {
         let mut claims = Claims::new()?;
-        claims.add_additional("doc", doc_id.clone())?;
+        claims.add_additional("doc", doc_id)?;
 
         Ok(encrypt(&self.paseto, &claims, None, None)?)
     }
@@ -40,7 +41,11 @@ impl Authenticator {
             .payload_claims()
             .ok_or_else(|| anyhow!("No claims"))?;
         let claim_doc_id = claims.get_claim("doc").ok_or_else(|| anyhow!("No doc"))?;
-        Ok(claim_doc_id == doc_id)
+        if let Value::String(value) = claim_doc_id {
+            Ok(value == doc_id)
+        } else {
+            Ok(false)
+        }
     }
 
     pub fn gen_key() -> Result<String> {

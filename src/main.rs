@@ -118,7 +118,7 @@ async fn main() -> Result<()> {
                 *port,
             );
 
-            let store = get_store_from_opts(&store_path)?;
+            let store = get_store_from_opts(store_path)?;
 
             let server = server::Server::new(
                 store,
@@ -134,7 +134,7 @@ async fn main() -> Result<()> {
             server.serve(&addr).await?;
         }
         ServSubcommand::Dump { doc_id, store_path } => {
-            let store = get_store_from_opts(&store_path)?;
+            let store = get_store_from_opts(store_path)?;
             let sync_kv = sync_kv::SyncKv::new(Arc::new(store), doc_id, || {}).await?;
             let doc = Doc::new();
 
@@ -149,13 +149,13 @@ async fn main() -> Result<()> {
                 let mut map: HashMap<String, Any> = HashMap::new();
 
                 for key in root_keys {
-                    let value = txn.get_array(&key).expect("Failed to get array");
+                    let value = txn.get_array(key).expect("Failed to get array");
                     if value.len(&txn) > 0 {
                         map.insert(key.to_string(), value.to_json(&txn));
                         continue;
                     }
 
-                    let value = txn.get_map(&key).expect("Failed to get map");
+                    let value = txn.get_map(key).expect("Failed to get map");
                     map.insert(key.to_string(), value.to_json(&txn));
                 }
 
@@ -197,7 +197,7 @@ fn dump_object_inner(result: &Any, indent: usize) {
             println!("{}]", indent_str);
         }
         Any::String(string) => {
-            println!("\"{}\"", string.replace("\"", "\\\""));
+            println!("\"{}\"", string.replace('\"', "\\\""));
         }
         Any::Number(number) => {
             println!("{}", number);
