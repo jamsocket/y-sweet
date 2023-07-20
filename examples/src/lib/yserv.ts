@@ -2,6 +2,15 @@ export type FetchResult = {
     doc_id: string
 }
 
+export async function getOrCreateDoc(ydoc?: string): Promise<ConnectionKey> {
+    if (!ydoc) {
+        let room = await createRoom()
+        ydoc = room.doc_id
+    }
+
+    return await getConnectionKey(ydoc, {})
+}
+
 export async function createRoom(): Promise<FetchResult> {
     const result = await fetch('http://127.0.0.1:8080/doc/new', {
         method: 'POST',

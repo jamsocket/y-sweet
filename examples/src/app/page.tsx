@@ -1,21 +1,13 @@
 import { ToDoList } from '@/components/ToDoList'
 import { YjsProvider } from '@/lib/provider'
-import { getConnectionKey, createRoom } from '../lib/yserv'
+import { getOrCreateDoc } from '../lib/yserv'
 
 type HomeProps = {
   searchParams: Record<string, string>
 }
 
-export default async function Home({searchParams}: HomeProps) {
-  console.log(searchParams)
-  let ydoc = searchParams.ydoc
-
-  if (!ydoc) {
-    let room = await createRoom()
-    ydoc = room.doc_id
-  }
-
-  let connectionKey = await getConnectionKey(ydoc, {})
+export default async function Home({ searchParams }: HomeProps) {
+  const connectionKey = await getOrCreateDoc(searchParams.ydoc)
 
   return (
     <YjsProvider connectionKey={connectionKey} setQueryParam='ydoc'>
