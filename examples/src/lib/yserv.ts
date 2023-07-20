@@ -19,12 +19,12 @@ export type AuthDocRequest = {
     metadata?: Record<string, any>,
 }
 
-export type AuthDocResponse = {
+export type ConnectionKey = {
     base_url: string,
     doc_id: string,
 }
 
-export async function authDoc(doc_id: string, request: AuthDocRequest): Promise<AuthDocResponse> {
+export async function getConnectionKey(doc_id: string, request: AuthDocRequest): Promise<ConnectionKey> {
     const result = await fetch(`http://127.0.0.1:8080/doc/${doc_id}/auth`, {
         method: 'POST',
         headers: {

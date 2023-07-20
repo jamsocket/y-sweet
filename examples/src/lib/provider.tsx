@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
+import { ConnectionKey } from './yserv';
 
 const YjsContext = createContext<Y.Doc | null>(null)
 
@@ -12,13 +13,12 @@ export function useYjs() {
 
 type YjsProviderProps = {
     children: React.ReactNode
-    baseUrl: string
-    docId: string
+    connectionKey: ConnectionKey
     setQueryParam?: string
 }
 
 export function YjsProvider(props: YjsProviderProps) {
-    const { children, baseUrl: base_url, docId: doc_id } = props
+    const { children, connectionKey: auth } = props
 
     const docRef = useRef<Y.Doc | null>(null)
     if (docRef.current === null) {
@@ -27,12 +27,12 @@ export function YjsProvider(props: YjsProviderProps) {
 
     useEffect(() => {
         new WebsocketProvider(
-            base_url, doc_id, docRef.current!
+            auth.base_url, auth.doc_id, docRef.current!
         )
 
         if (props.setQueryParam) {
             const url = new URL(window.location.href)
-            url.searchParams.set(props.setQueryParam, doc_id)
+            url.searchParams.set(props.setQueryParam, auth.doc_id)
             window.history.replaceState({}, '', url.toString())
         }
     })

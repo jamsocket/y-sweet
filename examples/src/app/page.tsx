@@ -1,6 +1,6 @@
 import { ToDoList } from '@/components/ToDoList'
 import { YjsProvider } from '@/lib/provider'
-import { authDoc, createRoom } from '../lib/yserv'
+import { getConnectionKey, createRoom } from '../lib/yserv'
 
 type HomeProps = {
   searchParams: Record<string, string>
@@ -15,10 +15,10 @@ export default async function Home({searchParams}: HomeProps) {
     ydoc = room.doc_id
   }
 
-  let auth = await authDoc(ydoc, {})
+  let connectionKey = await getConnectionKey(ydoc, {})
 
   return (
-    <YjsProvider baseUrl={auth.base_url} docId={auth.doc_id} setQueryParam='ydoc'>
+    <YjsProvider connectionKey={connectionKey} setQueryParam='ydoc'>
       <ToDoList />
     </YjsProvider>
   )
