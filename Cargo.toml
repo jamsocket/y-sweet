@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "y-serve",
+    "y-serve-core",
     "y-serve-worker",
 ]
 

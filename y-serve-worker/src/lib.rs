@@ -1,4 +1,4 @@
-use worker::{durable_object, Env, Request, Result, Response, event, Router};
+use worker::{durable_object, event, Env, Request, Response, Result, Router};
 
 #[event(fetch)]
 pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
@@ -14,16 +14,12 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
 }
 
 #[durable_object]
-pub struct YServe {
-    
-}
-
+pub struct YServe {}
 
 #[durable_object]
 impl DurableObject for YServe {
-    fn new(state: State, env: Env) -> Self {
-        Self {
-        }
+    fn new(state: State, _env: Env) -> Self {
+        Self {}
     }
 
     async fn fetch(&mut self, req: Request) -> Result<Response> {
@@ -35,4 +31,3 @@ impl DurableObject for YServe {
         }
     }
 }
-

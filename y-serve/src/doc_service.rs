@@ -1,10 +1,11 @@
-use crate::{stores::Store, sync_kv::SyncKv, throttle::Throttle};
+use crate::throttle::Throttle;
 use anyhow::{anyhow, Context, Result};
 use std::{sync::Arc, time::Duration};
 use tokio::{
     sync::{mpsc::Receiver, RwLock},
     task::JoinHandle,
 };
+use y_serve_core::{store::Store, sync_kv::SyncKv};
 use y_sync::{awareness::Awareness, net::BroadcastGroup};
 use yrs::{Doc, Options, Subscription, Transact, TransactionMut, UpdateEvent};
 use yrs_kvstore::DocOps;

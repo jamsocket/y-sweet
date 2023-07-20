@@ -2515,8 +2515,24 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "url",
+ "y-serve-core",
  "y-sync",
  "yrs",
+ "yrs-kvstore",
+]
+
+[[package]]
+name = "y-serve-core"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "bincode",
+ "dashmap",
+ "pasetors",
+ "serde_json",
+ "tokio",
+ "tracing",
  "yrs-kvstore",
 ]
 

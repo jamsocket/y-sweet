@@ -1,4 +1,3 @@
-use crate::auth::Authenticator;
 use crate::stores::filesystem::FileSystemStore;
 use anyhow::{anyhow, Result};
 use clap::{Parser, Subcommand};
@@ -11,19 +10,18 @@ use std::{
     path::PathBuf,
     sync::Arc,
 };
-use stores::{blobstore::S3Store, Store};
+use stores::blobstore::S3Store;
 use tracing::metadata::LevelFilter;
 use tracing_subscriber::{
     prelude::__tracing_subscriber_SubscriberExt, util::SubscriberInitExt, EnvFilter,
 };
+use y_serve_core::{auth::Authenticator, store::Store, sync_kv::SyncKv};
 use yrs::{types::ToJson, Array, Doc, ReadTxn, Transact};
 use yrs_kvstore::DocOps;
 
-mod auth;
 mod doc_service;
 mod server;
 mod stores;
-mod sync_kv;
 mod throttle;
 
 #[derive(Parser)]
@@ -135,7 +133,7 @@ async fn main() -> Result<()> {
         }
         ServSubcommand::Dump { doc_id, store_path } => {
             let store = get_store_from_opts(store_path)?;
-            let sync_kv = sync_kv::SyncKv::new(Arc::new(store), doc_id, || {}).await?;
+            let sync_kv = SyncKv::new(Arc::new(store), doc_id, || {}).await?;
             let doc = Doc::new();
 
             {

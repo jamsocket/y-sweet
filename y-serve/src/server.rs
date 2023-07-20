@@ -1,4 +1,4 @@
-use crate::{auth::Authenticator, doc_service::DocService, stores::Store};
+use crate::doc_service::DocService;
 use anyhow::{anyhow, Result};
 use axum::{
     extract::{
@@ -23,6 +23,7 @@ use std::{
 use tokio::sync::Mutex;
 use tower_http::trace::{DefaultMakeSpan, DefaultOnRequest, DefaultOnResponse, TraceLayer};
 use tracing::Level;
+use y_serve_core::{auth::Authenticator, store::Store};
 use y_sync::net::BroadcastGroup;
 
 pub struct Server {
@@ -55,7 +56,9 @@ impl Server {
     ) -> Result<(), StatusCode> {
         if let Some(token) = &self.bearer_token {
             if let Some(TypedHeader(headers::Authorization(bearer))) = header {
-                let bytes = general_purpose::STANDARD.decode(bearer.token()).map_err(|_| StatusCode::BAD_REQUEST)?;
+                let bytes = general_purpose::STANDARD
+                    .decode(bearer.token())
+                    .map_err(|_| StatusCode::BAD_REQUEST)?;
                 if bytes == token.as_bytes() {
                     return Ok(());
                 }

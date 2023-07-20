@@ -1,4 +1,4 @@
-use crate::stores::Store;
+use crate::store::Store;
 use anyhow::Result;
 use std::{
     collections::BTreeMap,
