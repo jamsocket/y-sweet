@@ -1,0 +1,18 @@
+name = "y-serve-worker"
+main = "build/worker/shim.mjs"
+compatibility_date = "2022-01-20"
+
+[vars]
+WORKERS_RS_VERSION = "0.0.11"
+
+[build]
+command = "cargo install -q worker-build --version 0.0.9 && worker-build --release"
+
+[durable_objects]
+bindings = [
+  { name = "YSERVE", class_name = "YServe" }
+]
+
+[[migrations]]
+tag = "v1"
+new_classes = ["YServe"]

@@ -1,6 +1,7 @@
 [workspace]
 members = [
-    "y-serve"
+    "y-serve",
+    "y-serve-worker",
 ]
 
 [patch.crates-io]
