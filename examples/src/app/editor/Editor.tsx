@@ -2,7 +2,8 @@
 
 import { useText } from "@/lib/provider"
 import type { Editor } from "codemirror"
-import 'codemirror/lib/codemirror.css'
+import "codemirror/lib/codemirror.css"
+import "codemirror/mode/javascript/javascript"
 import { useCallback, useRef } from "react"
 
 export function CodeEditor() {
@@ -26,7 +27,8 @@ export function CodeEditor() {
             const CodemirrorBinding = require('y-codemirror').CodemirrorBinding
 
             editorRef.current = CodeMirror.fromTextArea(ref, {
-                lineNumbers: true
+                lineNumbers: true,
+                mode: 'javascript',
             })
 
             new CodemirrorBinding(yText!, editorRef.current)
