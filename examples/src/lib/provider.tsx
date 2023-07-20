@@ -7,17 +7,22 @@ import { ConnectionKey } from './yserv';
 
 const YjsContext = createContext<Y.Doc | null>(null)
 
-export function useYjs() {
+export function useYDoc() {
     return useContext(YjsContext)
 }
 
-type YjsProviderProps = {
+type YDocProviderProps = {
     children: React.ReactNode
+
+    /** Response of a `getConnectionKey` call, passed from server to client. */
     connectionKey: ConnectionKey
+
+    /** If set to a string, the URL query parameter with this name
+     * will be set to the doc id from connectionKey. */
     setQueryParam?: string
 }
 
-export function YjsProvider(props: YjsProviderProps) {
+export function YDocProvider(props: YDocProviderProps) {
     const { children, connectionKey: auth } = props
 
     const docRef = useRef<Y.Doc | null>(null)
@@ -48,7 +53,7 @@ function useRedraw() {
 }
 
 export function useMap<T>(name: string): Y.Map<T> | undefined {
-    const doc = useYjs()
+    const doc = useYDoc()
     const map = useMemo(() => doc?.getMap(name), [doc, name])
     useObserve(map!)
 
@@ -56,7 +61,7 @@ export function useMap<T>(name: string): Y.Map<T> | undefined {
 }
 
 export function useArray<T>(name: string): Y.Array<T> | undefined {
-    const doc = useYjs()
+    const doc = useYDoc()
     const array = useMemo(() => doc?.getArray(name), [doc, name])
     useObserve(array!)
 
