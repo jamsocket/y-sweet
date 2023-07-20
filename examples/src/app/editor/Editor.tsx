@@ -1,13 +1,15 @@
 "use client"
 
-import { useText } from "@/lib/provider"
+import { useAwareness, useText } from "@/lib/provider"
 import type { Editor } from "codemirror"
 import "codemirror/lib/codemirror.css"
 import "codemirror/mode/javascript/javascript"
 import { useCallback, useRef } from "react"
+import "./caret.css"
 
 export function CodeEditor() {
     const yText = useText('text')
+    const awareness = useAwareness()
     const editorRef = useRef<Editor | null>(null)
 
     const codeMirrorRef = useCallback(
@@ -31,9 +33,9 @@ export function CodeEditor() {
                 mode: 'javascript',
             })
 
-            new CodemirrorBinding(yText!, editorRef.current)
+            new CodemirrorBinding(yText!, editorRef.current, awareness)
         },
-        [yText]
+        [yText, awareness]
     )
 
     return (

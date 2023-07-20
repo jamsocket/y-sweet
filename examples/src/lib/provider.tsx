@@ -4,11 +4,21 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState } from 
 import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 import { ConnectionKey } from './yserv';
+import type { Awareness } from 'y-protocols/awareness'
 
-const YjsContext = createContext<Y.Doc | null>(null)
+type YjsContextType = {
+    doc: Y.Doc
+    provider?: WebsocketProvider
+}
 
-export function useYDoc() {
-    return useContext(YjsContext)
+const YjsContext = createContext<YjsContextType | null>(null)
+
+export function useYDoc(): Y.Doc | null {
+    return useContext(YjsContext)?.doc ?? null
+}
+
+export function useAwareness(): Awareness | null {
+    return useContext(YjsContext)?.provider?.awareness ?? null
 }
 
 type YDocProviderProps = {
@@ -25,14 +35,17 @@ type YDocProviderProps = {
 export function YDocProvider(props: YDocProviderProps) {
     const { children, connectionKey: auth } = props
 
-    const docRef = useRef<Y.Doc | null>(null)
-    if (docRef.current === null) {
-        docRef.current = new Y.Doc()
+    const ctxRef = useRef<YjsContextType | null>(null)
+    if (ctxRef.current === null) {
+        const doc = new Y.Doc()
+        ctxRef.current = {
+            doc,
+        }
     }
 
     useEffect(() => {
-        new WebsocketProvider(
-            auth.base_url, auth.doc_id, docRef.current!
+        ctxRef.current!.provider = new WebsocketProvider(
+            auth.base_url, auth.doc_id, ctxRef.current!.doc
         )
 
         if (props.setQueryParam) {
@@ -43,7 +56,7 @@ export function YDocProvider(props: YDocProviderProps) {
     })
 
     return (
-        <YjsContext.Provider value={docRef.current}>{children}</YjsContext.Provider>
+        <YjsContext.Provider value={ctxRef.current}>{children}</YjsContext.Provider>
     )
 }
 
