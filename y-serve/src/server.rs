@@ -1,4 +1,4 @@
-use crate::doc_service::DocService;
+use crate::doc_connection::DocConnection;
 use anyhow::{anyhow, Result};
 use axum::{
     extract::{
@@ -15,8 +15,12 @@ use base64::{engine::general_purpose, Engine};
 use dashmap::DashMap;
 use futures::{SinkExt, StreamExt};
 use serde::Deserialize;
-use std::{convert::Infallible, future::ready, net::SocketAddr, sync::Arc, time::Duration};
-use tokio::sync::Mutex;
+use std::{
+    net::SocketAddr,
+    sync::{Arc, RwLock},
+    time::Duration,
+};
+use tokio::sync::mpsc::channel;
 use tower_http::trace::{DefaultMakeSpan, DefaultOnRequest, DefaultOnResponse, TraceLayer};
 use tracing::Level;
 use y_serve_core::{
@@ -24,10 +28,11 @@ use y_serve_core::{
     auth::Authenticator,
     store::Store,
 };
-use y_sync::net::BroadcastGroup;
+use y_sync::awareness::Awareness;
+use yrs::Doc;
 
 pub struct Server {
-    docs: DashMap<String, DocService>,
+    docs: DashMap<String, Arc<RwLock<Awareness>>>,
     store: Arc<Box<dyn Store>>,
     checkpoint_freq: Duration,
     bearer_token: Option<String>,
@@ -50,6 +55,15 @@ impl Server {
         })
     }
 
+    pub async fn create_doc(&self) -> String {
+        let doc_id = nanoid::nanoid!();
+        let doc = Doc::new();
+        let awareness = Arc::new(RwLock::new(Awareness::new(doc)));
+        self.docs.insert(doc_id.clone(), awareness);
+        tracing::info!(doc_id=?doc_id, "Created doc");
+        doc_id
+    }
+
     pub fn check_auth(
         &self,
         header: Option<TypedHeader<headers::Authorization<Bearer>>>,
@@ -66,18 +80,6 @@ impl Server {
             return Err(StatusCode::UNAUTHORIZED);
         }
         Ok(())
-    }
-
-    pub async fn create_doc(&self) -> String {
-        let doc_id = nanoid::nanoid!();
-        let doc_service = DocService::new(self.store.clone(), doc_id.clone(), self.checkpoint_freq)
-            .await
-            .unwrap(); // todo: handle error
-        self.docs.insert(doc_id.clone(), doc_service);
-
-        tracing::info!(doc_id=?doc_id, "Created doc");
-
-        doc_id
     }
 
     pub async fn serve(self, addr: &SocketAddr) -> Result<()> {
@@ -128,33 +130,41 @@ async fn handler(
         }
     }
 
-    let Some(doc_service) = server_state.docs.get(&doc_id) else {
+    let Some(awareness) = server_state.docs.get(&doc_id) else {
         return Err(StatusCode::NOT_FOUND);
     };
+    let awareness = awareness.value().clone();
 
-    let broadcast_group = doc_service.broadcast_group.clone();
-    Ok(ws.on_upgrade(move |socket| handle_socket(socket, broadcast_group)))
+    Ok(ws.on_upgrade(move |socket| handle_socket(socket, awareness)))
 }
 
-async fn handle_socket(socket: WebSocket, broadcast_group: Arc<BroadcastGroup>) {
-    let (sink, stream) = socket.split();
+async fn handle_socket(socket: WebSocket, awareness: Arc<RwLock<Awareness>>) {
+    let (mut sink, mut stream) = socket.split();
+    let (send, mut recv) = channel(1024);
 
-    let stream = tokio_stream::StreamExt::filter_map(stream, |d| match d {
-        Ok(Message::Binary(s)) => Some(Ok::<_, Infallible>(s)),
-        Ok(Message::Close(_)) => None,
-        msg => {
-            tracing::warn!(?msg, "Received non-binary message");
-            None
+    tokio::spawn(async move {
+        while let Some(msg) = recv.recv().await {
+            sink.send(Message::Binary(msg)).await.unwrap();
         }
     });
 
-    let sink = sink.with(|d| ready(Ok::<_, axum::Error>(Message::Binary(d))));
-    let sink = Arc::new(Mutex::new(sink));
-    let sub = broadcast_group.subscribe(sink, stream);
+    let connection = DocConnection::new(awareness.clone(), move |bytes| {
+        send.try_send(bytes.to_vec()).unwrap();
+    });
 
-    match sub.completed().await {
-        Ok(_) => tracing::info!("Socket closed"),
-        Err(e) => tracing::warn!(?e, "Socket closed with error"),
+    while let Some(msg) = stream.next().await {
+        let msg = match msg {
+            Ok(Message::Binary(bytes)) => bytes,
+            Ok(Message::Close(_)) => break,
+            msg => {
+                tracing::warn!(?msg, "Received non-binary message");
+                continue;
+            }
+        };
+
+        if let Err(e) = connection.send(&msg).await {
+            tracing::warn!(?e, "Error handling message");
+        }
     }
 }
 
@@ -184,14 +194,7 @@ async fn auth_doc(
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         {
-            let doc_service = DocService::new(
-                server_state.store.clone(),
-                doc_id.clone(),
-                server_state.checkpoint_freq,
-            )
-            .await
-            .unwrap(); // todo: handle error
-            server_state.docs.insert(doc_id.clone(), doc_service);
+            let doc_id = server_state.create_doc().await;
 
             tracing::info!(doc_id=?doc_id, "Loaded doc from snapshot");
         } else {

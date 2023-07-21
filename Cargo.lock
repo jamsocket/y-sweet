@@ -2556,10 +2556,8 @@ version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f54d34b68ec4514a0659838c2b1ba867c571b20b3804a1338dacf4fa9062d801"
 dependencies = [
- "futures-util",
  "lib0",
  "thiserror",
- "tokio",
  "yrs",
 ]
 
