@@ -13,6 +13,8 @@ pasetors = "0.6.7"
 serde = { version = "1.0.173", features = ["derive"] }
 serde_json = "1.0.103"
 tracing = "0.1.37"
+y-sync = "0.3.1"
+yrs = "0.16.9"
 yrs-kvstore = "0.1.0"
 
 [dev-dependencies]

@@ -8,6 +8,7 @@ use yrs::{
     Subscription, TransactionMut, Update, UpdateEvent,
 };
 
+// TODO: this is an implementation detail and should not be exposed.
 pub const DOC_NAME: &str = "doc";
 
 type UpdateSubscription = Subscription<Arc<dyn Fn(&TransactionMut<'_>, &UpdateEvent)>>;
@@ -86,7 +87,7 @@ impl DocConnection {
 }
 
 // https://github.com/y-crdt/y-sync/blob/56958e83acfd1f3c09f5dd67cf23c9c72f000707/src/net/conn.rs#L184C1-L222C1
-pub fn handle_msg<P: Protocol>(
+fn handle_msg<P: Protocol>(
     protocol: &P,
     a: &Arc<RwLock<Awareness>>,
     msg: Message,

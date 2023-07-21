@@ -1,4 +1,3 @@
-use crate::doc_connection::DocConnection;
 use anyhow::{anyhow, Result};
 use axum::{
     extract::{
@@ -26,6 +25,7 @@ use tracing::Level;
 use y_serve_core::{
     api_types::{AuthDocRequest, AuthDocResponse, NewDocResponse},
     auth::Authenticator,
+    doc_connection::DocConnection,
     store::Store,
 };
 use y_sync::awareness::Awareness;

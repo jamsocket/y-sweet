@@ -2533,6 +2533,8 @@ dependencies = [
  "serde_json",
  "tokio",
  "tracing",
+ "y-sync",
+ "yrs",
  "yrs-kvstore",
 ]
 

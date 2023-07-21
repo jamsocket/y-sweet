@@ -1,7 +1,6 @@
 use crate::stores::filesystem::FileSystemStore;
 use anyhow::{anyhow, Result};
 use clap::{Parser, Subcommand};
-use doc_connection::DOC_NAME;
 use lib0::any::Any;
 use s3::Region;
 use std::{
@@ -15,11 +14,10 @@ use tracing::metadata::LevelFilter;
 use tracing_subscriber::{
     prelude::__tracing_subscriber_SubscriberExt, util::SubscriberInitExt, EnvFilter,
 };
-use y_serve_core::{auth::Authenticator, store::Store, sync_kv::SyncKv};
+use y_serve_core::{auth::Authenticator, doc_connection::DOC_NAME, store::Store, sync_kv::SyncKv};
 use yrs::{types::ToJson, Array, Doc, ReadTxn, Transact};
 use yrs_kvstore::DocOps;
 
-mod doc_connection;
 mod server;
 mod stores;
 mod throttle;
