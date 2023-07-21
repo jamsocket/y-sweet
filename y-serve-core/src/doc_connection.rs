@@ -37,7 +37,7 @@ impl DocConnection {
                 let doc = awareness.doc();
                 let callback = callback.clone();
                 doc.observe_update_v1(move |_, event| {
-                    // more efficient approach: https://github.com/y-crdt/y-sync/blob/master/src/net/broadcast.rs#L48
+                    // TODO: avoid allocation: https://github.com/y-crdt/y-sync/blob/master/src/net/broadcast.rs#L48
                     let msg = Message::Sync(SyncMessage::Update(event.update.clone()));
                     let msg = msg.encode_v1();
                     callback(&msg);
@@ -86,6 +86,7 @@ impl DocConnection {
     }
 }
 
+// Adapted from:
 // https://github.com/y-crdt/y-sync/blob/56958e83acfd1f3c09f5dd67cf23c9c72f000707/src/net/conn.rs#L184C1-L222C1
 fn handle_msg<P: Protocol>(
     protocol: &P,

@@ -26,13 +26,13 @@ use y_serve_core::{
     api_types::{AuthDocRequest, AuthDocResponse, NewDocResponse},
     auth::Authenticator,
     doc_connection::DocConnection,
+    doc_sync::DocWithSyncKv,
     store::Store,
 };
 use y_sync::awareness::Awareness;
-use yrs::Doc;
 
 pub struct Server {
-    docs: DashMap<String, Arc<RwLock<Awareness>>>,
+    docs: DashMap<String, DocWithSyncKv>,
     store: Arc<Box<dyn Store>>,
     checkpoint_freq: Duration,
     bearer_token: Option<String>,
@@ -57,11 +57,49 @@ impl Server {
 
     pub async fn create_doc(&self) -> String {
         let doc_id = nanoid::nanoid!();
-        let doc = Doc::new();
-        let awareness = Arc::new(RwLock::new(Awareness::new(doc)));
-        self.docs.insert(doc_id.clone(), awareness);
+        self.load_doc(&doc_id).await;
         tracing::info!(doc_id=?doc_id, "Created doc");
         doc_id
+    }
+
+    pub async fn load_doc(&self, doc_id: &str) {
+        let (send, mut recv) = channel(1024);
+
+        let dwskv = DocWithSyncKv::new(&doc_id, self.store.clone(), move || {
+            send.try_send(()).unwrap();
+        })
+        .await
+        .unwrap();
+
+        {
+            let sync_kv = dwskv.sync_kv();
+            let checkpoint_freq = self.checkpoint_freq;
+            let doc_id = doc_id.to_string();
+            tokio::spawn(async move {
+                // TODO: expedite save on shutdown.
+                let mut last_save = std::time::Instant::now();
+
+                while let Some(()) = recv.recv().await {
+                    tracing::info!("Received dirty signal.");
+                    let now = std::time::Instant::now();
+                    if now - last_save < checkpoint_freq {
+                        let delta = checkpoint_freq - (now - last_save);
+                        tracing::info!(?delta, "Throttling.");
+                        tokio::time::sleep(delta).await;
+                        tracing::info!("Done throttling.");
+                    }
+
+                    tracing::info!("Persisting.");
+                    sync_kv.persist().await.unwrap();
+                    last_save = std::time::Instant::now();
+                    tracing::info!("Done persisting.");
+                }
+
+                tracing::info!(?doc_id, "Terminating loop.");
+            });
+        }
+
+        self.docs.insert(doc_id.to_string(), dwskv);
     }
 
     pub fn check_auth(
@@ -130,10 +168,10 @@ async fn handler(
         }
     }
 
-    let Some(awareness) = server_state.docs.get(&doc_id) else {
+    let Some(dwskv) = server_state.docs.get(&doc_id) else {
         return Err(StatusCode::NOT_FOUND);
     };
-    let awareness = awareness.value().clone();
+    let awareness = dwskv.value().awareness().clone();
 
     Ok(ws.on_upgrade(move |socket| handle_socket(socket, awareness)))
 }
@@ -194,7 +232,7 @@ async fn auth_doc(
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         {
-            let doc_id = server_state.create_doc().await;
+            let doc_id = server_state.load_doc(&doc_id).await;
 
             tracing::info!(doc_id=?doc_id, "Loaded doc from snapshot");
         } else {

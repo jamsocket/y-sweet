@@ -20,7 +20,6 @@ use yrs_kvstore::DocOps;
 
 mod server;
 mod stores;
-mod throttle;
 
 #[derive(Parser)]
 struct Opts {
