@@ -20,8 +20,7 @@ use std::{
     time::Duration,
 };
 use tokio::sync::mpsc::channel;
-use tower_http::trace::{DefaultMakeSpan, DefaultOnRequest, DefaultOnResponse, TraceLayer};
-use tracing::Level;
+use tracing::{Level, Instrument, span};
 use y_serve_core::{
     api_types::{AuthDocRequest, AuthDocResponse, NewDocResponse},
     auth::Authenticator,
@@ -95,8 +94,8 @@ impl Server {
                     tracing::info!("Done persisting.");
                 }
 
-                tracing::info!(?doc_id, "Terminating loop.");
-            });
+                tracing::info!("Terminating loop.");
+            }.instrument(span!(Level::INFO, "save_loop", doc_id=?doc_id)));
         }
 
         self.docs.insert(doc_id.to_string(), dwskv);
@@ -123,17 +122,11 @@ impl Server {
     pub async fn serve(self, addr: &SocketAddr) -> Result<()> {
         let server_state = Arc::new(self);
 
-        let trace_layer = TraceLayer::new_for_http()
-            .make_span_with(DefaultMakeSpan::new().level(Level::INFO))
-            .on_request(DefaultOnRequest::new().level(Level::INFO))
-            .on_response(DefaultOnResponse::new().level(Level::INFO));
-
         let app = Router::new()
             .route("/doc/ws/:doc_id", get(handler))
             .route("/doc/new", post(new_doc))
             .route("/doc/:doc_id/auth", post(auth_doc))
-            .with_state(server_state)
-            .layer(trace_layer);
+            .with_state(server_state);
 
         axum::Server::try_bind(addr)?
             .serve(app.into_make_service())
@@ -232,7 +225,7 @@ async fn auth_doc(
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         {
-            let doc_id = server_state.load_doc(&doc_id).await;
+            server_state.load_doc(&doc_id).await;
 
             tracing::info!(doc_id=?doc_id, "Loaded doc from snapshot");
         } else {
