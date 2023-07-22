@@ -2,7 +2,7 @@ use crate::{doc_connection::DOC_NAME, store::Store, sync_kv::SyncKv};
 use anyhow::{anyhow, Context, Result};
 use std::sync::{Arc, RwLock};
 use y_sync::awareness::Awareness;
-use yrs::{Doc, Options, Transact, Subscription, TransactionMut, UpdateEvent};
+use yrs::{Doc, Options, Subscription, Transact, TransactionMut, UpdateEvent};
 use yrs_kvstore::DocOps;
 
 pub struct DocWithSyncKv {
@@ -51,6 +51,10 @@ impl DocWithSyncKv {
         };
 
         let awareness = Arc::new(RwLock::new(Awareness::new(doc)));
-        Ok(Self { awareness, sync_kv, subscription })
+        Ok(Self {
+            awareness,
+            sync_kv,
+            subscription,
+        })
     }
 }

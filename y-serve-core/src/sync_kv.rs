@@ -178,7 +178,8 @@ mod test {
         data: Arc<DashMap<String, Vec<u8>>>,
     }
 
-    #[async_trait]
+    #[cfg_attr(not(feature = "single-threaded"), async_trait)]
+    #[cfg_attr(feature = "single-threaded", async_trait(?Send))]
     impl Store for MemoryStore {
         async fn get(&self, key: &str) -> Result<Option<Vec<u8>>> {
             Ok(self.data.get(key).map(|v| v.clone()))

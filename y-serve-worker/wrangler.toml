@@ -16,3 +16,8 @@ bindings = [
 [[migrations]]
 tag = "v1"
 new_classes = ["YServe"]
+
+[[r2_buckets]]
+binding = "Y_SERVE_DATA"
+bucket_name = "y-serve-data-prod"
+preview_bucket_name = "y-serve-data-dev"

@@ -12,7 +12,7 @@ export class DocumentManager {
     token?: string
 
     constructor(options?: DocumentManagerOptions) {
-        this.baseUrl = options?.endpoint || 'http://127.0.0.1:8080'
+        this.baseUrl = options?.endpoint || 'http://127.0.0.1:8787'
         this.token = options?.token
     }
 

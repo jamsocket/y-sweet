@@ -20,7 +20,7 @@ use std::{
     time::Duration,
 };
 use tokio::sync::mpsc::channel;
-use tracing::{Level, Instrument, span};
+use tracing::{span, Instrument, Level};
 use y_serve_core::{
     api_types::{AuthDocRequest, AuthDocResponse, NewDocResponse},
     auth::Authenticator,
@@ -70,32 +70,38 @@ impl Server {
         .await
         .unwrap();
 
+        // Save an empty doc to disk.
+        dwskv.sync_kv().persist().await.unwrap();
+
         {
             let sync_kv = dwskv.sync_kv();
             let checkpoint_freq = self.checkpoint_freq;
             let doc_id = doc_id.to_string();
-            tokio::spawn(async move {
-                // TODO: expedite save on shutdown.
-                let mut last_save = std::time::Instant::now();
+            tokio::spawn(
+                async move {
+                    // TODO: expedite save on shutdown.
+                    let mut last_save = std::time::Instant::now();
 
-                while let Some(()) = recv.recv().await {
-                    tracing::info!("Received dirty signal.");
-                    let now = std::time::Instant::now();
-                    if now - last_save < checkpoint_freq {
-                        let delta = checkpoint_freq - (now - last_save);
-                        tracing::info!(?delta, "Throttling.");
-                        tokio::time::sleep(delta).await;
-                        tracing::info!("Done throttling.");
+                    while let Some(()) = recv.recv().await {
+                        tracing::info!("Received dirty signal.");
+                        let now = std::time::Instant::now();
+                        if now - last_save < checkpoint_freq {
+                            let delta = checkpoint_freq - (now - last_save);
+                            tracing::info!(?delta, "Throttling.");
+                            tokio::time::sleep(delta).await;
+                            tracing::info!("Done throttling.");
+                        }
+
+                        tracing::info!("Persisting.");
+                        sync_kv.persist().await.unwrap();
+                        last_save = std::time::Instant::now();
+                        tracing::info!("Done persisting.");
                     }
 
-                    tracing::info!("Persisting.");
-                    sync_kv.persist().await.unwrap();
-                    last_save = std::time::Instant::now();
-                    tracing::info!("Done persisting.");
+                    tracing::info!("Terminating loop.");
                 }
-
-                tracing::info!("Terminating loop.");
-            }.instrument(span!(Level::INFO, "save_loop", doc_id=?doc_id)));
+                .instrument(span!(Level::INFO, "save_loop", doc_id=?doc_id)),
+            );
         }
 
         self.docs.insert(doc_id.to_string(), dwskv);
@@ -180,7 +186,9 @@ async fn handle_socket(socket: WebSocket, awareness: Arc<RwLock<Awareness>>) {
     });
 
     let connection = DocConnection::new(awareness.clone(), move |bytes| {
-        send.try_send(bytes.to_vec()).unwrap();
+        if let Err(e) = send.try_send(bytes.to_vec()) {
+            tracing::warn!(?e, "Error sending message");
+        }
     });
 
     while let Some(msg) = stream.next().await {
@@ -218,19 +226,14 @@ async fn auth_doc(
 ) -> Result<Json<AuthDocResponse>, StatusCode> {
     server_state.check_auth(authorization)?;
 
-    if !server_state.docs.contains_key(&doc_id) {
-        if server_state
+    if !server_state.docs.contains_key(&doc_id)
+        && !server_state
             .store
             .exists(&format!("{}/data.bin", doc_id)) // TODO: this should live elsewhere?
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-        {
-            server_state.load_doc(&doc_id).await;
-
-            tracing::info!(doc_id=?doc_id, "Loaded doc from snapshot");
-        } else {
-            return Err(StatusCode::NOT_FOUND);
-        }
+    {
+        return Err(StatusCode::NOT_FOUND);
     }
 
     let token = if let Some(paseto) = &server_state.authenticator {

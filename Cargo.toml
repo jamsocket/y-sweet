@@ -2,6 +2,9 @@
 members = [
     "y-serve",
     "y-serve-core",
+]
+
+exclude = [
     "y-serve-worker",
 ]
 
