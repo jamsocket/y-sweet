@@ -13,6 +13,11 @@ pub const DOC_NAME: &str = "doc";
 
 type UpdateSubscription = Subscription<Arc<dyn Fn(&TransactionMut<'_>, &UpdateEvent)>>;
 type AwarenessSubscription = Subscription<Arc<dyn Fn(&Awareness, &Event)>>;
+
+#[cfg(target_arch = "wasm32")]
+type Callback = Arc<dyn Fn(&[u8]) + 'static>;
+
+#[cfg(not(target_arch = "wasm32"))]
 type Callback = Arc<dyn Fn(&[u8]) + 'static + Send + Sync>;
 
 pub struct DocConnection {
@@ -25,11 +30,24 @@ pub struct DocConnection {
 }
 
 impl DocConnection {
+    #[cfg(target_arch = "wasm32")]
+    pub fn new<F>(awareness: Arc<RwLock<Awareness>>, callback: F) -> Self
+    where
+        F: Fn(&[u8]) + 'static,
+    {
+        Self::new_inner(awareness, Arc::new(callback))
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn new<F>(awareness: Arc<RwLock<Awareness>>, callback: F) -> Self
     where
         F: Fn(&[u8]) + 'static + Send + Sync,
     {
-        let callback = Arc::new(callback);
+        Self::new_inner(awareness, Arc::new(callback))
+    }
+
+    pub fn new_inner(awareness: Arc<RwLock<Awareness>>, callback: Callback) -> Self
+    {
         let (doc_subscription, awareness_subscription) = {
             let mut awareness = awareness.write().unwrap();
 
@@ -113,12 +131,14 @@ fn handle_msg<P: Protocol>(
             protocol.handle_auth(&awareness, reason)
         }
         Message::AwarenessQuery => {
-            let awareness = a.read().unwrap();
-            protocol.handle_awareness_query(&awareness)
+            // let awareness = a.read().unwrap();
+            // protocol.handle_awareness_query(&awareness)
+            Ok(None)
         }
         Message::Awareness(update) => {
-            let mut awareness = a.write().unwrap();
-            protocol.handle_awareness_update(&mut awareness, update)
+            // let mut awareness = a.write().unwrap();
+            // protocol.handle_awareness_update(&mut awareness, update)
+            Ok(None)
         }
         Message::Custom(tag, data) => {
             let mut awareness = a.write().unwrap();
