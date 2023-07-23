@@ -102,7 +102,7 @@ export function useText(name: string): Y.Text | undefined {
     return text as Y.Text
 }
 
-function useObserve(object: Y.Map<any> | Y.Array<any> | Y.Text, deep = true) {
+function useObserve(object: Y.AbstractType<any>, deep = true) {
     const redraw = useRedraw()
 
     useEffect(() => {
