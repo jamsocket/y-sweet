@@ -31,6 +31,11 @@ export function CodeEditor() {
                 return
             }
 
+            if (bindingRef.current !== null) {
+                bindingRef.current.awareness = awareness
+                return
+            }
+
             // These libraries are designed to work in the browser, and will cause warnings
             // if imported on the server. Nextjs renders components on both the server and
             // the client, so we import them lazily here when they are used on the client.
@@ -44,7 +49,7 @@ export function CodeEditor() {
 
             bindingRef.current = new CodemirrorBinding(yText!, editorRef.current, awareness)
         },
-        [yText, awareness]
+        [awareness, yText]
     )
 
     return (

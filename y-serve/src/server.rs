@@ -181,7 +181,7 @@ async fn handle_socket(socket: WebSocket, awareness: Arc<RwLock<Awareness>>) {
 
     tokio::spawn(async move {
         while let Some(msg) = recv.recv().await {
-            sink.send(Message::Binary(msg)).await.unwrap();
+            let _ = sink.send(Message::Binary(msg)).await;
         }
     });
 
