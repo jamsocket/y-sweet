@@ -1026,11 +1026,12 @@ dependencies = [
  "anyhow",
  "async-trait",
  "bincode",
+ "lib0",
  "pasetors",
  "serde",
  "serde_json",
+ "thiserror",
  "tracing",
- "y-sync",
  "yrs",
  "yrs-kvstore",
 ]
@@ -1051,17 +1052,6 @@ dependencies = [
  "worker",
  "worker-sys",
  "y-serve-core",
-]
-
-[[package]]
-name = "y-sync"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f54d34b68ec4514a0659838c2b1ba867c571b20b3804a1338dacf4fa9062d801"
-dependencies = [
- "lib0",
- "thiserror",
- "yrs",
 ]
 
 [[package]]

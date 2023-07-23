@@ -1,7 +1,6 @@
-use crate::{doc_connection::DOC_NAME, store::Store, sync_kv::SyncKv};
+use crate::{doc_connection::DOC_NAME, store::Store, sync_kv::SyncKv, sync::awareness::Awareness};
 use anyhow::{anyhow, Context, Result};
 use std::sync::{Arc, RwLock};
-use y_sync::awareness::Awareness;
 use yrs::{Doc, Options, Subscription, Transact, TransactionMut, UpdateEvent};
 use yrs_kvstore::DocOps;
 

@@ -1,8 +1,8 @@
-use std::sync::{Arc, RwLock};
-use y_sync::{
+use crate::sync::{
     awareness::{Awareness, Event},
     sync::{self, DefaultProtocol, Message, Protocol, SyncMessage},
 };
+use std::sync::{Arc, RwLock};
 use yrs::{
     updates::{decoder::Decode, encoder::Encode},
     Subscription, TransactionMut, Update, UpdateEvent,
@@ -46,7 +46,10 @@ impl DocConnection {
         Self::new_inner(awareness, Arc::new(callback))
     }
 
-    pub fn new_inner(awareness: Arc<RwLock<Awareness>>, callback: Callback) -> Self {
+    pub fn new_inner(
+        awareness: Arc<RwLock<Awareness>>,
+        callback: Callback,
+    ) -> Self {
         let (doc_subscription, awareness_subscription) = {
             let mut awareness = awareness.write().unwrap();
 
@@ -130,26 +133,12 @@ fn handle_msg<P: Protocol>(
             protocol.handle_auth(&awareness, reason)
         }
         Message::AwarenessQuery => {
-            #[cfg(target_arch = "wasm32")]
-            {
-                Ok(None)
-            }
-            #[cfg(not(target_arch = "wasm32"))]
-            {
-                let awareness = a.read().unwrap();
-                protocol.handle_awareness_query(&awareness)
-            }
+            let awareness = a.read().unwrap();
+            protocol.handle_awareness_query(&awareness)
         }
         Message::Awareness(update) => {
-            #[cfg(target_arch = "wasm32")]
-            {
-                Ok(None)
-            }
-            #[cfg(not(target_arch = "wasm32"))]
-            {
-                let mut awareness = a.write().unwrap();
-                protocol.handle_awareness_update(&mut awareness, update)
-            }
+            let mut awareness = a.write().unwrap();
+            protocol.handle_awareness_update(&mut awareness, update)
         }
         Message::Custom(tag, data) => {
             let mut awareness = a.write().unwrap();

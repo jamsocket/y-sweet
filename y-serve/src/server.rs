@@ -17,7 +17,7 @@ use serde::Deserialize;
 use std::{
     net::SocketAddr,
     sync::{Arc, RwLock},
-    time::Duration,
+    time::{Duration, SystemTime},
 };
 use tokio::sync::mpsc::channel;
 use tracing::{span, Instrument, Level};
@@ -27,8 +27,8 @@ use y_serve_core::{
     doc_connection::DocConnection,
     doc_sync::DocWithSyncKv,
     store::Store,
+    sync::awareness::Awareness,
 };
-use y_sync::awareness::Awareness;
 
 pub struct Server {
     docs: DashMap<String, DocWithSyncKv>,
