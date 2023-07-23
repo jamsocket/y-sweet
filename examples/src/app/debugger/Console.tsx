@@ -36,20 +36,57 @@ export function Console() {
     )
 }
 
+function collectLinkedList(node: Y.Item): Y.Item[] {
+    const result: Y.Item[] = []
+    let current: Y.Item | null = node
+    while (current !== null) {
+        if (!(current.content instanceof Y.ContentDeleted)) {
+            result.push(current)
+        }
+        current = current.right
+    }
+    return result
+}
+
 type DocEntryViewProps = {
     name: string,
     value: Y.AbstractType<any>
 }
 
 function DocEntryView(props: DocEntryViewProps) {
+    console.log('props', props)
     return (
         <div>
             <h2 className="font-mono text-xl font-bold">{props.name}</h2>
             {
-                props.value._map ? <MapView map={props.value._map} /> : null
+                props.value._map?.size ? <MapView map={props.value._map} /> : null
+            }
+            {
+                props.value._start ? <ListView list={props.value._start} /> : null
             }
         </div>
     )
+}
+
+type ListViewProps = {
+    list: Y.Item
+}
+
+function ListView(props: ListViewProps) {
+    const items = collectLinkedList(props.list)
+    return <div className="font-mono text-gray-400">
+        <span>[</span>
+        <div className="pl-10">
+            {
+                items.map((item, i) => {
+                    return <div key={i}>
+                        <ItemView item={item} />
+                    </div>
+                })
+            }
+        </div>
+        <span>]</span>
+    </div>
 }
 
 type MapViewProps = {
@@ -57,15 +94,20 @@ type MapViewProps = {
 }
 
 function MapView(props: MapViewProps) {
-    return <div>
-        {
-            Array.from(props.map.entries()).map(([key, item]) => {
-                return <div key={key}>
-                    <samp>{JSON.stringify(key)}</samp>:&nbsp;
-                    <ItemView item={item} />
-                </div>
-            })
-        }
+    return <div className="font-mono text-gray-400">
+        <span>{"{"}</span>
+        <div className="pl-10">
+            {
+                Array.from(props.map.entries()).filter(v => !(v[1].content instanceof Y.ContentDeleted)).map(([key, item]) => {
+                    return <div key={key}>
+                        <PrettyKeyString value={key} />
+                        <span>: </span>
+                        <ItemView item={item} />
+                    </div>
+                })
+            }
+        </div>
+        <span>{"}"}</span>
     </div>
 }
 
@@ -77,9 +119,45 @@ function ItemView(props: ItemViewProps) {
     if (props.item.content instanceof Y.ContentDeleted) {
         return <samp>deleted</samp>
     } else if (props.item.content instanceof Y.ContentAny) {
-        return <samp>{JSON.stringify(props.item.content.arr[0])}</samp>
+        return <PrettyValue value={props.item.content.arr[0]} />
+    } else if (props.item.content instanceof Y.ContentType) {
+        const content: Y.ContentType = props.item.content
+
+        if (content.type instanceof Y.Map) {
+            return <MapView map={content.type._map} />
+        }
+
+        return <span>unknown content type...</span>
+    } else if (props.item.content instanceof Y.ContentString) {
+        return <PrettyString value={props.item.content.str} />
     } else {
         console.log('unimplemented item type', props.item)
         return <samp>unknown</samp>
     }
+}
+
+function PrettyValue(props: { value: any }) {
+    if (typeof props.value === 'string') {
+        return <PrettyString value={props.value} />
+    } else if (typeof props.value === 'boolean') {
+        if (props.value) {
+            return <span className="text-green-600">true</span>
+        } else {
+            return <span className="text-purple-600">false</span>
+        }
+    } else {
+        console.log('unimplemented value type', typeof props.value)
+        return <span>unknown type</span>
+    }
+}
+
+function PrettyString(props: { value: string }) {
+    let valueEscaped = JSON.stringify(props.value)
+    valueEscaped = valueEscaped.slice(1, valueEscaped.length - 1)
+    return <span className="text-blue-300">"<span className="text-blue-600">{valueEscaped}</span>"</span>
+}
+
+function PrettyKeyString(props: { value: string }) {
+    const valueEscaped = JSON.stringify(props.value).slice(1, props.value.length + 1)
+    return <span className="text-red-300">"<span className="text-red-600">{valueEscaped}</span>"</span>
 }
