@@ -974,7 +974,7 @@ dependencies = [
  "web-sys",
  "worker-kv",
  "worker-macros",
- "worker-sys 0.0.7",
+ "worker-sys",
 ]
 
 [[package]]
@@ -1004,7 +1004,7 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "wasm-bindgen-macro-support",
- "worker-sys 0.0.7",
+ "worker-sys",
 ]
 
 [[package]]
@@ -1012,18 +1012,6 @@ name = "worker-sys"
 version = "0.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "90f33ccde16fd5f0e0d1e8b260e7f8fdbb68f56bd5d115050bf3e5ffef0d1671"
-dependencies = [
- "cfg-if",
- "js-sys",
- "wasm-bindgen",
- "web-sys",
-]
-
-[[package]]
-name = "worker-sys"
-version = "0.0.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ad510995e943256afb8b7524366014bd4a2f6a4ffef00b8121db97a8056b4c3"
 dependencies = [
  "cfg-if",
  "js-sys",
@@ -1042,7 +1030,6 @@ dependencies = [
  "serde",
  "serde_json",
  "tracing",
- "worker-sys 0.0.9",
  "y-sync",
  "yrs",
  "yrs-kvstore",
@@ -1062,7 +1049,7 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
  "worker",
- "worker-sys 0.0.7",
+ "worker-sys",
  "y-serve-core",
 ]
 

@@ -1,10 +1,13 @@
 use crate::r2_store::R2Store;
 use futures::StreamExt;
-use worker_sys::console_log;
 use std::sync::Arc;
+use threadless::Threadless;
 use worker::{
-    durable_object, event, Env, Request, Response, Result, RouteContext, Router, WebSocketPair,
+    durable_object, event, Env, Request, Response, Result, RouteContext, Router, State,
+    WebSocketPair,
 };
+#[allow(unused)]
+use worker_sys::console_log;
 use y_serve_core::{
     api_types::{AuthDocResponse, NewDocResponse},
     doc_connection::DocConnection,
@@ -13,6 +16,7 @@ use y_serve_core::{
 };
 
 mod r2_store;
+mod threadless;
 
 const BUCKET: &str = "Y_SERVE_DATA";
 const DURABLE_OBJECT: &str = "Y_SERVE";
@@ -80,17 +84,29 @@ pub struct YServe {
     env: Env,
     id: String,
     doc: Option<DocWithSyncKv>,
+    state: State,
 }
 
 impl YServe {
     /// We need to lazily create the doc because the constructor is non-async.
     async fn get_doc(&mut self) -> Result<&mut DocWithSyncKv> {
+        let storage = Arc::new(self.state.storage());
+
         if self.doc.is_none() {
             let bucket = self.env.bucket(BUCKET).unwrap();
             let store = R2Store::new(bucket);
             let store: Arc<Box<dyn Store>> = Arc::new(Box::new(store));
-            let doc = DocWithSyncKv::new(&self.id, store, || {}).await.unwrap();
-    
+            let storage = Threadless(storage);
+            let doc = DocWithSyncKv::new(&self.id, store, move || {
+                let storage = storage.clone();
+                wasm_bindgen_futures::spawn_local(async move {
+                    console_log!("Setting alarm.");
+                    storage.0.set_alarm(10_000).await.unwrap();
+                });
+            })
+            .await
+            .unwrap();
+
             self.doc = Some(doc);
             self.doc
                 .as_mut()
@@ -109,7 +125,12 @@ impl YServe {
 impl DurableObject for YServe {
     fn new(state: State, env: Env) -> Self {
         let id = state.id().to_string();
-        Self { env, doc: None, id }
+        Self {
+            env,
+            state,
+            doc: None,
+            id,
+        }
     }
 
     async fn fetch(&mut self, req: Request) -> Result<Response> {
@@ -119,6 +140,13 @@ impl DurableObject for YServe {
             .get_async("/doc/ws/:doc_id", websocket_connect)
             .run(req, env)
             .await
+    }
+
+    async fn alarm(&mut self) -> Result<Response> {
+        console_log!("Alarm!");
+        self.get_doc().await?.sync_kv().persist().await.unwrap();
+        console_log!("Persisted. {}", self.id);
+        Response::ok("ok")
     }
 }
 
@@ -134,7 +162,6 @@ async fn websocket_connect(
     let connection = {
         let server = server.clone();
         DocConnection::new(awareness, move |bytes| {
-            console_log!("server sending bytes: {:?}", bytes.len());
             server.send_with_bytes(bytes).unwrap();
         })
     };
