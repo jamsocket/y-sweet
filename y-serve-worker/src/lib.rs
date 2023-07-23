@@ -79,25 +79,29 @@ async fn forward_to_durable_object(req: Request, ctx: RouteContext<()>) -> Resul
     stub.fetch_with_request(req).await
 }
 
+struct DocIdPair {
+    id: String,
+    doc: DocWithSyncKv,
+}
+
 #[durable_object]
 pub struct YServe {
     env: Env,
-    id: String,
-    doc: Option<DocWithSyncKv>,
+    lasy_doc: Option<DocIdPair>,
     state: State,
 }
 
 impl YServe {
     /// We need to lazily create the doc because the constructor is non-async.
-    async fn get_doc(&mut self) -> Result<&mut DocWithSyncKv> {
+    pub async fn get_doc(&mut self, doc_id: &str) -> Result<&mut DocWithSyncKv> {
         let storage = Arc::new(self.state.storage());
 
-        if self.doc.is_none() {
+        if self.lasy_doc.is_none() {
             let bucket = self.env.bucket(BUCKET).unwrap();
             let store = R2Store::new(bucket);
             let store: Arc<Box<dyn Store>> = Arc::new(Box::new(store));
             let storage = Threadless(storage);
-            let doc = DocWithSyncKv::new(&self.id, store, move || {
+            let doc = DocWithSyncKv::new(&doc_id, store, move || {
                 let storage = storage.clone();
                 wasm_bindgen_futures::spawn_local(async move {
                     console_log!("Setting alarm.");
@@ -107,36 +111,38 @@ impl YServe {
             .await
             .unwrap();
 
-            self.doc = Some(doc);
-            self.doc
+            self.lasy_doc = Some(DocIdPair {
+                doc: doc,
+                id: doc_id.to_owned(),
+            });
+            self.lasy_doc
                 .as_mut()
                 .unwrap()
+                .doc
                 .sync_kv()
                 .persist()
                 .await
                 .unwrap();
         }
 
-        Ok(self.doc.as_mut().unwrap())
+        Ok(&mut self.lasy_doc.as_mut().unwrap().doc)
     }
 }
 
 #[durable_object]
 impl DurableObject for YServe {
     fn new(state: State, env: Env) -> Self {
-        let id = state.id().to_string();
         Self {
             env,
             state,
-            doc: None,
-            id,
+            lasy_doc: None,
         }
     }
 
     async fn fetch(&mut self, req: Request) -> Result<Response> {
         let env: Env = self.env.clone().into();
 
-        Router::with_data(self.get_doc().await?)
+        Router::with_data(self)
             .get_async("/doc/ws/:doc_id", websocket_connect)
             .run(req, env)
             .await
@@ -144,20 +150,19 @@ impl DurableObject for YServe {
 
     async fn alarm(&mut self) -> Result<Response> {
         console_log!("Alarm!");
-        self.get_doc().await?.sync_kv().persist().await.unwrap();
-        console_log!("Persisted. {}", self.id);
+        let DocIdPair { id, doc } = self.lasy_doc.as_ref().unwrap();
+        doc.sync_kv().persist().await.unwrap();
+        console_log!("Persisted. {}", id);
         Response::ok("ok")
     }
 }
 
-async fn websocket_connect(
-    _req: Request,
-    ctx: RouteContext<&mut DocWithSyncKv>,
-) -> Result<Response> {
+async fn websocket_connect(_req: Request, ctx: RouteContext<&mut YServe>) -> Result<Response> {
+    let doc_id = ctx.param("doc_id").unwrap().to_owned();
     let WebSocketPair { client, server } = WebSocketPair::new()?;
     server.accept()?;
 
-    let awareness = ctx.data.awareness();
+    let awareness = ctx.data.get_doc(&doc_id).await.unwrap().awareness();
 
     let connection = {
         let server = server.clone();

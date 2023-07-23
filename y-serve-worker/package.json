@@ -2,7 +2,7 @@
 	"private": true,
 	"version": "0.0.0",
 	"scripts": {
-		"deploy": "wrangler publish",
+		"deploy": "wrangler deploy",
 		"dev": "wrangler dev --persist-to ./data --port 8787"
 	},
 	"devDependencies": {
