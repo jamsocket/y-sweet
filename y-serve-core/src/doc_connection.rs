@@ -131,14 +131,26 @@ fn handle_msg<P: Protocol>(
             protocol.handle_auth(&awareness, reason)
         }
         Message::AwarenessQuery => {
-            // let awareness = a.read().unwrap();
-            // protocol.handle_awareness_query(&awareness)
-            Ok(None)
+            #[cfg(target_arch = "wasm32")]
+            {
+                Ok(None)
+            }
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                let awareness = a.read().unwrap();
+                protocol.handle_awareness_query(&awareness)
+            }
         }
         Message::Awareness(update) => {
-            // let mut awareness = a.write().unwrap();
-            // protocol.handle_awareness_update(&mut awareness, update)
-            Ok(None)
+            #[cfg(target_arch = "wasm32")]
+            {
+                Ok(None)
+            }
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                let mut awareness = a.write().unwrap();
+                protocol.handle_awareness_update(&mut awareness, update)
+            }
         }
         Message::Custom(tag, data) => {
             let mut awareness = a.write().unwrap();

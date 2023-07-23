@@ -86,9 +86,9 @@ impl Server {
                         tracing::info!("Received dirty signal.");
                         let now = std::time::Instant::now();
                         if now - last_save < checkpoint_freq {
-                            let delta = checkpoint_freq - (now - last_save);
-                            tracing::info!(?delta, "Throttling.");
-                            tokio::time::sleep(delta).await;
+                            let timeout = checkpoint_freq - (now - last_save);
+                            tracing::info!(?timeout, "Throttling.");
+                            tokio::time::sleep(timeout).await;
                             tracing::info!("Done throttling.");
                         }
 
