@@ -6,7 +6,11 @@ import type { CodemirrorBinding } from "y-codemirror"
 import type { EditorFromTextArea } from "codemirror"
 
 import "codemirror/lib/codemirror.css"
-import "codemirror/mode/javascript/javascript"
+if (typeof navigator !== 'undefined') {
+    // This accesses the global navigator, which is not available in SSR,
+    // so we guard the import.
+    require("codemirror/mode/javascript/javascript")
+}
 import "./caret.css"
 
 export function CodeEditor() {
