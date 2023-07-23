@@ -11,7 +11,7 @@ use axum::{
     Json, Router, TypedHeader,
 };
 use base64::{engine::general_purpose, Engine};
-use dashmap::DashMap;
+use dashmap::{mapref::one::MappedRef, DashMap};
 use futures::{SinkExt, StreamExt};
 use serde::Deserialize;
 use std::{
@@ -54,6 +54,15 @@ impl Server {
         })
     }
 
+    pub async fn doc_exists(&self, doc_id: &str) -> bool {
+        self.docs.contains_key(doc_id)
+            || self
+                .store
+                .exists(&format!("{}/data.bin", doc_id))
+                .await
+                .unwrap_or_default()
+    }
+
     pub async fn create_doc(&self) -> String {
         let doc_id = nanoid::nanoid!();
         self.load_doc(&doc_id).await;
@@ -70,7 +79,6 @@ impl Server {
         .await
         .unwrap();
 
-        // Save an empty doc to disk.
         dwskv.sync_kv().persist().await.unwrap();
 
         {
@@ -105,6 +113,22 @@ impl Server {
         }
 
         self.docs.insert(doc_id.to_string(), dwskv);
+    }
+
+    pub async fn get_or_create_doc(
+        &self,
+        doc_id: &str,
+    ) -> Result<MappedRef<String, DocWithSyncKv, DocWithSyncKv>> {
+        if !self.docs.contains_key(doc_id) {
+            tracing::info!(doc_id=?doc_id, "Loading doc");
+            self.load_doc(doc_id).await;
+        }
+
+        Ok(self
+            .docs
+            .get(doc_id)
+            .expect("Doc should exist, we just created it.")
+            .map(|d| d))
     }
 
     pub fn check_auth(
@@ -167,10 +191,8 @@ async fn handler(
         }
     }
 
-    let Some(dwskv) = server_state.docs.get(&doc_id) else {
-        return Err(StatusCode::NOT_FOUND);
-    };
-    let awareness = dwskv.value().awareness().clone();
+    let dwskv = server_state.get_or_create_doc(&doc_id).await.unwrap();
+    let awareness = dwskv.awareness().clone();
 
     Ok(ws.on_upgrade(move |socket| handle_socket(socket, awareness)))
 }
@@ -226,13 +248,7 @@ async fn auth_doc(
 ) -> Result<Json<AuthDocResponse>, StatusCode> {
     server_state.check_auth(authorization)?;
 
-    if !server_state.docs.contains_key(&doc_id)
-        && !server_state
-            .store
-            .exists(&format!("{}/data.bin", doc_id)) // TODO: this should live elsewhere?
-            .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-    {
+    if !server_state.doc_exists(&doc_id).await {
         return Err(StatusCode::NOT_FOUND);
     }
 
