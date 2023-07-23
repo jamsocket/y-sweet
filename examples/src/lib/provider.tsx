@@ -46,7 +46,14 @@ export function YDocProvider(props: YDocProviderProps) {
         const params = auth.token ? { token: auth.token } : undefined
         
         const provider = new WebsocketProvider(
-            auth.base_url, auth.doc_id, ctx.doc, { params }
+            auth.base_url,
+            auth.doc_id,
+            ctx.doc,
+            {
+                params,
+                // TODO: this disables cross-tab communication, which makes debugging easier, but should be re-enabled in prod
+                disableBc: true,
+            }
         )
 
         setCtx({
