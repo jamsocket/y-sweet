@@ -89,7 +89,7 @@ pub trait Protocol {
     /// send back [Error::PermissionDenied].
     fn handle_auth(
         &self,
-        awareness: &Awareness,
+        _awareness: &Awareness,
         deny_reason: Option<String>,
     ) -> Result<Option<Message>, Error> {
         if let Some(reason) = deny_reason {
@@ -121,9 +121,9 @@ pub trait Protocol {
     /// implemented here. By default it returns an [Error::Unsupported].
     fn missing_handle(
         &self,
-        awareness: &mut Awareness,
+        _awareness: &mut Awareness,
         tag: u8,
-        data: Vec<u8>,
+        _data: Vec<u8>,
     ) -> Result<Option<Message>, Error> {
         Err(Error::Unsupported(tag))
     }

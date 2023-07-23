@@ -17,7 +17,7 @@ use serde::Deserialize;
 use std::{
     net::SocketAddr,
     sync::{Arc, RwLock},
-    time::{Duration, SystemTime},
+    time::Duration,
 };
 use tokio::sync::mpsc::channel;
 use tracing::{span, Instrument, Level};
