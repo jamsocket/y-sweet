@@ -24,8 +24,7 @@ export function Console() {
     })
 
     return (
-        <div>
-            <h1>Console</h1>
+        <div className="space-y-10">
             {
                 keys.map((key) => {
                     const value = doc!.get(key)
@@ -54,31 +53,50 @@ type DocEntryViewProps = {
 }
 
 function DocEntryView(props: DocEntryViewProps) {
-    console.log('props', props)
     return (
-        <div>
+        <div className="space-y-5">
             <h2 className="font-mono text-xl font-bold">{props.name}</h2>
             {
                 props.value._map?.size ? <MapView map={props.value._map} /> : null
             }
             {
-                props.value._start ? <ListView list={props.value._start} /> : null
+                props.value._start ? <GeneralList list={props.value._start} /> : null
             }
         </div>
     )
 }
 
+function GeneralList(props: { list: Y.Item }) {
+    const items = collectLinkedList(props.list)
+    const [displayAsText, setDisplayAsText] = useState(false)
+
+    let component
+    if (displayAsText) {
+        component = <TextView list={items} />
+    } else {
+        component = <ListView list={items} />
+    }
+
+    return <div>
+        <label>
+            <input type="checkbox" checked={displayAsText} onChange={(e) => setDisplayAsText(e.target.checked)} />
+            <span className="ml-2">Display as text</span>
+        </label>
+
+        {component}
+    </div>
+}
+
 type ListViewProps = {
-    list: Y.Item
+    list: Y.Item[]
 }
 
 function ListView(props: ListViewProps) {
-    const items = collectLinkedList(props.list)
     return <div className="font-mono text-gray-400">
         <span>[</span>
         <div className="pl-10">
             {
-                items.map((item, i) => {
+                props.list.map((item, i) => {
                     return <div key={i}>
                         <ItemView item={item} />
                     </div>
@@ -87,6 +105,22 @@ function ListView(props: ListViewProps) {
         </div>
         <span>]</span>
     </div>
+}
+
+function TextView(props: ListViewProps) {
+    return <pre className="bg-gray-100 rounded-md p-5">
+        {props.list.map((item) => {
+            if (item.content instanceof Y.ContentDeleted) {
+                return 'deleted'
+            } else if (item.content instanceof Y.ContentString) {
+                return item.content.str
+            } else {
+                console.log('unimplemented item type', item)
+                return 'unknown'
+            }
+        })
+        }
+    </pre>
 }
 
 type MapViewProps = {
