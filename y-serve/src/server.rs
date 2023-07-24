@@ -172,12 +172,15 @@ async fn handler(
     Query(params): Query<HandlerParams>,
     State(server_state): State<Arc<Server>>,
 ) -> Result<Response, StatusCode> {
+    // TODO: clean this up.
     if let Some(authenticator) = &server_state.authenticator {
         if let Some(token) = params.token {
-            if !authenticator
-                .verify_token(&token, &doc_id)
-                .unwrap_or_default()
-            {
+            if let Ok(verified_token) = authenticator.verify_token(&token) {
+                if verified_token != format!("doc={}", doc_id) {
+                    return Err(StatusCode::UNAUTHORIZED);
+                }
+                // else we are clear
+            } else {
                 return Err(StatusCode::UNAUTHORIZED);
             }
         } else {
@@ -246,10 +249,9 @@ async fn auth_doc(
         return Err(StatusCode::NOT_FOUND);
     }
 
-    let token = if let Some(paseto) = &server_state.authenticator {
-        let token = paseto
-            .gen_token(&doc_id)
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let token = if let Some(auth) = &server_state.authenticator {
+        let token = auth
+            .gen_token(&format!("doc_id={}", &doc_id));
         Some(token)
     } else {
         None

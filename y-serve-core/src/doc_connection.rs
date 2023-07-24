@@ -46,10 +46,7 @@ impl DocConnection {
         Self::new_inner(awareness, Arc::new(callback))
     }
 
-    pub fn new_inner(
-        awareness: Arc<RwLock<Awareness>>,
-        callback: Callback,
-    ) -> Self {
+    pub fn new_inner(awareness: Arc<RwLock<Awareness>>, callback: Callback) -> Self {
         let (doc_subscription, awareness_subscription) = {
             let mut awareness = awareness.write().unwrap();
 

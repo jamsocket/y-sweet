@@ -1,19 +1,11 @@
 use anyhow::{anyhow, Result};
 use base64::{engine::general_purpose, Engine};
-use pasetors::{
-    claims::{Claims, ClaimsValidationRules},
-    keys::{Generate, SymmetricKey},
-    local::{decrypt, encrypt},
-    paserk::FormatAsPaserk,
-    token::UntrustedToken,
-    version4::V4,
-    Local,
-};
+use rand::Rng;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 
 pub struct Authenticator {
-    paseto: SymmetricKey<V4>,
+    private_key: String,
     server_token: String,
 }
 
@@ -24,13 +16,22 @@ fn hash_string(str: &str) -> String {
     format!("{:x}", result)
 }
 
+fn b64_encode_str(str: &str) -> String {
+    b64_encode(str.as_bytes())
+}
+
+fn b64_encode(bytes: &[u8]) -> String {
+    let mut buf = String::new();
+    general_purpose::STANDARD.encode_string(bytes, &mut buf);
+    buf
+}
+
 impl Authenticator {
-    pub fn new(key: &str) -> Result<Self> {
-        let paseto = SymmetricKey::<V4>::try_from(key)?;
-        let server_token = hash_string(key);
+    pub fn new(private_key: &str) -> Result<Self> {
+        let server_token = hash_string(&private_key);
 
         Ok(Self {
-            paseto,
+            private_key: private_key.to_string(),
             server_token,
         })
     }
@@ -41,51 +42,40 @@ impl Authenticator {
 
     pub fn server_token_b64(&self) -> String {
         let mut buf = String::new();
-        general_purpose::STANDARD
-            .encode_string(self.server_token.as_bytes(), &mut buf);
+        general_purpose::STANDARD.encode_string(self.server_token.as_bytes(), &mut buf);
         buf
     }
 
-    pub fn paseto_token(&self) -> String {
-        let mut paserk = String::new();
-        self.paseto.fmt(&mut paserk).unwrap();
-        paserk
+    pub fn private_key(&self) -> &str {
+        &self.private_key
     }
 
-    pub fn gen_token(&self, doc_id: &str) -> Result<String> {
-        let mut claims = Claims::new()?;
-        claims.add_additional("doc", doc_id)?;
+    pub fn gen_token(&self, payload: &str) -> String {
+        let st = format!("{}|{}", self.server_token, payload);
+        let hash = hash_string(&st);
 
-        Ok(encrypt(&self.paseto, &claims, None, None)?)
+        format!("{}:{}", payload, hash)
     }
 
-    pub fn verify_token(&self, token: &str, doc_id: &str) -> Result<bool> {
-        let validation_rules = ClaimsValidationRules::new();
-        let untrusted_token = UntrustedToken::<Local, V4>::try_from(token)?;
-        let trusted_token = decrypt(
-            &self.paseto,
-            &untrusted_token,
-            &validation_rules,
-            None,
-            None,
-        )?;
-        let claims = trusted_token
-            .payload_claims()
-            .ok_or_else(|| anyhow!("No claims"))?;
-        let claim_doc_id = claims.get_claim("doc").ok_or_else(|| anyhow!("No doc"))?;
-        if let Value::String(value) = claim_doc_id {
-            Ok(value == doc_id)
-        } else {
-            Ok(false)
+    pub fn verify_token(&self, token: &str) -> Result<String> {
+        let Some((payload, hash)) = token.rsplit_once(':') else {
+            return Err(anyhow!("Invalid token format"));
+        };
+
+        let expected_hash = hash_string(&format!("{}|{}", self.server_token, payload));
+
+        if expected_hash != hash {
+            return Err(anyhow!("Invalid token"));
         }
+
+        Ok(payload.to_string())
     }
 
     pub fn gen_key() -> Result<Authenticator> {
-        let key = SymmetricKey::<V4>::generate()?;
-        let mut paserk = String::new();
-        key.fmt(&mut paserk)?;
+        let key = rand::thread_rng().gen::<[u8; 32]>();
+        let key = b64_encode(&key);
 
-        let authenticator = Authenticator::new(&paserk)?;
+        let authenticator = Authenticator::new(&key)?;
         Ok(authenticator)
     }
 }
@@ -97,8 +87,10 @@ mod tests {
     #[test]
     fn test_simple_auth() {
         let authenticator = Authenticator::gen_key().unwrap();
-        let token = authenticator.gen_token("doc123").unwrap();
-        assert!(authenticator.verify_token(&token, "doc123").unwrap());
-        assert!(!authenticator.verify_token(&token, "doc1234").unwrap());
+        let token = authenticator.gen_token("doc=doc123");
+        assert_eq!(authenticator.verify_token(&token).unwrap(), "doc=doc123");
+
+        let token2 = format!("{}:{}", "doc=doc123", hash_string("foobar"));
+        assert!(authenticator.verify_token(&token2).is_err());
     }
 }

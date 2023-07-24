@@ -1,4 +1,4 @@
-use crate::{doc_connection::DOC_NAME, store::Store, sync_kv::SyncKv, sync::awareness::Awareness};
+use crate::{doc_connection::DOC_NAME, store::Store, sync::awareness::Awareness, sync_kv::SyncKv};
 use anyhow::{anyhow, Context, Result};
 use std::sync::{Arc, RwLock};
 use yrs::{Doc, Options, Subscription, Transact, TransactionMut, UpdateEvent};

@@ -46,7 +46,8 @@ fn check_server_token(req: &Request, config: &Configuration) -> Result<()> {
             worker::Error::JsError("No Authorization header provided.".to_string())
         })?;
 
-        if auth.server_token_b64() != auth_header_val {
+        if auth.server_token_b64() != auth_header_val[7..] {
+            console_log!("auth header '{}' '{}'", &auth_header_val[7..], auth.server_token_b64());
             return Err(worker::Error::JsError(
                 "Invalid Authorization header.".to_string(),
             ));
@@ -86,7 +87,7 @@ async fn auth_doc(req: Request, ctx: RouteContext<()>) -> Result<Response> {
     // TODO: verify that the doc exists
 
     let token = if let Some(auth) = config.auth {
-        Some(auth.gen_token(doc_id).unwrap())
+        Some(auth.gen_token(&format!("doc_id={}", doc_id)))
     } else {
         None
     };

@@ -134,7 +134,7 @@ async fn main() -> Result<()> {
 
             println!("Run y-serve with the following option to require authentication:");
             println!();
-            println!("   --auth {}", auth.paseto_token().bright_blue());
+            println!("   --auth {}", auth.private_key().bright_blue());
             println!();
             println!("Then, when interacting with y-serve from your own server, pass the following server token:");
             println!();

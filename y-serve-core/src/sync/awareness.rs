@@ -331,9 +331,7 @@ struct MetaClientState {
 
 impl MetaClientState {
     fn new(clock: u32) -> Self {
-        MetaClientState {
-            clock,
-        }
+        MetaClientState { clock }
     }
 }
 
@@ -375,9 +373,9 @@ impl Event {
 
 #[cfg(test)]
 mod test {
+    use super::*;
     use std::sync::mpsc::{channel, Receiver};
     use yrs::Doc;
-    use super::*;
 
     fn update(
         recv: &mut Receiver<Event>,
