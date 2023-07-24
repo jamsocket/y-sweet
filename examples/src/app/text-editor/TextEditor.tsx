@@ -5,7 +5,7 @@ import { useEffect, useRef } from "react";
 import { QuillBinding } from "y-quill";
 import Quill from 'quill'
 
-import 'quill/dist/quill.bubble.css';
+import 'quill/dist/quill.snow.css';
 
 export function TextEditor() {
     const yText = useText('text')
@@ -17,7 +17,7 @@ export function TextEditor() {
         console.log(editorRef.current)
       if (editorRef.current) {
         const quill = new Quill(editorRef.current, {
-          theme: 'bubble', // or any other Quill theme you prefer
+          theme: 'snow', // or any other Quill theme you prefer
           modules: {
             toolbar: [
               [{ header: [1, 2, false] }],
@@ -26,11 +26,17 @@ export function TextEditor() {
               ['link'],
             ],
           },
+          
         });
   
         bindingRef.current = new QuillBinding(yText!, quill)
       }
     }, [yText]);
 
-    return(<div ref={editorRef}/>)
+    return(
+    <div >
+        <h1>A Collaborative Text Editor</h1>
+        <div ref={editorRef}/>
+    </div>
+    )
 }
