@@ -11,6 +11,7 @@ lib0 = "0.16.9"
 pasetors = "0.6.7"
 serde = { version = "1.0.173", features = ["derive"] }
 serde_json = "1.0.103"
+sha2 = "0.10.7"
 thiserror = "1.0.44"
 tracing = "0.1.37"
 yrs = "0.16.9"

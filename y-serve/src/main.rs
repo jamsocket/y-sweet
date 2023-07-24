@@ -1,6 +1,7 @@
 use crate::stores::filesystem::FileSystemStore;
 use anyhow::{anyhow, Result};
 use clap::{Parser, Subcommand};
+use colored::Colorize;
 use dump::dump;
 use s3::Region;
 use std::{
@@ -37,13 +38,8 @@ enum ServSubcommand {
         #[clap(long, default_value = "10")]
         checkpoint_freq_seconds: u64,
 
-        /// Bearer token required for document management API
-        /// (not for direct client connections).
         #[clap(long)]
-        bearer_token: Option<String>,
-
-        #[clap(long)]
-        paseto: Option<String>,
+        auth: Option<String>,
     },
 
     Dump {
@@ -92,17 +88,13 @@ async fn main() -> Result<()> {
             port,
             host,
             checkpoint_freq_seconds,
-            bearer_token,
             store_path,
-            paseto,
+            auth,
         } => {
-            if bearer_token.is_none() {
-                tracing::warn!("No bearer token set. Only use this for local development!");
-            }
-
-            let paseto = if let Some(paseto) = paseto {
-                Some(Authenticator::new(paseto)?)
+            let auth = if let Some(auth) = auth {
+                Some(Authenticator::new(auth)?)
             } else {
+                tracing::warn!("No auth key set. Only use this for local development!");
                 None
             };
 
@@ -116,8 +108,7 @@ async fn main() -> Result<()> {
             let server = server::Server::new(
                 store,
                 std::time::Duration::from_secs(*checkpoint_freq_seconds),
-                bearer_token.clone(),
-                paseto,
+                auth
             )
             .await?;
 
@@ -139,11 +130,25 @@ async fn main() -> Result<()> {
             dump(&txn)
         }
         ServSubcommand::GenToken => {
-            let key = Authenticator::gen_key()?;
+            let auth = Authenticator::gen_key()?;
 
-            println!("Run y-serve with the following option to enable PASETO tokens:");
+            println!("Run y-serve with the following option to require authentication:");
             println!();
-            println!("   --paseto {}", key);
+            println!("   --auth {}", auth.paseto_token().bright_blue());
+            println!();
+            println!("Then, when interacting with y-serve from your own server, pass the following server token:");
+            println!();
+            println!("   {}", auth.server_token().bright_purple());
+            println!();
+            println!("For example:");
+            println!();
+            println!("    // The token is hard-coded for simplicity of the example. Use a secret manager in production!");
+            println!(r#"    const params = {{"token": "{}"}})"#, auth.server_token().bright_purple());
+            println!("    const docInfo = createDoc(params)");
+            println!("    const connectionKey = getConnectionKey(docInfo['doc_id'], params)");
+            println!();
+            println!("Only use the server token on the server, do not expose the server token to clients.");
+            println!("getConnectionKey() will return a derived token that clients can use to scoped to a specific document.");
         }
     }
 

@@ -9,6 +9,7 @@ async-trait = "0.1.71"
 axum = { version = "0.6.19", features = ["ws", "headers"] }
 base64 = "0.21.2"
 clap = { version = "4.3.12", features = ["derive"] }
+colored = "2.0.4"
 dashmap = "5.5.0"
 futures = "0.3.28"
 lib0 = "0.16.9"

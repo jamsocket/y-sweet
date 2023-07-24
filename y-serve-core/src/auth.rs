@@ -9,15 +9,36 @@ use pasetors::{
     Local,
 };
 use serde_json::Value;
+use sha2::{Sha256, Digest};
 
 pub struct Authenticator {
-    pub paseto: SymmetricKey<V4>,
+    paseto: SymmetricKey<V4>,
+    server_token: String,
+}
+
+fn hash_string(str: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(str);
+    let result = hasher.finalize();
+    format!("{:x}", result)
 }
 
 impl Authenticator {
     pub fn new(key: &str) -> Result<Self> {
         let paseto = SymmetricKey::<V4>::try_from(key)?;
-        Ok(Self { paseto })
+        let server_token = hash_string(key);
+
+        Ok(Self { paseto, server_token })
+    }
+
+    pub fn server_token(&self) -> &str {
+        &self.server_token
+    }
+
+    pub fn paseto_token(&self) -> String {
+        let mut paserk = String::new();
+        self.paseto.fmt(&mut paserk).unwrap();
+        paserk
     }
 
     pub fn gen_token(&self, doc_id: &str) -> Result<String> {
@@ -48,11 +69,13 @@ impl Authenticator {
         }
     }
 
-    pub fn gen_key() -> Result<String> {
+    pub fn gen_key() -> Result<Authenticator> {
         let key = SymmetricKey::<V4>::generate()?;
         let mut paserk = String::new();
         key.fmt(&mut paserk)?;
-        Ok(paserk)
+
+        let authenticator = Authenticator::new(&paserk)?;
+        Ok(authenticator)
     }
 }
 
@@ -62,8 +85,7 @@ mod tests {
 
     #[test]
     fn test_simple_auth() {
-        let key = Authenticator::gen_key().unwrap();
-        let authenticator = Authenticator::new(&key).unwrap();
+        let authenticator = Authenticator::gen_key().unwrap();
         let token = authenticator.gen_token("doc123").unwrap();
         assert!(authenticator.verify_token(&token, "doc123").unwrap());
         assert!(!authenticator.verify_token(&token, "doc1234").unwrap());

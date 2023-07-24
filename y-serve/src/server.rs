@@ -34,7 +34,6 @@ pub struct Server {
     docs: DashMap<String, DocWithSyncKv>,
     store: Arc<Box<dyn Store>>,
     checkpoint_freq: Duration,
-    bearer_token: Option<String>,
     authenticator: Option<Authenticator>,
 }
 
@@ -42,14 +41,12 @@ impl Server {
     pub async fn new(
         store: Box<dyn Store>,
         checkpoint_freq: Duration,
-        bearer_token: Option<String>,
         authenticator: Option<Authenticator>,
     ) -> Result<Self> {
         Ok(Self {
             docs: DashMap::new(),
             store: Arc::new(store),
             checkpoint_freq,
-            bearer_token,
             authenticator,
         })
     }
@@ -135,18 +132,20 @@ impl Server {
         &self,
         header: Option<TypedHeader<headers::Authorization<Bearer>>>,
     ) -> Result<(), StatusCode> {
-        if let Some(token) = &self.bearer_token {
+        if let Some(auth) = &self.authenticator {
             if let Some(TypedHeader(headers::Authorization(bearer))) = header {
+                // bearer tokens are base64-encoded
                 let bytes = general_purpose::STANDARD
                     .decode(bearer.token())
                     .map_err(|_| StatusCode::BAD_REQUEST)?;
-                if bytes == token.as_bytes() {
+                if bytes == auth.server_token().as_bytes() {
                     return Ok(());
                 }
             }
             return Err(StatusCode::UNAUTHORIZED);
+        } else {
+            Ok(())
         }
-        Ok(())
     }
 
     pub async fn serve(self, addr: &SocketAddr) -> Result<()> {
