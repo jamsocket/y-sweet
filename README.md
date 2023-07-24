@@ -55,3 +55,6 @@ const params = {"token": [your server token goes here]}
 const docInfo = createDoc(params)
 const connectionKey = getConnectionKey(docInfo['doc_id'], params)
 ```
+
+The server token **should not be shared with the client**. Requests from the client instead use a **connection key**, which includes
+a token scoped to a particular document.
