@@ -46,7 +46,7 @@ Then, run the server with:
 
     y-serve serve ./data --auth [result of gen-token]
 
-`gen-token` will also print a server token. This should be passed as an HTTP bearer token on requests from your web server to
+`gen-token` will also print a **server token**. This should be passed as an HTTP bearer token on requests from your web server to
 y-serve. If you are using our JavaScript API, this looks like:
 
 ```javascript
