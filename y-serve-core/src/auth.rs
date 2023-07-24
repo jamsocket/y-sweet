@@ -1,23 +1,107 @@
-use anyhow::{anyhow, Result};
 use base64::{engine::general_purpose, Engine};
 use rand::Rng;
-use serde_json::Value;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use thiserror::Error;
+
+const EXPIRATION_MILLIS: u64 = 1000 * 60 * 60; // 60 minutes
+
+#[derive(Error, Debug, PartialEq, Eq)]
+pub enum AuthError {
+    #[error("The token is not a valid format")]
+    InvalidToken,
+    #[error("The token is expired")]
+    Expired,
+    #[error("The token is not valid for the requested resource")]
+    InvalidResource,
+    #[error("The token signature is invalid")]
+    InvalidSignature,
+}
 
 pub struct Authenticator {
-    private_key: String,
+    private_key: Vec<u8>,
     server_token: String,
 }
 
-fn hash_string(str: &str) -> String {
-    let mut hasher = Sha256::new();
-    hasher.update(str);
-    let result = hasher.finalize();
-    format!("{:x}", result)
+#[derive(Serialize, Deserialize)]
+pub enum Permission {
+    Server,
+    Doc(String),
 }
 
-fn b64_encode_str(str: &str) -> String {
-    b64_encode(str.as_bytes())
+#[derive(Serialize, Deserialize)]
+pub struct Payload {
+    pub payload: Permission,
+    pub expiration_millis: Option<u64>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct AuthenticatedRequest {
+    pub payload: Payload,
+    pub token: Vec<u8>,
+}
+
+impl Payload {
+    pub fn sign(self, private_key: &[u8]) -> String {
+        let mut payload =
+            bincode::serialize(&self).expect("Bincode serialization should not fail.");
+        payload.extend_from_slice(&private_key);
+
+        let token = hash(&payload);
+
+        let auth_req = AuthenticatedRequest {
+            payload: self,
+            token: token,
+        };
+
+        let auth_enc =
+            bincode::serialize(&auth_req).expect("Bincode serialization should not fail.");
+        let signed = b64_encode(&auth_enc);
+
+        signed
+    }
+
+    pub fn new(payload: Permission) -> Self {
+        let payload = Self {
+            payload,
+            expiration_millis: None,
+        };
+
+        payload
+    }
+
+    pub fn new_with_expiration(payload: Permission, expiration_millis: u64) -> Self {
+        let payload = Self {
+            payload,
+            expiration_millis: Some(expiration_millis),
+        };
+
+        payload
+    }
+
+    pub fn verify(token: &str, private_key: &[u8], current_time: u64) -> Result<Payload, AuthError> {
+        let auth_req: AuthenticatedRequest = bincode::deserialize(&b64_decode(token)?).map_err(|_| AuthError::InvalidToken)?;
+
+        let mut payload = bincode::serialize(&auth_req.payload).expect("Bincode serialization should not fail.");
+        payload.extend_from_slice(&private_key);
+
+        let expected_token = hash(&payload);
+
+        if expected_token != auth_req.token {
+            Err(AuthError::InvalidSignature)
+        } else if auth_req.payload.expiration_millis.unwrap_or(u64::MAX) < current_time {
+            Err(AuthError::Expired)
+        } else {
+            Ok(auth_req.payload)
+        }
+    }
+}
+
+fn hash(bytes: &[u8]) -> Vec<u8> {
+    let mut hasher = Sha256::new();
+    hasher.update(bytes);
+    let result = hasher.finalize();
+    result.to_vec()
 }
 
 fn b64_encode(bytes: &[u8]) -> String {
@@ -26,18 +110,19 @@ fn b64_encode(bytes: &[u8]) -> String {
     buf
 }
 
+fn b64_decode(str: &str) -> Result<Vec<u8>, AuthError> {
+    general_purpose::STANDARD.decode(str).map_err(|_| AuthError::InvalidToken)
+}
+
 impl Authenticator {
-    pub fn new(private_key: &str) -> Result<Self> {
-        let server_token = hash_string(&private_key);
+    pub fn new(private_key: &str) -> Result<Self, AuthError> {
+        let private_key = b64_decode(private_key)?;
+        let server_token = Payload::new(Permission::Server).sign(&private_key);
 
         Ok(Self {
-            private_key: private_key.to_string(),
+            private_key,
             server_token,
         })
-    }
-
-    pub fn server_token(&self) -> &str {
-        &self.server_token
     }
 
     pub fn server_token_b64(&self) -> String {
@@ -46,32 +131,40 @@ impl Authenticator {
         buf
     }
 
-    pub fn private_key(&self) -> &str {
-        &self.private_key
+    pub fn private_key(&self) -> String {
+        b64_encode(&self.private_key)
     }
 
-    pub fn gen_token(&self, payload: &str) -> String {
-        let st = format!("{}|{}", self.server_token, payload);
-        let hash = hash_string(&st);
-
-        format!("{}:{}", payload, hash)
+    pub fn gen_doc_token(&self, doc_id: &str, current_time_epoch_millis: u64) -> String {
+        let expiration_time_epoch_millis = current_time_epoch_millis + EXPIRATION_MILLIS;
+        let payload = Payload::new_with_expiration(
+            Permission::Doc(doc_id.to_string()),
+            expiration_time_epoch_millis,
+        );
+        payload.sign(&self.private_key)
     }
 
-    pub fn verify_token(&self, token: &str) -> Result<String> {
-        let Some((payload, hash)) = token.rsplit_once(':') else {
-            return Err(anyhow!("Invalid token format"));
-        };
+    fn verify_token(&self, token: &str, current_time_epoch_millis: u64) -> Result<Permission, AuthError> {
+        let payload = Payload::verify(token, &self.private_key, current_time_epoch_millis)?;
+        Ok(payload.payload)
+    }
 
-        let expected_hash = hash_string(&format!("{}|{}", self.server_token, payload));
+    pub fn verify_doc_token(&self, token: &str, doc: &str, current_time_epoch_millis: u64) -> Result<(), AuthError> {
+        let payload = self.verify_token(token, current_time_epoch_millis)?;
 
-        if expected_hash != hash {
-            return Err(anyhow!("Invalid token"));
+        match payload {
+            Permission::Doc(doc_id) => {
+                if doc_id == doc {
+                    Ok(())
+                } else {
+                    Err(AuthError::InvalidResource)
+                }
+            }
+            _ => Err(AuthError::InvalidResource),
         }
-
-        Ok(payload.to_string())
     }
 
-    pub fn gen_key() -> Result<Authenticator> {
+    pub fn gen_key() -> Result<Authenticator, AuthError> {
         let key = rand::thread_rng().gen::<[u8; 32]>();
         let key = b64_encode(&key);
 
@@ -87,10 +180,32 @@ mod tests {
     #[test]
     fn test_simple_auth() {
         let authenticator = Authenticator::gen_key().unwrap();
-        let token = authenticator.gen_token("doc=doc123");
-        assert_eq!(authenticator.verify_token(&token).unwrap(), "doc=doc123");
+        let token = authenticator.gen_doc_token("doc123", 0);
+        assert_eq!(authenticator.verify_doc_token(&token, "doc123", 0), Ok(()));
+        assert_eq!(authenticator.verify_doc_token(&token, "doc123", EXPIRATION_MILLIS + 1), Err(AuthError::Expired));
+        assert_eq!(authenticator.verify_doc_token(&token, "doc456", 0), Err(AuthError::InvalidResource));
+    }
 
-        let token2 = format!("{}:{}", "doc=doc123", hash_string("foobar"));
-        assert!(authenticator.verify_token(&token2).is_err());
+    #[test]
+    fn test_invalid_signature() {
+        let authenticator = Authenticator::gen_key().unwrap();
+        let actual_payload = Payload::new(Permission::Doc("doc123".to_string()));
+        let mut encoded_payload =
+            bincode::serialize(&actual_payload).expect("Bincode serialization should not fail.");
+        encoded_payload.extend_from_slice(&authenticator.private_key);
+
+        let token = hash(&encoded_payload);
+
+        let auth_req = AuthenticatedRequest {
+            payload: Payload::new(Permission::Doc("abc123".to_string())),
+            token: token,
+        };
+
+        let auth_enc =
+            bincode::serialize(&auth_req).expect("Bincode serialization should not fail.");
+        let signed = b64_encode(&auth_enc);
+
+        assert_eq!(authenticator.verify_doc_token(&signed, "doc123", 0), Err(AuthError::InvalidSignature));
+        assert_eq!(authenticator.verify_doc_token(&signed, "abc123", 0), Err(AuthError::InvalidSignature));
     }
 }

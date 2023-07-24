@@ -138,12 +138,12 @@ async fn main() -> Result<()> {
             println!();
             println!("Then, when interacting with y-serve from your own server, pass the following server token:");
             println!();
-            println!("   {}", auth.server_token().bright_purple());
+            println!("   {}", auth.server_token_b64().bright_purple());
             println!();
             println!("For example:");
             println!();
             println!("    // The token is hard-coded for simplicity of the example. Use a secret manager in production!");
-            println!(r#"    const params = {{"token": "{}"}})"#, auth.server_token().bright_purple());
+            println!(r#"    const params = {{"token": "{}"}})"#, auth.server_token_b64().bright_purple());
             println!("    const docInfo = createDoc(params)");
             println!("    const connectionKey = getConnectionKey(docInfo['doc_id'], params)");
             println!();

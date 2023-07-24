@@ -29,6 +29,12 @@ use y_serve_core::{
     sync::awareness::Awareness,
 };
 
+fn current_time_epoch_millis() -> u64 {
+    let now = std::time::SystemTime::now();
+    let duration_since_epoch = now.duration_since(std::time::UNIX_EPOCH).unwrap();
+    duration_since_epoch.as_millis() as u64
+}
+
 pub struct Server {
     docs: DashMap<String, DocWithSyncKv>,
     store: Arc<Box<dyn Store>>,
@@ -175,14 +181,7 @@ async fn handler(
     // TODO: clean this up.
     if let Some(authenticator) = &server_state.authenticator {
         if let Some(token) = params.token {
-            if let Ok(verified_token) = authenticator.verify_token(&token) {
-                if verified_token != format!("doc={}", doc_id) {
-                    return Err(StatusCode::UNAUTHORIZED);
-                }
-                // else we are clear
-            } else {
-                return Err(StatusCode::UNAUTHORIZED);
-            }
+            authenticator.verify_doc_token(&token, &doc_id, current_time_epoch_millis()).map_err(|_| StatusCode::FORBIDDEN)?;
         } else {
             return Err(StatusCode::UNAUTHORIZED);
         }
@@ -251,7 +250,7 @@ async fn auth_doc(
 
     let token = if let Some(auth) = &server_state.authenticator {
         let token = auth
-            .gen_token(&format!("doc_id={}", &doc_id));
+            .gen_doc_token(&doc_id, current_time_epoch_millis());
         Some(token)
     } else {
         None
