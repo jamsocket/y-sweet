@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use base64::{engine::general_purpose, Engine};
 use pasetors::{
     claims::{Claims, ClaimsValidationRules},
     keys::{Generate, SymmetricKey},
@@ -9,7 +10,7 @@ use pasetors::{
     Local,
 };
 use serde_json::Value;
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
 
 pub struct Authenticator {
     paseto: SymmetricKey<V4>,
@@ -28,11 +29,21 @@ impl Authenticator {
         let paseto = SymmetricKey::<V4>::try_from(key)?;
         let server_token = hash_string(key);
 
-        Ok(Self { paseto, server_token })
+        Ok(Self {
+            paseto,
+            server_token,
+        })
     }
 
     pub fn server_token(&self) -> &str {
         &self.server_token
+    }
+
+    pub fn server_token_b64(&self) -> String {
+        let mut buf = String::new();
+        general_purpose::STANDARD
+            .encode_string(self.server_token.as_bytes(), &mut buf);
+        buf
     }
 
     pub fn paseto_token(&self) -> String {

@@ -1,4 +1,5 @@
 use crate::r2_store::R2Store;
+use config::Configuration;
 use futures::StreamExt;
 use std::sync::Arc;
 use threadless::Threadless;
@@ -15,6 +16,7 @@ use y_serve_core::{
     store::Store,
 };
 
+mod config;
 mod r2_store;
 mod threadless;
 
@@ -37,7 +39,26 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
     Ok(response)
 }
 
-async fn new_doc(_req: Request, ctx: RouteContext<()>) -> Result<Response> {
+fn check_server_token(req: &Request, config: &Configuration) -> Result<()> {
+    if let Some(auth) = &config.auth {
+        let auth_header = req.headers().get("Authorization")?;
+        let auth_header_val = auth_header.as_deref().ok_or_else(|| {
+            worker::Error::JsError("No Authorization header provided.".to_string())
+        })?;
+
+        if auth.server_token_b64() != auth_header_val {
+            return Err(worker::Error::JsError(
+                "Invalid Authorization header.".to_string(),
+            ));
+        }
+    }
+    Ok(())
+}
+
+async fn new_doc(req: Request, ctx: RouteContext<()>) -> Result<Response> {
+    let config = Configuration::from(&ctx.env).unwrap();
+    check_server_token(&req, &config)?;
+
     let doc_id = nanoid::nanoid!();
     let bucket = ctx.env.bucket(BUCKET).unwrap();
     let store = R2Store::new(bucket);
@@ -52,7 +73,8 @@ async fn new_doc(_req: Request, ctx: RouteContext<()>) -> Result<Response> {
 }
 
 async fn auth_doc(req: Request, ctx: RouteContext<()>) -> Result<Response> {
-    // TODO: check auth header
+    let config = Configuration::from(&ctx.env).unwrap();
+    check_server_token(&req, &config)?;
 
     let host = req
         .headers()
@@ -62,13 +84,18 @@ async fn auth_doc(req: Request, ctx: RouteContext<()>) -> Result<Response> {
     let doc_id = ctx.param("doc_id").unwrap();
 
     // TODO: verify that the doc exists
-    // TODO: generate PASETO token
+
+    let token = if let Some(auth) = config.auth {
+        Some(auth.gen_token(doc_id).unwrap())
+    } else {
+        None
+    };
 
     let base_url = format!("ws://{}/doc/ws", host);
     Response::from_json(&AuthDocResponse {
         base_url,
         doc_id: doc_id.to_string(),
-        token: None,
+        token,
     })
 }
 
@@ -181,7 +208,7 @@ async fn websocket_connect(_req: Request, ctx: RouteContext<&mut YServe>) -> Res
                         connection.send(&bytes).await.unwrap();
                     } else {
                         server
-                            .send_with_str("received unexpected text message.")
+                            .send_with_str("Received unexpected text message.")
                             .unwrap()
                     }
                 }
