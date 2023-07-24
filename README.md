@@ -57,3 +57,16 @@ const connectionKey = getConnectionKey(docInfo['doc_id'], params)
 
 The server token **should not be shared with the client**. Requests from the client instead use a **connection key**, which includes
 a token scoped to a particular document.
+
+
+### Running examples
+
+Start y-serve as follows:
+
+    cargo run serve ./data
+
+Now run the examples:
+
+    cd examples && npm i && npm run dev
+
+The examples should now be running on http://localhost:3000
