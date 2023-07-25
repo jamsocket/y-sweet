@@ -14,7 +14,6 @@ export function TextEditor() {
     const bindingRef = useRef<QuillBinding | null>(null)
 
     useEffect(() => {
-        console.log(editorRef.current)
       if (editorRef.current) {
         const quill = new Quill(editorRef.current, {
           theme: 'snow', // or any other Quill theme you prefer
