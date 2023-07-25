@@ -14,12 +14,20 @@ type YjsContextType = {
 
 const YjsContext = createContext<YjsContextType | null>(null)
 
-export function useYDoc(): Y.Doc | null {
-    return useContext(YjsContext)?.doc ?? null
+export function useYDoc(): Y.Doc {
+    const yjsCtx = useContext(YjsContext)
+    if (!yjsCtx) {
+        throw new Error('Yjs hooks must be used within a YDocProvider')
+    }
+    return yjsCtx.doc
 }
 
-export function useAwareness(): Awareness | null {
-    return useContext(YjsContext)?.provider?.awareness ?? null
+export function useAwareness(): Awareness {
+    const yjsCtx = useContext(YjsContext)
+    if (!yjsCtx) {
+        throw new Error('Yjs hooks must be used within a YDocProvider')
+    }
+    return yjsCtx.provider.awareness
 }
 
 type YDocProviderProps = {
@@ -61,6 +69,10 @@ export function YDocProvider(props: YDocProviderProps) {
         }
     }, [props.setQueryParam, auth.doc_id])
 
+    if (!ctx) {
+        return null
+    }
+
     return (
         <YjsContext.Provider value={ctx}>{children}</YjsContext.Provider>
     )
@@ -71,28 +83,28 @@ function useRedraw() {
     return useCallback(() => setRedraw((x) => x + 1), [setRedraw])
 }
 
-export function useMap<T>(name: string): Y.Map<T> | undefined {
+export function useMap<T>(name: string): Y.Map<T> {
     const doc = useYDoc()
-    const map = useMemo(() => doc?.getMap(name), [doc, name])
-    useObserve(map!)
+    const map = useMemo(() => doc.getMap<T>(name), [doc, name])
+    useObserve(map)
 
-    return map as Y.Map<T>
+    return map
 }
 
-export function useArray<T>(name: string): Y.Array<T> | undefined {
+export function useArray<T>(name: string): Y.Array<T> {
     const doc = useYDoc()
-    const array = useMemo(() => doc?.getArray(name), [doc, name])
-    useObserve(array!)
+    const array = useMemo(() => doc.getArray<T>(name), [doc, name])
+    useObserve(array)
 
-    return array as Y.Array<T>
+    return array
 }
 
-export function useText(name: string): Y.Text | undefined {
+export function useText(name: string): Y.Text {
     const doc = useYDoc()
-    const text = useMemo(() => doc?.getText(name), [doc, name])
-    useObserve(text!)
+    const text = useMemo(() => doc.getText(name), [doc, name])
+    useObserve(text)
 
-    return text as Y.Text
+    return text
 }
 
 function useObserve(object: Y.AbstractType<any>, deep = true) {
