@@ -1,4 +1,3 @@
-import Debugger from '@/components/DocDebugger'
 import { YDocProvider } from '@/lib/provider'
 import { getOrCreateDoc } from '@/lib/yserv'
 import { ColorGrid } from './Color'
@@ -8,7 +7,7 @@ type HomeProps = {
 }
 
 export default async function Home({ searchParams }: HomeProps) {
-  const connectionKey = await getOrCreateDoc(searchParams.doc, {token: 'foobar'})
+  const connectionKey = await getOrCreateDoc(searchParams.doc)
 
   return (
     <YDocProvider connectionKey={connectionKey} setQueryParam='doc'>

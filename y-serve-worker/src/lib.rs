@@ -28,6 +28,8 @@ fn get_time_millis_since_epoch() -> u64 {
     now.as_millis() as u64
 }
 
+
+
 #[event(fetch)]
 pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
     console_error_panic_hook::set_once();
@@ -51,8 +53,8 @@ fn check_server_token(req: &Request, config: &Configuration) -> Result<()> {
             worker::Error::JsError("No Authorization header provided.".to_string())
         })?;
 
-        if auth.server_token_b64() != auth_header_val[7..] {
-            console_log!("auth header '{}' '{}'", &auth_header_val[7..], auth.server_token_b64());
+        if auth.server_token() != &auth_header_val[7..] {
+            console_log!("auth header '{}' '{}'", &auth_header_val[7..], auth.server_token());
             return Err(worker::Error::JsError(
                 "Invalid Authorization header.".to_string(),
             ));
