@@ -1,0 +1,11 @@
+{
+	"private": true,
+	"version": "0.0.0",
+	"scripts": {
+		"deploy": "wrangler deploy",
+		"dev": "wrangler dev --persist-to ./data --port 8080"
+	},
+	"devDependencies": {
+		"wrangler": "^3.3.0"
+	}
+}

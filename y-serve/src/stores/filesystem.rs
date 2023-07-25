@@ -1,10 +1,10 @@
-use super::Store;
 use anyhow::Result;
 use async_trait::async_trait;
 use std::{
     fs::{create_dir_all, remove_file},
     path::PathBuf,
 };
+use y_serve_core::store::Store;
 
 pub struct FileSystemStore {
     base_path: PathBuf,

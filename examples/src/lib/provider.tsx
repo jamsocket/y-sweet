@@ -35,29 +35,41 @@ type YDocProviderProps = {
 export function YDocProvider(props: YDocProviderProps) {
     const { children, connectionKey: auth } = props
 
-    const ctxRef = useRef<YjsContextType | null>(null)
-    if (ctxRef.current === null) {
+    const [ctx, setCtx] = useState<YjsContextType>(() => {
         const doc = new Y.Doc()
-        ctxRef.current = {
+        return {
             doc,
         }
-    }
+    })
 
     useEffect(() => {
         const params = auth.token ? { token: auth.token } : undefined
-        ctxRef.current!.provider = new WebsocketProvider(
-            auth.base_url, auth.doc_id, ctxRef.current!.doc, { params }
+        
+        const provider = new WebsocketProvider(
+            auth.base_url,
+            auth.doc_id,
+            ctx.doc,
+            {
+                params,
+                // TODO: this disables cross-tab communication, which makes debugging easier, but should be re-enabled in prod
+                disableBc: true,
+            }
         )
+
+        setCtx({
+            doc: ctx.doc,
+            provider,
+        })
 
         if (props.setQueryParam) {
             const url = new URL(window.location.href)
             url.searchParams.set(props.setQueryParam, auth.doc_id)
             window.history.replaceState({}, '', url.toString())
         }
-    })
+    }, [])
 
     return (
-        <YjsContext.Provider value={ctxRef.current}>{children}</YjsContext.Provider>
+        <YjsContext.Provider value={ctx}>{children}</YjsContext.Provider>
     )
 }
 
@@ -90,7 +102,7 @@ export function useText(name: string): Y.Text | undefined {
     return text as Y.Text
 }
 
-function useObserve(object: Y.Map<any> | Y.Array<any> | Y.Text, deep = true) {
+function useObserve(object: Y.AbstractType<any>, deep = true) {
     const redraw = useRedraw()
 
     useEffect(() => {
