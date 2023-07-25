@@ -11,6 +11,7 @@ export default async function Home({ searchParams }: HomeProps) {
       <div><Link href="/todos" className="text-blue-500 underline">To Do List</Link></div>
       <div><Link href="/editor" className="text-blue-500 underline">Code Editor</Link></div>
       <div><Link href="/text-editor" className="text-blue-500 underline">Text Editor</Link></div>
+      <div><Link href="/color" className="text-blue-500 underline">Color Grid</Link></div>
     </div>
   )
 }
