@@ -5,7 +5,7 @@ use std::sync::Arc;
 use threadless::Threadless;
 use worker::{
     durable_object, event, Env, Request, Response, Result, RouteContext, Router, State,
-    WebSocketPair,
+    WebSocketPair, Date,
 };
 #[allow(unused)]
 use worker_sys::console_log;
@@ -22,6 +22,11 @@ mod threadless;
 
 const BUCKET: &str = "Y_SERVE_DATA";
 const DURABLE_OBJECT: &str = "Y_SERVE";
+
+fn get_time_millis_since_epoch() -> u64 {
+    let now = Date::now();
+    now.as_millis() as u64
+}
 
 #[event(fetch)]
 pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
@@ -57,7 +62,7 @@ fn check_server_token(req: &Request, config: &Configuration) -> Result<()> {
 }
 
 async fn new_doc(req: Request, ctx: RouteContext<()>) -> Result<Response> {
-    let config = Configuration::from(&ctx.env).unwrap();
+    let config = Configuration::from(&ctx.env).map_err(|e| worker::Error::JsError(format!("Token error: {:?}", e)))?;
     check_server_token(&req, &config)?;
 
     let doc_id = nanoid::nanoid!();
@@ -87,7 +92,7 @@ async fn auth_doc(req: Request, ctx: RouteContext<()>) -> Result<Response> {
     // TODO: verify that the doc exists
 
     let token = if let Some(auth) = config.auth {
-        Some(auth.gen_token(&format!("doc_id={}", doc_id)))
+        Some(auth.gen_doc_token(&doc_id, get_time_millis_since_epoch()))
     } else {
         None
     };

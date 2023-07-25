@@ -20,8 +20,10 @@ export class DocumentManager {
         let method = 'GET'
         let headers: [string, string][] = []
         if (this.token) {
-            let tokenBuffer = Buffer.from(this.token)
-            headers.push(['Authorization', `Bearer ${tokenBuffer.toString('base64')}`])
+            // let tokenBuffer = Buffer.from(this.token)
+            // headers.push(['Authorization', `Bearer ${tokenBuffer.toString('base64')}`])
+            // Tokens now come base64 encoded.
+            headers.push(['Authorization', `Bearer ${this.token}`])
         }
 
         if (body !== undefined) {

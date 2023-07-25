@@ -44,11 +44,11 @@ impl Store for R2Store {
         Ok(())
     }
 
-    async fn remove(&self, key: &str) -> Result<()> {
+    async fn remove(&self, _key: &str) -> Result<()> {
         todo!()
     }
 
-    async fn exists(&self, key: &str) -> Result<bool> {
+    async fn exists(&self, _key: &str) -> Result<bool> {
         todo!()
     }
 }

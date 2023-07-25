@@ -39,13 +39,13 @@ The general authentication flow is:
 
 Client tokens are signed with a (symmetric) private key. To generate a new private key, run:
 
-    y-serve gen-token
+    y-serve gen-auth
 
 Then, run the server with:
 
-    y-serve serve ./data --auth [result of gen-token]
+    y-serve serve ./data --auth [result of gen-auth]
 
-`gen-token` will also print a **server token**. This should be passed as an HTTP bearer token on requests from your web server to
+`gen-auth` will also print a **server token**. This should be passed as an HTTP bearer token on requests from your web server to
 y-serve. If you are using our JavaScript API, this looks like:
 
 ```javascript

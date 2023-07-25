@@ -139,7 +139,7 @@ impl Server {
     ) -> Result<(), StatusCode> {
         if let Some(auth) = &self.authenticator {
             if let Some(TypedHeader(headers::Authorization(bearer))) = header {
-                if bearer.token() == &auth.server_token_b64() {
+                if bearer.token() == auth.server_token() {
                     return Ok(());
                 }
             }
