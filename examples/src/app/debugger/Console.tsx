@@ -114,6 +114,9 @@ function TextView(props: ListViewProps) {
                 return 'deleted'
             } else if (item.content instanceof Y.ContentString) {
                 return item.content.str
+            } else if (item.content instanceof Y.ContentFormat) {
+                let open = item.content.value === true
+                return <span className="text-red-600">[{open ? null : '/'}{item.content.key}]</span>
             } else {
                 console.log('unimplemented item type', item)
                 return 'unknown'
@@ -164,6 +167,9 @@ function ItemView(props: ItemViewProps) {
         return <span>unknown content type...</span>
     } else if (props.item.content instanceof Y.ContentString) {
         return <PrettyString value={props.item.content.str} />
+    } else if (props.item.content instanceof Y.ContentFormat) {
+        let open = props.item.content.value === true
+        return <span className="text-red-600">[{open ? null : '/'}{props.item.content.key}]</span>
     } else {
         console.log('unimplemented item type', props.item)
         return <samp>unknown</samp>
