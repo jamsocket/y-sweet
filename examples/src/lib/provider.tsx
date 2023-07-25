@@ -1,9 +1,9 @@
 "use client"
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { WebsocketProvider } from 'y-websocket';
-import * as Y from 'yjs';
-import { ConnectionKey } from './yserv';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { WebsocketProvider } from 'y-websocket'
+import * as Y from 'yjs'
+import { ConnectionKey } from './yserv'
 import type { Awareness } from 'y-protocols/awareness'
 import { createYjsProvider } from './client';
 
