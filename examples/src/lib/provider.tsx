@@ -9,7 +9,7 @@ import { createYjsProvider } from './client';
 
 type YjsContextType = {
     doc: Y.Doc
-    provider?: WebsocketProvider
+    provider: WebsocketProvider
 }
 
 const YjsContext = createContext<YjsContextType | null>(null)
@@ -36,30 +36,30 @@ type YDocProviderProps = {
 export function YDocProvider(props: YDocProviderProps) {
     const { children, connectionKey: auth } = props
 
-    const [ctx, setCtx] = useState<YjsContextType>(() => {
-        const doc = new Y.Doc()
-        return {
-            doc,
-        }
-    })
+    const [ctx, setCtx] = useState<YjsContextType | null>(null)
 
     useEffect(() => {
-        const provider = createYjsProvider(ctx.doc, auth, {
+        const doc = new Y.Doc()
+        const provider = createYjsProvider(doc, auth, {
             // TODO: this disables cross-tab communication, which makes debugging easier, but should be re-enabled in prod
             disableBc: true,
         })
 
-        setCtx({
-            doc: ctx.doc,
-            provider,
-        })
+        setCtx({ doc, provider })
 
+        return () => {
+            provider.destroy()
+            doc.destroy()
+        }
+    }, [auth.token, auth.base_url, auth.doc_id])
+
+    useEffect(() => {
         if (props.setQueryParam) {
             const url = new URL(window.location.href)
             url.searchParams.set(props.setQueryParam, auth.doc_id)
             window.history.replaceState({}, '', url.toString())
         }
-    }, [])
+    }, [props.setQueryParam, auth.doc_id])
 
     return (
         <YjsContext.Provider value={ctx}>{children}</YjsContext.Provider>
