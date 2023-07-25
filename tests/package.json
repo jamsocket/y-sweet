@@ -1,0 +1,21 @@
+{
+  "name": "y-serve-tests",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest --detectOpenHandles --forceExit"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "examples": "file:../examples",
+    "@types/jest": "^29.5.3",
+    "@types/ws": "^8.5.5",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.1.6",
+    "ws": "^8.13.0",
+    "y-websocket": "^1.5.0",
+    "yjs": "file:../examples/node_modules/yjs"
+  }
+}

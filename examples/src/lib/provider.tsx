@@ -1,10 +1,11 @@
 "use client"
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 import { ConnectionKey } from './yserv';
 import type { Awareness } from 'y-protocols/awareness'
+import { createYjsProvider } from './client';
 
 type YjsContextType = {
     doc: Y.Doc
@@ -43,18 +44,9 @@ export function YDocProvider(props: YDocProviderProps) {
     })
 
     useEffect(() => {
-        const params = auth.token ? { token: auth.token } : undefined
-        
-        const provider = new WebsocketProvider(
-            auth.base_url,
-            auth.doc_id,
-            ctx.doc,
-            {
-                params,
-                // TODO: this disables cross-tab communication, which makes debugging easier, but should be re-enabled in prod
-                disableBc: true,
-            }
-        )
+        const provider = createYjsProvider(ctx.doc, auth, {
+            disableBc: true,
+        })
 
         setCtx({
             doc: ctx.doc,
@@ -111,7 +103,7 @@ function useObserve(object: Y.AbstractType<any>, deep = true) {
         } else {
             object.observe(redraw)
         }
-        
+
         return () => {
             if (deep) {
                 object.unobserveDeep(redraw)
