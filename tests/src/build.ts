@@ -1,9 +1,12 @@
 import { execSync, spawn, ChildProcess } from "child_process";
 import { dirname, join } from 'path'
+import { tmpdir } from 'os'
+import { rmSync } from 'fs'
 
 export class NativeServer {
     process: ChildProcess
     port: number
+    dataDir: string
 
     constructor() {
         const yServeBase = join(dirname(__filename), '..', '..')
@@ -14,9 +17,10 @@ export class NativeServer {
         )
 
         this.port = Math.floor(Math.random() * 10000) + 10000
+        this.dataDir = join(tmpdir(), `y-serve-test-${this.port}`)
 
         this.process = spawn(
-            `cargo run -- serve --port ${this.port} ./data`,
+            `cargo run -- serve --port ${this.port} ${this.dataDir}`,
             { cwd: yServeBase, stdio: 'inherit', shell: true }
         )
 
@@ -45,5 +49,6 @@ export class NativeServer {
 
     cleanup() {
         this.process.kill()
+        rmSync(this.dataDir, { recursive: true, force: true })
     }
 }
