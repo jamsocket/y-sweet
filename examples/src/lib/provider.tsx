@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { WebsocketProvider } from 'y-websocket'
+import { IndexeddbPersistence } from 'y-indexeddb'
 import * as Y from 'yjs'
 import { ConnectionKey } from './yserv'
 import type { Awareness } from 'y-protocols/awareness'
@@ -9,7 +10,7 @@ import { createYjsProvider } from './client';
 
 type YjsContextType = {
     doc: Y.Doc
-    provider: WebsocketProvider
+    wsProvider: WebsocketProvider
 }
 
 const YjsContext = createContext<YjsContextType | null>(null)
@@ -27,7 +28,7 @@ export function useAwareness(): Awareness {
     if (!yjsCtx) {
         throw new Error('Yjs hooks must be used within a YDocProvider')
     }
-    return yjsCtx.provider.awareness
+    return yjsCtx.wsProvider.awareness
 }
 
 type YDocProviderProps = {
@@ -48,16 +49,28 @@ export function YDocProvider(props: YDocProviderProps) {
 
     useEffect(() => {
         const doc = new Y.Doc()
-        const provider = createYjsProvider(doc, auth, {
+
+        // const idxDbProvider = new IndexeddbPersistence(auth.doc_id, doc)
+        // idxDbProvider.on('synced', () => {
+        //     console.log('indexdb provider synced')
+        //     // debugger
+        // })
+
+        const wsProvider = createYjsProvider(doc, auth, {
             // TODO: this disables cross-tab communication, which makes debugging easier, but should be re-enabled in prod
             disableBc: true,
         })
 
-        setCtx({ doc, provider })
+        wsProvider.on('sync', (isSynced: boolean) => {
+            console.log('websocket provider synced', isSynced)
+        })
+
+        setCtx({ doc, wsProvider })
 
         return () => {
-            provider.destroy()
+            wsProvider.destroy()
             doc.destroy()
+            // idxDbProvider.destroy()
         }
     }, [auth.token, auth.base_url, auth.doc_id])
 
