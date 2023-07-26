@@ -6,8 +6,7 @@ compatibility_date = "2022-01-20"
 WORKERS_RS_VERSION = "0.0.11"
 
 [build]
-#command = "cargo install -q worker-build --version 0.0.9 && worker-build --release"
-command = "cargo install -q worker-build --version 0.0.9 && worker-build"
+command = "cargo install -q worker-build --version 0.0.9 && worker-build --release"
 
 [durable_objects]
 bindings = [
