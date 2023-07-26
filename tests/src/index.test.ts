@@ -4,8 +4,8 @@ import * as Y from 'yjs';
 import { Server, ServerConfiguration } from "./server";
 
 const CONFIGURATIONS: ServerConfiguration[] = [
-    // { useAuth: false, server: 'native' },
-    // { useAuth: true, server: 'native' },
+    { useAuth: false, server: 'native' },
+    { useAuth: true, server: 'native' },
     { useAuth: false, server: 'worker' },
 
 ]
