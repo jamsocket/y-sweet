@@ -4,14 +4,16 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "jest --detectOpenHandles --forceExit"
+    "test": "jest --detectOpenHandles --forceExit",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,md}\""
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "examples": "file:../examples",
     "@types/jest": "^29.5.3",
     "@types/ws": "^8.5.5",
+    "examples": "file:../examples",
+    "prettier": "^3.0.0",
     "ts-jest": "^29.1.1",
     "typescript": "^5.1.6",
     "ws": "^8.13.0",

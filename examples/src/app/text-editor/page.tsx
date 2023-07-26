@@ -10,7 +10,7 @@ export default async function Home({ searchParams }: HomeProps) {
   const connectionKey = await getOrCreateDoc(searchParams.doc)
 
   return (
-    <YDocProvider connectionKey={connectionKey} setQueryParam='doc'>
+    <YDocProvider connectionKey={connectionKey} setQueryParam="doc">
       <TextEditor />
     </YDocProvider>
   )
