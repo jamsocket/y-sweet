@@ -213,7 +213,7 @@ async fn handle_socket(socket: WebSocket, awareness: Arc<RwLock<Awareness>>) {
         let msg = match msg {
             Ok(Message::Binary(bytes)) => bytes,
             Ok(Message::Close(_)) => break,
-            Err(e) => {
+            Err(_e) => {
                 // The stream will complain about things like
                 // connections being lost without handshake.
                 continue;
