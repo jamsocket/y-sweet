@@ -3,8 +3,6 @@ name: Staging Deploy
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ] # remove before merging
 
 env:
   CARGO_TERM_COLOR: always
