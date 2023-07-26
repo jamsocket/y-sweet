@@ -4,8 +4,8 @@ use futures::StreamExt;
 use std::sync::Arc;
 use threadless::Threadless;
 use worker::{
-    durable_object, event, Env, Request, Response, Result, RouteContext, Router, State,
-    WebSocketPair, Date,
+    durable_object, event, Date, Env, Request, Response, Result, RouteContext, Router, State,
+    WebSocketPair,
 };
 #[allow(unused)]
 use worker_sys::console_log;
@@ -27,8 +27,6 @@ fn get_time_millis_since_epoch() -> u64 {
     let now = Date::now();
     now.as_millis() as u64
 }
-
-
 
 #[event(fetch)]
 pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
@@ -54,7 +52,11 @@ fn check_server_token(req: &Request, config: &Configuration) -> Result<()> {
         })?;
 
         if auth.server_token() != &auth_header_val[7..] {
-            console_log!("auth header '{}' '{}'", &auth_header_val[7..], auth.server_token());
+            console_log!(
+                "auth header '{}' '{}'",
+                &auth_header_val[7..],
+                auth.server_token()
+            );
             return Err(worker::Error::JsError(
                 "Invalid Authorization header.".to_string(),
             ));
@@ -64,7 +66,8 @@ fn check_server_token(req: &Request, config: &Configuration) -> Result<()> {
 }
 
 async fn new_doc(req: Request, ctx: RouteContext<()>) -> Result<Response> {
-    let config = Configuration::from(&ctx.env).map_err(|e| worker::Error::JsError(format!("Token error: {:?}", e)))?;
+    let config = Configuration::from(&ctx.env)
+        .map_err(|e| worker::Error::JsError(format!("Token error: {:?}", e)))?;
     check_server_token(&req, &config)?;
 
     let doc_id = nanoid::nanoid!();
@@ -91,7 +94,11 @@ async fn auth_doc(req: Request, ctx: RouteContext<()>) -> Result<Response> {
 
     let doc_id = ctx.param("doc_id").unwrap();
 
-    // TODO: verify that the doc exists
+    let bucket = ctx.env.bucket(BUCKET).unwrap();
+    let store = R2Store::new(bucket);
+    if !store.exists(&format!("{doc_id}/data.bin")).await.unwrap() {
+        return Ok(Response::ok(format!("Doc '{doc_id}' does not exist."))?.with_status(404))
+    }
 
     let token = if let Some(auth) = config.auth {
         Some(auth.gen_doc_token(&doc_id, get_time_millis_since_epoch()))

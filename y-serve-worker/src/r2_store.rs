@@ -28,7 +28,7 @@ impl Store for R2Store {
                 .ok_or_else(|| anyhow!("Object does not have body."))?
                 .bytes()
                 .await
-                .map_err(|_| anyhow!("Failed to get object bytes"))?;
+                .map_err(|e| anyhow!("Failed to get object bytes {e}"))?;
             Ok(Some(bytes))
         } else {
             Ok(None)
@@ -40,7 +40,7 @@ impl Store for R2Store {
             .put(key, value)
             .execute()
             .await
-            .map_err(|_| anyhow!("Failed to put object"))?;
+            .map_err(|e| anyhow!("Failed to put object {e}"))?;
         Ok(())
     }
 
@@ -48,7 +48,7 @@ impl Store for R2Store {
         todo!()
     }
 
-    async fn exists(&self, _key: &str) -> Result<bool> {
-        todo!()
+    async fn exists(&self, key: &str) -> Result<bool> {
+        self.bucket.head(key).await.map(|r| r.is_some()).map_err(|e| anyhow!("Failed to head object {e}"))
     }
 }

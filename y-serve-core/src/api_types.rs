@@ -38,5 +38,6 @@ pub struct AuthDocRequest {
 pub struct AuthDocResponse {
     pub base_url: String,
     pub doc_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub token: Option<String>,
 }

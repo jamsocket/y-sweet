@@ -57,7 +57,11 @@ export class DocumentManager {
         return await this.getConnectionKey(docId, {})
     }
 
-    public async getConnectionKey(docId: string, request: AuthDocRequest): Promise<ConnectionKey> {
+    public async getConnectionKey(docId: string | DocCreationResult, request: AuthDocRequest): Promise<ConnectionKey> {
+        if (typeof docId !== 'string') {
+            docId = docId.doc_id
+        }
+
         const result = await this.doFetch(`doc/${docId}/auth`, {
             method: 'POST',
             headers: {
@@ -89,7 +93,7 @@ export async function getOrCreateDoc(docId?: string, options?: DocumentManagerOp
     return await manager.getOrCreateDoc(docId)
 }
 
-export async function getConnectionKey(docId: string, request: AuthDocRequest, options?: DocumentManagerOptions): Promise<ConnectionKey> {
+export async function getConnectionKey(docId: string | DocCreationResult, request: AuthDocRequest, options?: DocumentManagerOptions): Promise<ConnectionKey> {
     const manager = new DocumentManager(options)
     return await manager.getConnectionKey(docId, request)
 }
