@@ -45,6 +45,7 @@ export function YDocProvider(props: YDocProviderProps) {
 
     useEffect(() => {
         const provider = createYjsProvider(ctx.doc, auth, {
+            // TODO: this disables cross-tab communication, which makes debugging easier, but should be re-enabled in prod
             disableBc: true,
         })
 

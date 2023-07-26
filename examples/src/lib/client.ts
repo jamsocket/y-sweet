@@ -12,8 +12,6 @@ export function createYjsProvider(doc: Y.Doc, connectionKey: ConnectionKey, extr
         doc,
         {
             params,
-            // TODO: this disables cross-tab communication, which makes debugging easier, but should be re-enabled in prod
-            disableBc: true,
             ...extraOptions,
         }
     )
