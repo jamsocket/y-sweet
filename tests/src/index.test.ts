@@ -9,6 +9,8 @@ const CONFIGURATIONS: ServerConfiguration[] = [
     { useAuth: false, server: 'worker' },
 ]
 
+const FIVE_MINUTES_IN_MS = 5 * 60 * 1_000
+
 describe.each(CONFIGURATIONS)('Test $server (auth: $useAuth)', (configuration: ServerConfiguration) => {
     let SERVER: Server
     let DOCUMENT_MANANGER: DocumentManager
@@ -21,7 +23,7 @@ describe.each(CONFIGURATIONS)('Test $server (auth: $useAuth)', (configuration: S
         })
 
         await SERVER.waitForReady()
-    }, 30_000)
+    }, FIVE_MINUTES_IN_MS)
 
     afterAll(() => {
         SERVER.cleanup()

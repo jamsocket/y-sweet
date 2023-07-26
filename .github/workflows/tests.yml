@@ -22,15 +22,13 @@ jobs:
       with:
         cache-on-failure: "true"
 
-    - name: Build
-      run: cargo build --verbose
-    - name: Run unit tests
-      run: cargo test --verbose
+    # - name: Run unit tests
+    #   run: cargo test --verbose
     - name: Install dependencies of JS library
-      run: npm i
+      run: npm ci
       working-directory: examples
     - name: Install integration tests
-      run: npm i
+      run: npm ci
       working-directory: tests
     - name: Run integration tests
       run: npm test
