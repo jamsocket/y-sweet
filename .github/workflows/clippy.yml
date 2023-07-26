@@ -11,7 +11,8 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
             toolchain: stable
-            components: clippy
+            components: 
+            target: wasm32-unknown-unknown
             override: true
       - uses: actions-rs/clippy-check@v1
         with:
