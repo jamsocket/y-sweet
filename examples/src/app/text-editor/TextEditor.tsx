@@ -3,8 +3,6 @@
 import { useText, useAwareness } from "@/lib/provider"
 import { useEffect, useRef } from "react";
 import { QuillBinding } from "y-quill";
-import Quill from 'quill'
-import QuillCursors from 'quill-cursors'
 
 import 'quill/dist/quill.snow.css';
 
@@ -19,9 +17,15 @@ export function TextEditor() {
             return
         }
       if (editorRef.current && awareness) {
+        // These libraries are designed to work in the browser, and will cause warnings
+        // if imported on the server. Nextjs renders components on both the server and
+        // the client, so we import them lazily here when they are used on the client.
+        const Quill = require('quill')
+        const QuillCursors = require('quill-cursors')
+
         Quill.register('modules/cursors', QuillCursors);
         const quill = new Quill(editorRef.current, {
-          theme: 'snow', // or any other Quill theme you prefer
+          theme: 'snow',
           modules: {
             cursors: true,
             toolbar: [
@@ -33,16 +37,14 @@ export function TextEditor() {
           },
           
         });
-        console.log(quill.getModule('cursors'))
         bindingRef.current = new QuillBinding(yText!, quill, awareness!)
-        console.log(bindingRef.current)
       }
     }, [yText, awareness]);
 
 
 
     return(
-    <div >
+    <div>
         <h1>A Collaborative Text Editor</h1>
         <div ref={editorRef}/>
     </div>
