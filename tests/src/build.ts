@@ -3,7 +3,7 @@ import { dirname, join } from 'path'
 import { tmpdir } from 'os'
 import { rmSync } from 'fs'
 
-export class NativeServer {
+export class LocalServer {
     process: ChildProcess
     port: number
     dataDir: string
@@ -31,7 +31,7 @@ export class NativeServer {
 
         let command = `cargo run -- serve --port ${this.port} ${this.dataDir}`
         if (useAuth) {
-            let auth = NativeServer.generateAuth(yServeBase)
+            let auth = LocalServer.generateAuth(yServeBase)
             command += ` --auth ${auth.private_key}`
             this.serverToken = auth.server_token
         }
