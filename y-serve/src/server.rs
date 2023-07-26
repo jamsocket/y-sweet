@@ -78,7 +78,7 @@ impl Server {
     pub async fn load_doc(&self, doc_id: &str) {
         let (send, mut recv) = channel(1024);
 
-        let dwskv = DocWithSyncKv::new(&doc_id, self.store.clone(), move || {
+        let dwskv = DocWithSyncKv::new(doc_id, self.store.clone(), move || {
             send.try_send(()).unwrap();
         })
         .await
@@ -146,7 +146,7 @@ impl Server {
                     return Ok(());
                 }
             }
-            return Err(StatusCode::UNAUTHORIZED);
+            Err(StatusCode::UNAUTHORIZED)
         } else {
             Ok(())
         }
@@ -184,14 +184,16 @@ async fn handler(
     // TODO: clean this up.
     if let Some(authenticator) = &server_state.authenticator {
         if let Some(token) = params.token {
-            authenticator.verify_doc_token(&token, &doc_id, current_time_epoch_millis()).map_err(|_| StatusCode::FORBIDDEN)?;
+            authenticator
+                .verify_doc_token(&token, &doc_id, current_time_epoch_millis())
+                .map_err(|_| StatusCode::FORBIDDEN)?;
         } else {
             return Err(StatusCode::UNAUTHORIZED);
         }
     }
 
     let dwskv = server_state.get_or_create_doc(&doc_id).await.unwrap();
-    let awareness = dwskv.awareness().clone();
+    let awareness = dwskv.awareness();
 
     Ok(ws.on_upgrade(move |socket| handle_socket(socket, awareness)))
 }
@@ -257,8 +259,7 @@ async fn auth_doc(
     }
 
     let token = if let Some(auth) = &server_state.authenticator {
-        let token = auth
-            .gen_doc_token(&doc_id, current_time_epoch_millis());
+        let token = auth.gen_doc_token(&doc_id, current_time_epoch_millis());
         Some(token)
     } else {
         None

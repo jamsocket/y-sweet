@@ -49,6 +49,10 @@ impl Store for R2Store {
     }
 
     async fn exists(&self, key: &str) -> Result<bool> {
-        self.bucket.head(key).await.map(|r| r.is_some()).map_err(|e| anyhow!("Failed to head object {e}"))
+        self.bucket
+            .head(key)
+            .await
+            .map(|r| r.is_some())
+            .map_err(|e| anyhow!("Failed to head object {e}"))
     }
 }

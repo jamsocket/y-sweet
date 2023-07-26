@@ -55,37 +55,31 @@ fn bincode_decode<'a, T: Deserialize<'a>>(bytes: &'a [u8]) -> Result<T, bincode:
 impl Payload {
     pub fn sign(self, private_key: &[u8]) -> String {
         let mut payload = bincode_encode(&self).expect("Bincode serialization should not fail.");
-        payload.extend_from_slice(&private_key);
+        payload.extend_from_slice(private_key);
 
         let token = hash(&payload);
 
         let auth_req = AuthenticatedRequest {
             payload: self,
-            token: token,
+            token,
         };
 
         let auth_enc = bincode_encode(&auth_req).expect("Bincode serialization should not fail.");
-        let signed = b64_encode(&auth_enc);
-
-        signed
+        b64_encode(&auth_enc)
     }
 
     pub fn new(payload: Permission) -> Self {
-        let payload = Self {
+        Self {
             payload,
             expiration_millis: None,
-        };
-
-        payload
+        }
     }
 
     pub fn new_with_expiration(payload: Permission, expiration_millis: u64) -> Self {
-        let payload = Self {
+        Self {
             payload,
             expiration_millis: Some(expiration_millis),
-        };
-
-        payload
+        }
     }
 
     pub fn verify(
@@ -98,7 +92,7 @@ impl Payload {
 
         let mut payload =
             bincode_encode(&auth_req.payload).expect("Bincode serialization should not fail.");
-        payload.extend_from_slice(&private_key);
+        payload.extend_from_slice(private_key);
 
         let expected_token = hash(&payload);
 
@@ -231,8 +225,7 @@ mod tests {
             token: token,
         };
 
-        let auth_enc =
-            bincode_encode(&auth_req).expect("Bincode serialization should not fail.");
+        let auth_enc = bincode_encode(&auth_req).expect("Bincode serialization should not fail.");
         let signed = b64_encode(&auth_enc);
 
         assert_eq!(
