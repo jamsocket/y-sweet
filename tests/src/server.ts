@@ -55,6 +55,10 @@ export class Server {
                 { cwd: yServeBase, stdio: 'inherit', shell: true }
             )
         } else if (configuration.server === 'worker') {
+            if (configuration.useAuth) {
+                throw new Error('Auth tests are not yet supported with worker server')
+            }
+
             const workerBase = join(yServeBase, 'y-serve-worker')
             const command = `npx wrangler dev --persist-to ${this.dataDir} --port ${this.port}`
 
