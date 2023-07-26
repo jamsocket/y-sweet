@@ -1,4 +1,4 @@
-name: Server Tests
+name: Integration Tests
 
 on:
   push:
@@ -22,8 +22,6 @@ jobs:
       with:
         cache-on-failure: "true"
 
-    # - name: Run unit tests
-    #   run: cargo test --verbose
     - name: Install dependencies of JS library
       run: npm ci
       working-directory: examples
