@@ -13,6 +13,9 @@ bindings = [
   { name = "Y_SERVE", class_name = "YServe" }
 ]
 
+[env.production]
+vars = { USE_HTTPS = "true" }
+
 [[migrations]]
 tag = "v1"
 new_classes = ["YServe"]
