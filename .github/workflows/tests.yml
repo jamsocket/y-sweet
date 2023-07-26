@@ -1,0 +1,34 @@
+name: Server Tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-node@v3
+      with:
+        node-version: 18
+    - uses: Swatinem/rust-cache@v2
+      with:
+        cache-on-failure: "true"
+
+    - name: Build
+      run: cargo build --verbose
+    - name: Run unit tests
+      run: cargo test --verbose
+    - name: Install integration tests
+      run: npm i
+      working-directory: tests
+    - name: Run integration tests
+      run: npm test
+      working-directory: tests
