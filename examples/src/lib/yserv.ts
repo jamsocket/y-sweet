@@ -12,8 +12,8 @@ export class DocumentManager {
     token?: string
 
     constructor(options?: DocumentManagerOptions) {
-        this.baseUrl = options?.endpoint ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:8080'
-        this.token = options?.token ?? process.env.API_SERVER_TOKEN
+        this.baseUrl = options?.endpoint ?? 'http://127.0.0.1:8080'
+        this.token = options?.token
     }
 
     async doFetch(url: string, body?: any): Promise<Response> {
