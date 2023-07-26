@@ -3,12 +3,20 @@ import { dirname, join } from 'path'
 import { tmpdir } from 'os'
 import { rmSync } from 'fs'
 
-export class LocalServer {
+export type ServerType = 'native' | 'worker'
+
+export type ServerConfiguration = {
+    useAuth: boolean,
+    server: ServerType,
+}
+
+export class Server {
     process: ChildProcess
     port: number
     dataDir: string
     reject?: (reason?: any) => void
     serverToken?: string
+    finished: boolean = false
 
     static generateAuth(yServeBase: string) {
         const result = execSync(
@@ -18,7 +26,7 @@ export class LocalServer {
         return JSON.parse(result.toString())
     }
 
-    constructor(useAuth: boolean = true) {
+    constructor(configuration: ServerConfiguration) {
         const yServeBase = join(dirname(__filename), '..', '..')
 
         execSync(
@@ -28,21 +36,36 @@ export class LocalServer {
 
         this.port = Math.floor(Math.random() * 10000) + 10000
         this.dataDir = join(tmpdir(), `y-serve-test-${this.port}`)
-
-        let command = `cargo run -- serve --port ${this.port} ${this.dataDir}`
-        if (useAuth) {
-            let auth = LocalServer.generateAuth(yServeBase)
-            command += ` --auth ${auth.private_key}`
-            this.serverToken = auth.server_token
+        
+        let auth
+        if (configuration.useAuth) {
+            auth = Server.generateAuth(yServeBase)
         }
 
-        this.process = spawn(
-            command,
-            { cwd: yServeBase, stdio: 'inherit', shell: true }
-        )
+        if (configuration.server === 'native') {
+            let command = `cargo run -- serve --port ${this.port} ${this.dataDir}`
+            if (configuration.useAuth) {
+                let auth = Server.generateAuth(yServeBase)
+                command += ` --auth ${auth.private_key}`
+                this.serverToken = auth.server_token
+            }
+    
+            this.process = spawn(
+                command,
+                { cwd: yServeBase, stdio: 'inherit', shell: true }
+            )    
+        } else if (configuration.server === 'worker') {
+            const workerBase = join(yServeBase, 'y-serve-worker')
+            const command = `npx wrangler dev --persist-to ${this.dataDir} --port ${this.port}`
+
+            this.process = spawn(
+                command,
+                { cwd: workerBase, stdio: 'inherit', shell: true }
+            )    
+        }
 
         this.process.on('exit', (code) => {
-            if (code !== null) {
+            if (!this.finished) {
                 console.log('Server exited', code)
                 if (this.reject) {
                     this.reject(new Error(`Server exited with code ${code}`))
@@ -71,6 +94,7 @@ export class LocalServer {
     }
 
     cleanup() {
+        this.finished = true
         this.process.kill()
         rmSync(this.dataDir, { recursive: true, force: true })
     }

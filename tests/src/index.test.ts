@@ -1,24 +1,21 @@
 import { DocumentManager } from "examples/src/lib/yserv"
 import { createYjsProvider } from "examples/src/lib/client"
 import * as Y from 'yjs';
-import { LocalServer } from "./build";
+import { Server, ServerConfiguration } from "./server";
 
-type TestConfiguration = {
-    useAuth: boolean,
-    server: 'native' | 'local',
-}
+const CONFIGURATIONS: ServerConfiguration[] = [
+    // { useAuth: false, server: 'native' },
+    // { useAuth: true, server: 'native' },
+    { useAuth: false, server: 'worker' },
 
-const CONFIGURATIONS: TestConfiguration[] = [
-    { useAuth: false, server: 'native' },
-    { useAuth: true, server: 'native' },
 ]
 
-describe.each(CONFIGURATIONS)('Test $server (auth: $useAuth)', ({useAuth, server}: TestConfiguration) => {
-    let SERVER: LocalServer
+describe.each(CONFIGURATIONS)('Test $server (auth: $useAuth)', (configuration: ServerConfiguration) => {
+    let SERVER: Server
     let DOCUMENT_MANANGER: DocumentManager
 
     beforeAll(async () => {
-        SERVER = new LocalServer(useAuth)
+        SERVER = new Server(configuration)
         DOCUMENT_MANANGER = new DocumentManager({
             endpoint: SERVER.serverUrl(),
             token: SERVER.serverToken,
@@ -46,7 +43,7 @@ describe.each(CONFIGURATIONS)('Test $server (auth: $useAuth)', ({useAuth, server
         const docResult = await DOCUMENT_MANANGER.createDoc()
         const key = await DOCUMENT_MANANGER.getConnectionKey(docResult, {})
 
-        if (useAuth) {
+        if (configuration.useAuth) {
             expect(key.token).toBeDefined()
         } else {
             expect(key.token).toBeUndefined()
