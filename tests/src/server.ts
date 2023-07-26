@@ -1,7 +1,7 @@
-import { execSync, spawn, ChildProcess } from "child_process";
-import { dirname, join } from 'path'
-import { tmpdir } from 'os'
-import { rmSync } from 'fs'
+import { ChildProcess, execSync, spawn } from "child_process";
+import { rmSync } from 'fs';
+import { tmpdir } from 'os';
+import { dirname, join } from 'path';
 
 export type ServerType = 'native' | 'worker'
 
@@ -36,7 +36,7 @@ export class Server {
 
         this.port = Math.floor(Math.random() * 10000) + 10000
         this.dataDir = join(tmpdir(), `y-serve-test-${this.port}`)
-        
+
         let auth
         if (configuration.useAuth) {
             auth = Server.generateAuth(yServeBase)
@@ -49,11 +49,11 @@ export class Server {
                 command += ` --auth ${auth.private_key}`
                 this.serverToken = auth.server_token
             }
-    
+
             this.process = spawn(
                 command,
                 { cwd: yServeBase, stdio: 'inherit', shell: true }
-            )    
+            )
         } else if (configuration.server === 'worker') {
             const workerBase = join(yServeBase, 'y-serve-worker')
             const command = `npx wrangler dev --persist-to ${this.dataDir} --port ${this.port}`
@@ -61,7 +61,7 @@ export class Server {
             this.process = spawn(
                 command,
                 { cwd: workerBase, stdio: 'inherit', shell: true }
-            )    
+            )
         }
 
         this.process.on('exit', (code) => {

@@ -1,5 +1,5 @@
-import { DocumentManager } from "examples/src/lib/yserv"
-import { createYjsProvider } from "examples/src/lib/client"
+import { createYjsProvider } from "examples/src/lib/client";
+import { DocumentManager } from "examples/src/lib/yserv";
 import * as Y from 'yjs';
 import { Server, ServerConfiguration } from "./server";
 
@@ -7,7 +7,6 @@ const CONFIGURATIONS: ServerConfiguration[] = [
     { useAuth: false, server: 'native' },
     { useAuth: true, server: 'native' },
     { useAuth: false, server: 'worker' },
-
 ]
 
 describe.each(CONFIGURATIONS)('Test $server (auth: $useAuth)', (configuration: ServerConfiguration) => {
