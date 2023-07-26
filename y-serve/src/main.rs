@@ -15,6 +15,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilte
 use y_serve_core::{auth::Authenticator, doc_connection::DOC_NAME, store::Store, sync_kv::SyncKv};
 use yrs::{Doc, Transact};
 use yrs_kvstore::DocOps;
+use serde_json::json;
 
 mod dump;
 mod server;
@@ -47,7 +48,10 @@ enum ServSubcommand {
         doc_id: String,
     },
 
-    GenAuth,
+    GenAuth {
+        #[clap(long)]
+        json: bool,
+    },
 }
 
 fn get_store_from_opts(store_path: &str) -> Result<Box<dyn Store>> {
@@ -108,7 +112,7 @@ async fn main() -> Result<()> {
             let server = server::Server::new(
                 store,
                 std::time::Duration::from_secs(*checkpoint_freq_seconds),
-                auth
+                auth,
             )
             .await?;
 
@@ -129,26 +133,38 @@ async fn main() -> Result<()> {
 
             dump(&txn)
         }
-        ServSubcommand::GenAuth => {
+        ServSubcommand::GenAuth { json } => {
             let auth = Authenticator::gen_key()?;
 
-            println!("Run y-serve with the following option to require authentication:");
-            println!();
-            println!("   --auth {}", auth.private_key().bright_blue());
-            println!();
-            println!("Then, when interacting with y-serve from your own server, pass the following server token:");
-            println!();
-            println!("   {}", auth.server_token().bright_purple());
-            println!();
-            println!("For example:");
-            println!();
-            println!("    // The token is hard-coded for simplicity of the example. Use a secret manager in production!");
-            println!(r#"    const params = {{"token": "{}"}})"#, auth.server_token().bright_purple());
-            println!("    const docInfo = createDoc(params)");
-            println!("    const connectionKey = getConnectionKey(docInfo['doc_id'], params)");
-            println!();
-            println!("Only use the server token on the server, do not expose the server token to clients.");
-            println!("getConnectionKey() will return a derived token that clients can use to scoped to a specific document.");
+            if *json {
+                let result = json!({
+                    "private_key": auth.private_key(),
+                    "server_token": auth.server_token(),
+                });
+
+                println!("{}", serde_json::to_string_pretty(&result)?);
+            } else {
+                println!("Run y-serve with the following option to require authentication:");
+                println!();
+                println!("   --auth {}", auth.private_key().bright_blue());
+                println!();
+                println!("Then, when interacting with y-serve from your own server, pass the following server token:");
+                println!();
+                println!("   {}", auth.server_token().bright_purple());
+                println!();
+                println!("For example:");
+                println!();
+                println!("    // The token is hard-coded for simplicity of the example. Use a secret manager in production!");
+                println!(
+                    r#"    const params = {{"token": "{}"}})"#,
+                    auth.server_token().bright_purple()
+                );
+                println!("    const docInfo = createDoc(params)");
+                println!("    const connectionKey = getConnectionKey(docInfo['doc_id'], params)");
+                println!();
+                println!("Only use the server token on the server, do not expose the server token to clients.");
+                println!("getConnectionKey() will return a derived token that clients can use to scoped to a specific document.");
+            }
         }
     }
 

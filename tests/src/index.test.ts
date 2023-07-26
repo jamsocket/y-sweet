@@ -15,6 +15,7 @@ beforeAll(async () => {
     SERVER = new NativeServer()
     DOCUMENT_MANANGER = new DocumentManager({
         endpoint: SERVER.serverUrl(),
+        token: SERVER.serverToken,
     })
 
     await SERVER.waitForReady()
