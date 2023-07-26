@@ -109,14 +109,14 @@ function ListView(props: ListViewProps) {
 
 function TextView(props: ListViewProps) {
     return <pre className="bg-gray-100 rounded-md p-5">
-        {props.list.map((item) => {
+        {props.list.map((item, i) => {
             if (item.content instanceof Y.ContentDeleted) {
                 return 'deleted'
             } else if (item.content instanceof Y.ContentString) {
                 return item.content.str
             } else if (item.content instanceof Y.ContentFormat) {
                 let open = item.content.value === true
-                return <span className="text-red-600">[{open ? null : '/'}{item.content.key}]</span>
+                return <span className="text-red-600" key={i}>[{open ? null : '/'}{item.content.key}]</span>
             } else {
                 console.log('unimplemented item type', item)
                 return 'unknown'
@@ -194,10 +194,10 @@ function PrettyValue(props: { value: any }) {
 function PrettyString(props: { value: string }) {
     let valueEscaped = JSON.stringify(props.value)
     valueEscaped = valueEscaped.slice(1, valueEscaped.length - 1)
-    return <span className="text-blue-300">"<span className="text-blue-600">{valueEscaped}</span>"</span>
+    return <span className="text-blue-300">&ldquot;<span className="text-blue-600">{valueEscaped}</span>&rdquot;</span>
 }
 
 function PrettyKeyString(props: { value: string }) {
     const valueEscaped = JSON.stringify(props.value).slice(1, props.value.length + 1)
-    return <span className="text-red-300">"<span className="text-red-600">{valueEscaped}</span>"</span>
+    return <span className="text-red-300">&ldquot;<span className="text-red-600">{valueEscaped}</span>&rdquot;</span>
 }
