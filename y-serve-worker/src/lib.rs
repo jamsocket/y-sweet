@@ -25,7 +25,7 @@ const DURABLE_OBJECT: &str = "Y_SERVE";
 
 fn get_time_millis_since_epoch() -> u64 {
     let now = Date::now();
-    now.as_millis() as u64
+    now.as_millis()
 }
 
 #[event(fetch)]
@@ -100,11 +100,9 @@ async fn auth_doc(req: Request, ctx: RouteContext<()>) -> Result<Response> {
         return Ok(Response::ok(format!("Doc '{doc_id}' does not exist."))?.with_status(404));
     }
 
-    let token = if let Some(auth) = config.auth {
-        Some(auth.gen_doc_token(&doc_id, get_time_millis_since_epoch()))
-    } else {
-        None
-    };
+    let token = config
+        .auth
+        .map(|auth| auth.gen_doc_token(doc_id, get_time_millis_since_epoch()));
 
     let schema = if config.use_https { "wss" } else { "ws" };
     let base_url = format!("{schema}://{host}/doc/ws");
@@ -118,7 +116,7 @@ async fn auth_doc(req: Request, ctx: RouteContext<()>) -> Result<Response> {
 async fn forward_to_durable_object(req: Request, ctx: RouteContext<()>) -> Result<Response> {
     let doc_id = ctx.param("doc_id").unwrap();
     let durable_object = ctx.env.durable_object(DURABLE_OBJECT)?;
-    let stub = durable_object.id_from_name(&doc_id)?.get_stub()?;
+    let stub = durable_object.id_from_name(doc_id)?.get_stub()?;
     stub.fetch_with_request(req).await
 }
 
@@ -144,7 +142,7 @@ impl YServe {
             let store = R2Store::new(bucket);
             let store: Arc<Box<dyn Store>> = Arc::new(Box::new(store));
             let storage = Threadless(storage);
-            let doc = DocWithSyncKv::new(&doc_id, store, move || {
+            let doc = DocWithSyncKv::new(doc_id, store, move || {
                 let storage = storage.clone();
                 wasm_bindgen_futures::spawn_local(async move {
                     console_log!("Setting alarm.");
@@ -155,7 +153,7 @@ impl YServe {
             .unwrap();
 
             self.lasy_doc = Some(DocIdPair {
-                doc: doc,
+                doc,
                 id: doc_id.to_owned(),
             });
             self.lasy_doc
