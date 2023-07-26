@@ -40,6 +40,7 @@ pub struct Server {
     store: Arc<Box<dyn Store>>,
     checkpoint_freq: Duration,
     authenticator: Option<Authenticator>,
+    use_https: bool,
 }
 
 impl Server {
@@ -47,12 +48,14 @@ impl Server {
         store: Box<dyn Store>,
         checkpoint_freq: Duration,
         authenticator: Option<Authenticator>,
+        use_https: bool,
     ) -> Result<Self> {
         Ok(Self {
             docs: DashMap::new(),
             store: Arc::new(store),
             checkpoint_freq,
             authenticator,
+            use_https,
         })
     }
 
@@ -261,7 +264,8 @@ async fn auth_doc(
         None
     };
 
-    let base_url = format!("ws://{}/doc/ws", host);
+    let schema = if server_state.use_https { "wss" } else { "ws" };
+    let base_url = format!("{schema}://{host}/doc/ws");
     Ok(Json(AuthDocResponse {
         base_url,
         doc_id,

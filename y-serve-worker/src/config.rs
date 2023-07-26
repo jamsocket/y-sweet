@@ -3,9 +3,11 @@ use worker::{Env, RouteContext};
 use y_serve_core::auth::Authenticator;
 
 const AUTH_KEY: &str = "AUTH_KEY";
+const USE_HTTPS: &str = "USE_HTTPS";
 
 pub struct Configuration {
     pub auth: Option<Authenticator>,
+    pub use_https: bool,
 }
 
 pub trait Get {
@@ -25,18 +27,19 @@ impl Get for &Env {
 }
 
 impl Configuration {
-    fn new(auth_key: Option<String>) -> Result<Self> {
+    fn new(auth_key: Option<String>, use_https: bool) -> Result<Self> {
         let auth = if let Some(auth_key) = auth_key {
             Some(Authenticator::new(&auth_key)?)
         } else {
             None
         };
 
-        Ok(Self { auth })
+        Ok(Self { auth, use_https })
     }
 
     pub fn from<T: Get>(ctx: T) -> Result<Self> {
         let auth_key = ctx.get(AUTH_KEY);
-        Configuration::new(auth_key)
+        let use_https = ctx.get(USE_HTTPS).map(|s| s != "false").unwrap_or(false);
+        Configuration::new(auth_key, use_https)
     }
 }

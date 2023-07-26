@@ -41,6 +41,9 @@ enum ServSubcommand {
 
         #[clap(long)]
         auth: Option<String>,
+
+        #[clap(long)]
+        use_https: bool,
     },
 
     Dump {
@@ -94,6 +97,7 @@ async fn main() -> Result<()> {
             checkpoint_freq_seconds,
             store_path,
             auth,
+            use_https,
         } => {
             let auth = if let Some(auth) = auth {
                 Some(Authenticator::new(auth)?)
@@ -113,6 +117,7 @@ async fn main() -> Result<()> {
                 store,
                 std::time::Duration::from_secs(*checkpoint_freq_seconds),
                 auth,
+                *use_https,
             )
             .await?;
 

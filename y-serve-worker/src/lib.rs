@@ -106,7 +106,8 @@ async fn auth_doc(req: Request, ctx: RouteContext<()>) -> Result<Response> {
         None
     };
 
-    let base_url = format!("ws://{}/doc/ws", host);
+    let schema = if config.use_https { "wss" } else { "ws" };
+    let base_url = format!("{schema}://{host}/doc/ws");
     Response::from_json(&AuthDocResponse {
         base_url,
         doc_id: doc_id.to_string(),
