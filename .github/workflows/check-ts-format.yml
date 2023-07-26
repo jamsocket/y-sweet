@@ -1,0 +1,27 @@
+name: Check TypeScript Format
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  prettier-check:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v2
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '16'
+
+    - name: Check Formatting of Examples
+      run: npx prettier --check "src/**/*.ts"
+      working-directory: examples/
+
+    - name: Check Formatting of Examples
+      run: npx prettier --check "src/**/*.ts"
+      working-directory: tests/

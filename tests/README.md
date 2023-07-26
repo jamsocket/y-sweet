@@ -4,6 +4,7 @@ The test suite is primarily for testing the servers for API conformity, and only
 testing the JavaScript library.
 
 The test currently builds and tests three versions of the server:
+
 - Native server without authentication
 - Native server with authentication
 - Cloudflare worker without authentication

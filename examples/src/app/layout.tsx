@@ -6,17 +6,11 @@ export const metadata: Metadata = {
   description: 'Demos of the y-serve server.',
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body>
-        <div className='md:w-[800px] m-auto md:my-20'>
-          {children}
-        </div>
+        <div className="md:w-[800px] m-auto md:my-20">{children}</div>
       </body>
     </html>
   )
