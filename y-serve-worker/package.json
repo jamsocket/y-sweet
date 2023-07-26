@@ -2,7 +2,7 @@
 	"private": true,
 	"version": "0.0.0",
 	"scripts": {
-		"deploy": "wrangler deploy",
+		"deploy": "wrangler deploy --env staging",
 		"dev": "wrangler dev --persist-to ./data --port 8080"
 	},
 	"devDependencies": {
