@@ -213,6 +213,11 @@ async fn handle_socket(socket: WebSocket, awareness: Arc<RwLock<Awareness>>) {
         let msg = match msg {
             Ok(Message::Binary(bytes)) => bytes,
             Ok(Message::Close(_)) => break,
+            Err(e) => {
+                // The stream will complain about things like
+                // connections being lost without handshake.
+                continue;
+            }
             msg => {
                 tracing::warn!(?msg, "Received non-binary message");
                 continue;

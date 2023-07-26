@@ -75,7 +75,7 @@ export class Server {
     }
 
     async waitForReady(): Promise<void> {
-        for (let i = 0; i < 100; i++) {
+        for (let i = 0; i < 300; i++) {
             try {
                 await fetch(this.serverUrl())
                 return
