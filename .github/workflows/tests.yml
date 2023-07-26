@@ -26,6 +26,9 @@ jobs:
       run: cargo build --verbose
     - name: Run unit tests
       run: cargo test --verbose
+    - name: Install dependencies of JS library
+      run: npm i
+      working-directory: examples
     - name: Install integration tests
       run: npm i
       working-directory: tests
