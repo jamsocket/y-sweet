@@ -16,3 +16,6 @@ jobs:
           override: true
       - name: Check format
         run: cargo fmt -- --check
+      - name: Check format
+        run: cargo fmt -- --check
+        working-directory: y-serve-worker
