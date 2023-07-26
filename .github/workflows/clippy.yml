@@ -21,4 +21,4 @@ jobs:
         uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-features --manifest-path=y-serve-worker/Cargo.toml
+          args: --all-features --manifest-path=y-serve-worker/Cargo.toml --target=wasm32-unknown-unknown
