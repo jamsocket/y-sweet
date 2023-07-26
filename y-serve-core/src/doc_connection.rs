@@ -1,17 +1,17 @@
 use crate::sync::{
+    self,
     awareness::{Awareness, Event},
-    sync::{self, DefaultProtocol, Message, Protocol, SyncMessage},
+    DefaultProtocol, Message, Protocol, SyncMessage,
 };
 use std::sync::{Arc, RwLock};
 use yrs::{
     updates::{decoder::Decode, encoder::Encode},
-    Subscription, TransactionMut, Update, UpdateEvent,
+    Subscription, Update, UpdateSubscription,
 };
 
 // TODO: this is an implementation detail and should not be exposed.
 pub const DOC_NAME: &str = "doc";
 
-type UpdateSubscription = Subscription<Arc<dyn Fn(&TransactionMut<'_>, &UpdateEvent)>>;
 type AwarenessSubscription = Subscription<Arc<dyn Fn(&Awareness, &Event)>>;
 
 #[cfg(target_arch = "wasm32")]

@@ -1,14 +1,14 @@
 use crate::{doc_connection::DOC_NAME, store::Store, sync::awareness::Awareness, sync_kv::SyncKv};
 use anyhow::{anyhow, Context, Result};
 use std::sync::{Arc, RwLock};
-use yrs::{Doc, Options, Subscription, Transact, TransactionMut, UpdateEvent};
+use yrs::{Doc, Options, Transact, UpdateSubscription};
 use yrs_kvstore::DocOps;
 
 pub struct DocWithSyncKv {
     awareness: Arc<RwLock<Awareness>>,
     sync_kv: Arc<SyncKv>,
     #[allow(unused)] // acts as RAII guard
-    subscription: Subscription<Arc<dyn Fn(&TransactionMut<'_>, &UpdateEvent)>>,
+    subscription: UpdateSubscription,
 }
 
 impl DocWithSyncKv {
@@ -24,7 +24,7 @@ impl DocWithSyncKv {
     where
         F: Fn() + Send + Sync + 'static,
     {
-        let sync_kv = SyncKv::new(store, &key, move || dirty_callback())
+        let sync_kv = SyncKv::new(store, key, dirty_callback)
             .await
             .context("Failed to create SyncKv")?;
 
