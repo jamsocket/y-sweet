@@ -97,7 +97,7 @@ async fn auth_doc(req: Request, ctx: RouteContext<()>) -> Result<Response> {
     let bucket = ctx.env.bucket(BUCKET).unwrap();
     let store = R2Store::new(bucket);
     if !store.exists(&format!("{doc_id}/data.bin")).await.unwrap() {
-        return Ok(Response::ok(format!("Doc '{doc_id}' does not exist."))?.with_status(404))
+        return Ok(Response::ok(format!("Doc '{doc_id}' does not exist."))?.with_status(404));
     }
 
     let token = if let Some(auth) = config.auth {
