@@ -15,18 +15,17 @@ export function Presence() {
     const myColor = useRef(COLORS[Math.floor(Math.random() * COLORS.length)])
     const [presence, setPresence] = usePresence<{ x: number, y: number, color: string }>()
 
-    const updatePresence = useCallback((e: any) => {
+    const updatePresence = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
         setPresence({
             x: e.clientX - e.currentTarget.offsetLeft,
             y: e.clientY - e.currentTarget.offsetTop,
             color: myColor.current,
         })
-    }, [setPresence])
+    }, [])
 
     return (
         <div
-            style={{ width: 500, height: 500 }}
-            className="border-blue-400 border relative overflow-hidden"
+            className="border-blue-400 border relative overflow-hidden w-[500px] h-[500px]"
             onMouseMove={updatePresence}
         >
             {Array.from(presence.entries()).map(([key, value]) =>
