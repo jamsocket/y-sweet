@@ -22,10 +22,13 @@ export function useAwareness(): Awareness | null {
   return useContext(YjsContext)?.provider?.awareness ?? null
 }
 
-export function usePresence<T extends Record<string, any>>(): [Map<number, T>, (presence: T) => void] {
+export function usePresence<T extends Record<string, any>>(): [
+  Map<number, T>,
+  (presence: T) => void,
+] {
   const awareness = useAwareness()
   const [presence, setPresence] = useState<Map<number, T>>(new Map())
-  
+
   useEffect(() => {
     if (awareness) {
       const callback = () => {
@@ -38,11 +41,14 @@ export function usePresence<T extends Record<string, any>>(): [Map<number, T>, (
     }
   }, [awareness])
 
-  const setLocalPresence = useCallback((localState: any) => {
-    if (awareness) {
-      awareness.setLocalState(localState)
-    }
-  }, [awareness])
+  const setLocalPresence = useCallback(
+    (localState: any) => {
+      if (awareness) {
+        awareness.setLocalState(localState)
+      }
+    },
+    [awareness],
+  )
 
   return [presence, setLocalPresence]
 }
