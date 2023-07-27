@@ -22,6 +22,31 @@ export function useAwareness(): Awareness | null {
   return useContext(YjsContext)?.provider?.awareness ?? null
 }
 
+export function usePresence(): [Map<number, any>, (e: any) => void] {
+  const awareness = useAwareness()
+  const [presence, setPresence] = useState<Map<number, any>>(new Map())
+  
+  useEffect(() => {
+    if (awareness) {
+      const callback = () => {
+        setPresence(new Map(awareness.getStates()))
+      }
+      awareness.on('change', callback)
+      return () => {
+        awareness.off('change', callback)
+      }
+    }
+  }, [awareness])
+
+  const setLocalPresence = useCallback((localState: any) => {
+    if (awareness) {
+      awareness.setLocalState(localState)
+    }
+  }, [awareness])
+
+  return [presence, setLocalPresence]
+}
+
 type YDocProviderProps = {
   children: React.ReactNode
 
