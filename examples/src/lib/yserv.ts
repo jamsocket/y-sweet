@@ -13,6 +13,8 @@ export class DocumentManager {
 
   constructor(options?: DocumentManagerOptions) {
     this.baseUrl = options?.endpoint ?? 'http://127.0.0.1:8080'
+    // Remove trailing slash.
+    this.baseUrl = this.baseUrl.replace(/\/$/, '')
     this.token = options?.token
   }
 
