@@ -14,12 +14,11 @@ const COLORS = [
 export function Presence() {
     const myColor = useRef(COLORS[Math.floor(Math.random() * COLORS.length)])
     const [presence, setPresence] = usePresence<{ x: number, y: number, color: string }>()
-    const containerRef = useRef<HTMLDivElement>(null)
 
     const updatePresence = useCallback((e: any) => {
         setPresence({
-            x: e.clientX - containerRef.current!.offsetLeft,
-            y: e.clientY - containerRef.current!.offsetTop,
+            x: e.clientX - e.currentTarget.offsetLeft,
+            y: e.clientY - e.currentTarget.offsetTop,
             color: myColor.current,
         })
     }, [setPresence])
@@ -29,7 +28,6 @@ export function Presence() {
             style={{ width: 500, height: 500 }}
             className="border-blue-400 border relative overflow-hidden"
             onMouseMove={updatePresence}
-            ref={containerRef}
         >
             {Array.from(presence.entries()).map(([key, value]) =>
                 <div key={key}
