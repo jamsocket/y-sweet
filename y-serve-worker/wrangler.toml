@@ -13,9 +13,6 @@ bindings = [
   { name = "Y_SERVE", class_name = "YServe" }
 ]
 
-[env.production]
-vars = { USE_HTTPS = "true" }
-
 [[migrations]]
 tag = "v1"
 new_classes = ["YServe"]
@@ -23,4 +20,18 @@ new_classes = ["YServe"]
 [[r2_buckets]]
 binding = "Y_SERVE_DATA"
 bucket_name = "y-serve-data-prod"
+preview_bucket_name = "y-serve-data-dev"
+
+[env.staging]
+vars.USE_HTTPS = "true"
+vars.WORKERS_RS_VERSION = "0.0.11"
+
+[env.staging.durable_objects]
+bindings = [
+  { name = "Y_SERVE", class_name = "YServe" }
+]
+
+[[env.staging.r2_buckets]]
+binding = "Y_SERVE_DATA"
+bucket_name = "y-serve-data-staging"
 preview_bucket_name = "y-serve-data-dev"
