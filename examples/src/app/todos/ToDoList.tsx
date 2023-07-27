@@ -11,10 +11,14 @@ type ToDoItem = {
 
 export function ToDoInput(props: { onItem: (text: string) => void }) {
   const [text, setText] = useState('')
-  const clickCallback = useCallback(() => {
-    props.onItem(text)
-    setText('')
-  }, [props, text])
+  const onSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault()
+      props.onItem(text)
+      setText('')
+    },
+    [props, text],
+  )
 
   const changeCallback = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -24,7 +28,7 @@ export function ToDoInput(props: { onItem: (text: string) => void }) {
   )
 
   return (
-    <div className="flex flex-row space-x-2">
+    <form onSubmit={onSubmit} className="flex flex-row space-x-2">
       <input
         type="text"
         value={text}
@@ -34,14 +38,14 @@ export function ToDoInput(props: { onItem: (text: string) => void }) {
                 sm:text-sm sm:leading-6"
       />
       <button
-        onClick={clickCallback}
+        type="submit"
         className="block rounded-md bg-indigo-600 px-3.5 py-2.5 text-center text-sm font-semibold
                 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2
                 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
       >
         Add Item
       </button>
-    </div>
+    </form>
   )
 }
 
