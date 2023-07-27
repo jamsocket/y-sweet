@@ -34,11 +34,8 @@ export function usePresence<T extends Record<string, any>>(): [
       const callback = () => {
         const map = new Map()
         awareness.getStates().forEach((state, clientID) => {
-          for (const _ in state) {
-            // Doing this in an iterator ensures that empty objects are not added to the map.
-            // This is a cheaper check (O(1)) than Object.keys(state).length > 0, which allocates an array (O(n)).
+          if (Object.keys(state).length > 0) {
             map.set(clientID, state)
-            break
           }
         })
 
