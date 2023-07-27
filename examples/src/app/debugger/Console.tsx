@@ -213,7 +213,7 @@ function PrettyString(props: { value: string }) {
   valueEscaped = valueEscaped.slice(1, valueEscaped.length - 1)
   return (
     <span className="text-blue-300">
-      &ldquot;<span className="text-blue-600">{valueEscaped}</span>&rdquot;
+      {'"'}<span className="text-blue-600">{valueEscaped}</span>{'"'}
     </span>
   )
 }
@@ -222,7 +222,7 @@ function PrettyKeyString(props: { value: string }) {
   const valueEscaped = JSON.stringify(props.value).slice(1, props.value.length + 1)
   return (
     <span className="text-red-300">
-      &ldquot;<span className="text-red-600">{valueEscaped}</span>&rdquot;
+      {'"'}<span className="text-red-600">{valueEscaped}</span>{'"'}
     </span>
   )
 }
