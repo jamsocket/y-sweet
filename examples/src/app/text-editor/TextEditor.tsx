@@ -1,6 +1,6 @@
 'use client'
 
-import { useText, useAwareness } from '@/lib/provider'
+import { useText, useAwareness } from '../../../../js/src/react'
 import { useEffect, useRef } from 'react'
 import { QuillBinding } from 'y-quill'
 import Title from '@/components/Title'
