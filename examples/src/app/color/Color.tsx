@@ -2,23 +2,25 @@
 
 import { useMap } from '@/lib/provider'
 import { useState } from 'react'
+import Title from '@/components/Title'
 
 const GRID_SIZE = 10
-const COLORS = ['red', 'green', 'blue', 'purple', 'orange', 'pink', 'brown', null]
-const DEFAULT_COLOR = '#eee'
+const COLORS = ['#500724', '#831843', '#9d174d', '#be185d', '#db2777', '#f472b6', '#f9a8d4', null]
+const DEFAULT_COLOR = 'white'
 
 export function ColorGrid() {
+
   const items = useMap<string>('colorgrid')
-  const [color, setColor] = useState<string | null>('red')
+  const [color, setColor] = useState<string | null>('#500724')
 
   return (
-    <div className="space-y-3">
-      <h1>Color Grid</h1>
+    <div className="space-y-3 m-10">
+      <Title>Color Grid</Title>
       <div className="space-x-2 flex flex-row">
         {COLORS.map((color) => (
           <div
             key={color}
-            className="w-10 h-10"
+            className="w-10 h-10 cursor-pointer"
             style={{ backgroundColor: color ?? DEFAULT_COLOR }}
             onClick={() => setColor(color)}
           ></div>
@@ -34,7 +36,7 @@ export function ColorGrid() {
                 return (
                   <td key={key}>
                     <div
-                      className="w-10 h-10"
+                      className="w-10 h-10 cursor-pointer"
                       style={{ backgroundColor: item || DEFAULT_COLOR }}
                       onClick={() => {
                         if (color === null) {
@@ -51,6 +53,6 @@ export function ColorGrid() {
           ))}
         </tbody>
       </table>
-    </div>
+      </div>
   )
 }

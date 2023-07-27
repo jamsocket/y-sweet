@@ -4,6 +4,7 @@ import { useAwareness, useText } from '@/lib/provider'
 import { useCallback, useRef } from 'react'
 import type { CodemirrorBinding } from 'y-codemirror'
 import type { EditorFromTextArea } from 'codemirror'
+import Title from '@/components/Title'
 
 import 'codemirror/lib/codemirror.css'
 if (typeof navigator !== 'undefined') {
@@ -57,9 +58,8 @@ export function CodeEditor() {
   )
 
   return (
-    <div>
-      <h1>CRDT Demo</h1>
-
+    <div className="m-10 space-y-3">
+      <Title>CRDT Demo</Title>
       <div>
         <textarea ref={codeMirrorRef} />
       </div>

@@ -3,6 +3,7 @@
 import { useText, useAwareness } from '@/lib/provider'
 import { useEffect, useRef } from 'react'
 import { QuillBinding } from 'y-quill'
+import Title from '@/components/Title'
 
 import 'quill/dist/quill.snow.css'
 
@@ -26,6 +27,7 @@ export function TextEditor() {
       Quill.register('modules/cursors', QuillCursors)
       const quill = new Quill(editorRef.current, {
         theme: 'snow',
+        placeholder: 'start collaborating or debating about barbie vs oppenheimer...',
         modules: {
           cursors: true,
           toolbar: [
@@ -41,8 +43,8 @@ export function TextEditor() {
   }, [yText, awareness])
 
   return (
-    <div>
-      <h1>A Collaborative Text Editor</h1>
+    <div className="m-10 space-y-3">
+      <Title>A Collaborative Text Editor</Title>
       <div ref={editorRef} />
     </div>
   )
