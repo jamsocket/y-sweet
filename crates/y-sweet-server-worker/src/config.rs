@@ -1,6 +1,6 @@
 use anyhow::Result;
 use worker::{Env, RouteContext};
-use y_serve_core::auth::Authenticator;
+use y_sweet_server_core::auth::Authenticator;
 
 const AUTH_KEY: &str = "AUTH_KEY";
 const USE_HTTPS: &str = "USE_HTTPS";

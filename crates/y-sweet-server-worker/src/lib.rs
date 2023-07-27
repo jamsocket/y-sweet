@@ -9,7 +9,7 @@ use worker::{
 };
 #[allow(unused)]
 use worker_sys::console_log;
-use y_serve_core::{
+use y_sweet_server_core::{
     api_types::{AuthDocResponse, NewDocResponse},
     doc_connection::DocConnection,
     doc_sync::DocWithSyncKv,

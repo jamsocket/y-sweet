@@ -24,7 +24,7 @@ export class Server {
   }
 
   constructor(configuration: ServerConfiguration) {
-    const yServeBase = join(dirname(__filename), '..', '..')
+    const yServeBase = join(dirname(__filename), '..', '..', 'crates')
 
     execSync('cargo build --release', { stdio: 'inherit', cwd: yServeBase })
 
@@ -50,7 +50,7 @@ export class Server {
         throw new Error('Auth tests are not yet supported with worker server')
       }
 
-      const workerBase = join(yServeBase, 'y-serve-worker')
+      const workerBase = join(yServeBase, 'y-sweet-server-worker')
       const command = `npx wrangler dev --persist-to ${this.dataDir} --port ${this.port}`
 
       this.process = spawn(command, { cwd: workerBase, stdio: 'inherit', shell: true })
