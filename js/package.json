@@ -6,7 +6,7 @@
       "dev": "npm run build -- --watch",
       "prepare": "npm run clean && npm run build"
     },
-    "version": "0.1.1",
+    "version": "0.0.1",
     "description": "Javascript/Typescript and React libraries for building collaboration features with y-sweet.",
     "exports": {
       "./sdk": "./dist/sdk.js",
@@ -31,11 +31,11 @@
       "url": "https://github.com/drifting-in-space/y-sweet/issues"
     },
     "peerDependencies": {
-      "react": "^16.8.0 || ^17.0.0 || ^18.0.0"
+      "react": "^16.8.0 || ^17.0.0 || ^18.0.0",
+      "yjs": "^13.0.0"
     },
     "dependencies": {
-        "y-websocket": "^1.5.0",
-        "yjs": "^13.6.7",
-        "y-protocols": "^1.0.5"
+      "y-protocols": "^1.0.5",
+      "y-websocket": "^1.5.0"
     }
   }
