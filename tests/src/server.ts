@@ -53,7 +53,7 @@ export class Server {
         command += ` --env auth-test`
         // derived from the private key in the auth-test environment, hard-coded in wrangler.toml.
         // the value of the private key is "quThwCWto1e3ybRQKA1pz98fANzm+/j5+zXygEIEIBQ="
-        this.serverToken = "AAAgKZEAjp3ZqT6jUQCKO48OC9zYvFCWInQSj6sXbvaUeU8="
+        this.serverToken = 'AAAgKZEAjp3ZqT6jUQCKO48OC9zYvFCWInQSj6sXbvaUeU8='
       } else {
         command += ` --env test`
       }
