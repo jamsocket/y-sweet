@@ -62,8 +62,17 @@ export function ToDoItem({ item }: ToDoItemProps) {
   return (
     <div>
       <label className="flex flex-row space-x-2">
-        <input type="checkbox" className="w-6 cursor-pointer" checked={item.get('done')} onChange={clickCallback} />
-        <input className="bg-transparent text-pink-950 text-lg focus:bg-white" value={item.get('text')} onChange={(e) => item.set('text', e.target.value)} />
+        <input
+          type="checkbox"
+          className="w-6 cursor-pointer"
+          checked={item.get('done')}
+          onChange={clickCallback}
+        />
+        <input
+          className="bg-transparent text-pink-950 text-lg focus:bg-white"
+          value={item.get('text')}
+          onChange={(e) => item.set('text', e.target.value)}
+        />
       </label>
     </div>
   )

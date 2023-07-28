@@ -9,7 +9,6 @@ const COLORS = ['#500724', '#831843', '#9d174d', '#be185d', '#db2777', '#f472b6'
 const DEFAULT_COLOR = 'white'
 
 export function ColorGrid() {
-
   const items = useMap<string>('colorgrid')
   const [color, setColor] = useState<string | null>(COLORS[0])
 
