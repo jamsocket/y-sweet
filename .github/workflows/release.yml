@@ -25,16 +25,15 @@ jobs:
     - name: Install musl-tools
       run: sudo apt-get install -y musl-tools
 
-    - name: Change to subdirectory
-      run: cd crates
-
     - name: Build
+      working-directory: crates
       uses: actions-rs/cargo@v1
       with:
         command: build
         args: --release --target x86_64-unknown-linux-musl
 
     - name: Create Release
+      working-directory: crates
       id: create_release
       uses: actions/create-release@v1
       env:
@@ -46,9 +45,11 @@ jobs:
         prerelease: false
 
     - name: Compress binary
+      working-directory: crates
       run: gzip -9 ./target/x86_64-unknown-linux-musl/release/y-sweet-server
 
     - name: Upload Release Asset
+      working-directory: crates
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
