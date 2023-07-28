@@ -1,4 +1,4 @@
-name = "y-serve-worker"
+name = "y-sweet-server-worker"
 main = "build/worker/shim.mjs"
 compatibility_date = "2022-01-20"
 
@@ -10,7 +10,7 @@ command = "cargo install -q worker-build --version 0.0.9 && worker-build --relea
 
 [durable_objects]
 bindings = [
-  { name = "Y_SERVE", class_name = "YServe" }
+  { name = "Y_SWEET", class_name = "YServe" }
 ]
 
 [[migrations]]
@@ -18,9 +18,9 @@ tag = "v1"
 new_classes = ["YServe"]
 
 [[r2_buckets]]
-binding = "Y_SERVE_DATA"
-bucket_name = "y-serve-data-prod"
-preview_bucket_name = "y-serve-data-dev"
+binding = "Y_SWEET_DATA"
+bucket_name = "y-sweet-data-prod"
+preview_bucket_name = "y-sweet-data-dev"
 
 [env.staging]
 vars.USE_HTTPS = "true"
@@ -28,10 +28,10 @@ vars.WORKERS_RS_VERSION = "0.0.11"
 
 [env.staging.durable_objects]
 bindings = [
-  { name = "Y_SERVE", class_name = "YServe" }
+  { name = "Y_SWEET", class_name = "YServe" }
 ]
 
 [[env.staging.r2_buckets]]
-binding = "Y_SERVE_DATA"
-bucket_name = "y-serve-data-staging"
-preview_bucket_name = "y-serve-data-dev"
+binding = "Y_SWEET_DATA"
+bucket_name = "y-sweet-data-staging"
+preview_bucket_name = "y-sweet-data-dev"

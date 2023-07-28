@@ -20,8 +20,8 @@ mod config;
 mod r2_store;
 mod threadless;
 
-const BUCKET: &str = "Y_SERVE_DATA";
-const DURABLE_OBJECT: &str = "Y_SERVE";
+const BUCKET: &str = "Y_SWEET_DATA";
+const DURABLE_OBJECT: &str = "Y_SWEET";
 
 fn get_time_millis_since_epoch() -> u64 {
     let now = Date::now();

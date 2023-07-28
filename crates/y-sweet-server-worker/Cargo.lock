@@ -339,9 +339,9 @@ dependencies = [
 
 [[package]]
 name = "lib0"
-version = "0.16.9"
+version = "0.16.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "40eeae16c4b8d30d57b19fe2db02fb84633854de945a8be877d1e96cf8aeb7bc"
+checksum = "29dc19a026a0d45fc391898c6d4a6d0a5aab5ae6a826ebddc0f33572ffdae8dc"
 dependencies = [
  "thiserror",
 ]
@@ -612,9 +612,9 @@ checksum = "1ad4cc8da4ef723ed60bced201181d83791ad433213d8c24efffda1eec85d741"
 
 [[package]]
 name = "serde"
-version = "1.0.175"
+version = "1.0.177"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d25439cd7397d044e2748a6fe2432b5e85db703d6d097bd014b3c0ad1ebff0b"
+checksum = "63ba2516aa6bf82e0b19ca8b50019d52df58455d3cf9bdaf6315225fdd0c560a"
 dependencies = [
  "serde_derive",
 ]
@@ -632,9 +632,9 @@ dependencies = [
 
 [[package]]
 name = "serde_derive"
-version = "1.0.175"
+version = "1.0.177"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b23f7ade6f110613c0d63858ddb8b94c1041f550eab58a16b371bdf2c9c80ab4"
+checksum = "401797fe7833d72109fedec6bfcbe67c0eed9b99772f26eb8afd261f0abc6fd3"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -643,9 +643,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.103"
+version = "1.0.104"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d03b412469450d4404fe8499a268edd7f8b79fecb074b0d812ad64ca21f4031b"
+checksum = "076066c5f1078eac5b722a31827a8832fe108bed65dfa75e233c89f8206e976c"
 dependencies = [
  "itoa",
  "ryu",
@@ -1009,24 +1009,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "y-serve-worker"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "console_error_panic_hook",
- "futures",
- "js-sys",
- "nanoid",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-sys",
- "worker",
- "worker-sys",
- "y-sweet-server-core",
-]
-
-[[package]]
 name = "y-sweet-server-core"
 version = "0.1.0"
 dependencies = [
@@ -1047,10 +1029,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "y-sweet-server-worker"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "console_error_panic_hook",
+ "futures",
+ "js-sys",
+ "nanoid",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+ "worker",
+ "worker-sys",
+ "y-sweet-server-core",
+]
+
+[[package]]
 name = "yrs"
-version = "0.16.9"
+version = "0.16.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "602a92ff0f51cf8106cb483b69ceb71fb56ebe5ba64bd142f48d5fa5597813ea"
+checksum = "0c48071f2693893c866cffdad3e6a931aefcd14e4400d45353a0e3f91a96e80b"
 dependencies = [
  "atomic_refcell",
  "lib0",

@@ -1,5 +1,5 @@
 [package]
-name = "y-serve-worker"
+name = "y-sweet-server-worker"
 version = "0.1.0"
 edition = "2021"
 
