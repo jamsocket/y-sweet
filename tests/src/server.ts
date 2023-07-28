@@ -29,7 +29,7 @@ export class Server {
     execSync('cargo build --release', { stdio: 'inherit', cwd: yServeBase })
 
     this.port = Math.floor(Math.random() * 10000) + 10000
-    this.dataDir = join(tmpdir(), `y-serve-test-${this.port}`)
+    this.dataDir = join(tmpdir(), `y-sweet-test-${this.port}`)
 
     let auth
     if (configuration.useAuth) {
