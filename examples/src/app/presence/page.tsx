@@ -1,7 +1,7 @@
 import { ENV_CONFIG } from '@/lib/config'
 import { Presence } from './Presence'
-import { YDocProvider } from '../../../../js/src/react'
-import { getOrCreateDoc } from '../../../../js/src/sdk'
+import { YDocProvider } from '@y-sweet/js/react'
+import { getOrCreateDoc } from '@y-sweet/js/sdk'
 
 type HomeProps = {
   searchParams: Record<string, string>

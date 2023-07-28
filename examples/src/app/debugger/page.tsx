@@ -1,5 +1,5 @@
-import { YDocProvider } from '@/lib/provider'
-import { getConnectionKey } from '@/lib/yserv'
+import { YDocProvider } from '@y-sweet/js/react'
+import { getConnectionKey } from '@y-sweet/js/sdk'
 import { Console } from './Console'
 import { ENV_CONFIG } from '@/lib/config'
 

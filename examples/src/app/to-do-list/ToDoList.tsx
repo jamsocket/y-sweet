@@ -1,6 +1,6 @@
 'use client'
 
-import { useArray } from '@/lib/provider'
+import { useArray } from '@y-sweet/js/react'
 import { useCallback, useState } from 'react'
 import * as Y from 'yjs'
 import Title from '@/components/Title'

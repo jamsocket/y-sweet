@@ -1,6 +1,6 @@
 'use client'
 
-import { useMap } from '@/lib/provider'
+import { useMap } from '@y-sweet/js/react'
 import { useState } from 'react'
 import Title from '@/components/Title'
 

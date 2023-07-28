@@ -1,7 +1,7 @@
 import { ENV_CONFIG } from '@/lib/config'
 import { ToDoList } from './ToDoList'
-import { YDocProvider } from '@/lib/provider'
-import { getOrCreateDoc } from '@/lib/yserv'
+import { YDocProvider } from '@y-sweet/js/react'
+import { getOrCreateDoc } from '@y-sweet/js/sdk'
 
 type HomeProps = {
   searchParams: Record<string, string>
