@@ -25,7 +25,7 @@ interface ProjectLinkProps {
 }
 function ProjectLink(props:ProjectLinkProps) {
   return(
-    <Link href={props.url} className="text-pink-950 hover:bg-white transition-all p-10 border-2 border-pink-950 rounded-lg">
+    <Link href={props.url} className="text-pink-950 font-medium bg-neutral-600 bg-opacity-10 hover:bg-white transition-all p-10 rounded-lg">
     {props.name}
   </Link>
   )

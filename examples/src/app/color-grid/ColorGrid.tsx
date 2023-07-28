@@ -11,7 +11,7 @@ const DEFAULT_COLOR = 'white'
 export function ColorGrid() {
 
   const items = useMap<string>('colorgrid')
-  const [color, setColor] = useState<string | null>('#500724')
+  const [color, setColor] = useState<string | null>(COLORS[0])
 
   return (
     <div className="space-y-3 m-10">
@@ -53,6 +53,6 @@ export function ColorGrid() {
           ))}
         </tbody>
       </table>
-      </div>
+    </div>
   )
 }
