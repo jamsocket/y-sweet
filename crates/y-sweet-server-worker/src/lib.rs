@@ -22,19 +22,21 @@ fn get_time_millis_since_epoch() -> u64 {
     now.as_millis()
 }
 
-#[cfg(feature = "fetch-event")]
-#[event(fetch)]
-pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
-    console_error_panic_hook::set_once();
+pub fn router() -> Router<'static, ()> {
     let router = Router::new();
 
-    let response = router
+    router
         .get("/", |_, _| Response::ok("Hello world!"))
         .post_async("/doc/new", new_doc)
         .post_async("/doc/:doc_id/auth", auth_doc)
         .get_async("/doc/ws/:doc_id", forward_to_durable_object)
-        .run(req, env)
-        .await?;
+}
+
+#[cfg(feature = "fetch-event")]
+#[event(fetch)]
+pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
+    console_error_panic_hook::set_once();
+    let response = router().run(req, env).await?;
 
     Ok(response)
 }
