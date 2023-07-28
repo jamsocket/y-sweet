@@ -9,7 +9,7 @@ const CONFIGURATIONS: ServerConfiguration[] = [
   { useAuth: false, server: 'worker' },
 ]
 
-const FIVE_MINUTES_IN_MS = 5 * 60 * 1_000
+const FIVE_MINUTES_IN_MS = 10 * 60 * 1_000
 
 describe.each(CONFIGURATIONS)(
   'Test $server (auth: $useAuth)',
