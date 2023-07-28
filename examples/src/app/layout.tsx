@@ -8,6 +8,8 @@ export const metadata: Metadata = {
   description: 'Demos of y-sweet.',
 }
 
+const LINK_STYLES = 'text-sm text-pink-100 hover:bg-pink-900 transition-all px-8 py-2'
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
@@ -18,36 +20,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               y-sweet
             </Link>
             <span className="px-6 text-xs tracking-wide text-pink-100 my-2">DEMOS</span>
-            <Link
-              href="/color-grid"
-              className="text-sm text-pink-100 hover:bg-pink-900 transition-all px-8 py-2"
-            >
+            <Link href="/color-grid" className={LINK_STYLES}>
               Color Grid
             </Link>
-            <Link
-              href="/to-do-list"
-              className="text-sm text-pink-100 hover:bg-pink-900 transition-all px-8 py-2"
-            >
+            <Link href="/to-do-list" className={LINK_STYLES}>
               To-do List
             </Link>
-            <Link
-              href="/text-editor"
-              className="text-sm text-pink-100 hover:bg-pink-900 transition-all px-8 py-2"
-            >
+            <Link href="/text-editor" className={LINK_STYLES}>
               Text Editor
             </Link>
-            <Link
-              href="/code-editor"
-              className="text-sm text-pink-100 hover:bg-pink-900 transition-all px-8 py-2"
-            >
+            <Link href="/code-editor" className={LINK_STYLES}>
               Code Editor
             </Link>
 
             <span className="px-6 text-xs tracking-wide text-pink-100 mt-6 mb-2">LEARN</span>
-            <Link
-              href="https://y-sweet.dev"
-              className="text-sm text-pink-100 hover:bg-pink-900 opacity-80 transition-all px-8 py-2"
-            >
+            <Link href="https://y-sweet.dev" className={`${LINK_STYLES} opacity-80`}>
               Docs
             </Link>
           </div>
