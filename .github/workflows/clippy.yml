@@ -6,6 +6,10 @@ name: Clippy check
 jobs:
   clippy_check:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./crates
+
     steps:
       - uses: actions/checkout@v1
       - uses: actions-rs/toolchain@v1
@@ -17,9 +21,9 @@ jobs:
       - uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-features
-      - name: Clippy check y-serve-worker
+          args: --all-features --manifest-path=crates/Cargo.toml
+      - name: Clippy check y-sweet-server-worker
         uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-features --manifest-path=y-serve-worker/Cargo.toml --target=wasm32-unknown-unknown
+          args: --all-features --manifest-path=crates/y-sweet-server-worker/Cargo.toml --target=wasm32-unknown-unknown

@@ -10,21 +10,26 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./crates/y-sweet-server-worker
 
     steps:
     - uses: actions/checkout@v3
     - uses: Swatinem/rust-cache@v2
       with:
         cache-on-failure: "true"
-        workspaces: y-serve-worker
+        # y-sweet-server-worker is excluded from the outer Cargo "workspace"
+        # because it has a different target (wasm rather than system arch). We
+        # still want to cache its output, so we do that here.
+        # See: https://github.com/Swatinem/rust-cache
+        workspaces: "crates -> target\ncrates/y-sweet-server-worker -> target"
 
     - name: Use Node.js
       uses: actions/setup-node@v3
       with:
         node-version: 19
     - run: npm ci
-      working-directory: ./y-serve-worker
     - run: npm run deploy
-      working-directory: ./y-serve-worker
       env:
         CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

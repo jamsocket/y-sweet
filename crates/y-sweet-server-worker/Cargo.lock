@@ -1009,7 +1009,25 @@ dependencies = [
 ]
 
 [[package]]
-name = "y-serve-core"
+name = "y-serve-worker"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "console_error_panic_hook",
+ "futures",
+ "js-sys",
+ "nanoid",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+ "worker",
+ "worker-sys",
+ "y-sweet-server-core",
+]
+
+[[package]]
+name = "y-sweet-server-core"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -1026,24 +1044,6 @@ dependencies = [
  "tracing",
  "yrs",
  "yrs-kvstore",
-]
-
-[[package]]
-name = "y-serve-worker"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "console_error_panic_hook",
- "futures",
- "js-sys",
- "nanoid",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-sys",
- "worker",
- "worker-sys",
- "y-serve-core",
 ]
 
 [[package]]
