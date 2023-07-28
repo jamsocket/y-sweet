@@ -1,5 +1,6 @@
 import { createYjsProvider } from 'examples/src/lib/client'
 import { DocumentManager } from 'examples/src/lib/yserv'
+import { WebSocket } from 'ws'
 import * as Y from 'yjs'
 import { Server, ServerConfiguration } from './server'
 
@@ -7,6 +8,7 @@ const CONFIGURATIONS: ServerConfiguration[] = [
   { useAuth: false, server: 'native' },
   { useAuth: true, server: 'native' },
   { useAuth: false, server: 'worker' },
+  { useAuth: true, server: 'worker' },
 ]
 
 const FIVE_MINUTES_IN_MS = 10 * 60 * 1_000
@@ -60,5 +62,27 @@ describe.each(CONFIGURATIONS)(
         provider.on('syncing', reject)
       })
     })
+
+    if (configuration.useAuth) {
+      test('Attempting to connect to a document without auth should fail', async () => {
+        const docResult = await DOCUMENT_MANANGER.createDoc()
+        const key = await DOCUMENT_MANANGER.getConnectionKey(docResult, {})
+
+        expect(key.token).toBeDefined()
+        delete key.token
+
+        let ws = new WebSocket(`${key.base_url}/${key.doc_id}`)
+        let result = new Promise<void>((resolve, reject) => {
+          ws.addEventListener('open', () => {
+            resolve()
+          })
+          ws.addEventListener('error', (e) => {
+            reject(e.message)
+          })
+        })
+
+        await expect(result).rejects.toContain('401')
+      })
+    }
   },
 )
