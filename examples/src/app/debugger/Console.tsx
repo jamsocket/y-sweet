@@ -24,7 +24,7 @@ export function Console() {
   })
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-10 m-10">
       {keys.map((key) => {
         const value = doc!.get(key)
         return <DocEntryView key={key} name={key} value={value} />

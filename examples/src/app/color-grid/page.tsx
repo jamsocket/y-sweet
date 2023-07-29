@@ -1,7 +1,7 @@
-import { ENV_CONFIG } from '@/lib/config'
-import { CodeEditor } from './Editor'
 import { YDocProvider } from '@/lib/provider'
 import { getOrCreateDoc } from '@/lib/yserv'
+import { ColorGrid } from './ColorGrid'
+import { ENV_CONFIG } from '@/lib/config'
 
 type HomeProps = {
   searchParams: Record<string, string>
@@ -12,7 +12,7 @@ export default async function Home({ searchParams }: HomeProps) {
 
   return (
     <YDocProvider connectionKey={connectionKey} setQueryParam="doc">
-      <CodeEditor />
+      <ColorGrid />
     </YDocProvider>
   )
 }

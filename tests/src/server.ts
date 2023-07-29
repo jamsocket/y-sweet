@@ -46,12 +46,17 @@ export class Server {
 
       this.process = spawn(command, { cwd: yServeBase, stdio: 'inherit', shell: true })
     } else if (configuration.server === 'worker') {
-      if (configuration.useAuth) {
-        throw new Error('Auth tests are not yet supported with worker server')
-      }
-
       const workerBase = join(yServeBase, 'y-sweet-server-worker')
-      const command = `npx wrangler dev --persist-to ${this.dataDir} --port ${this.port}`
+      let command = `npx wrangler dev --persist-to ${this.dataDir} --port ${this.port}`
+
+      if (configuration.useAuth) {
+        command += ` --env auth-test`
+        // derived from the private key in the auth-test environment, hard-coded in wrangler.toml.
+        // the value of the private key is "quThwCWto1e3ybRQKA1pz98fANzm+/j5+zXygEIEIBQ="
+        this.serverToken = 'AAAgKZEAjp3ZqT6jUQCKO48OC9zYvFCWInQSj6sXbvaUeU8='
+      } else {
+        command += ` --env test`
+      }
 
       this.process = spawn(command, { cwd: workerBase, stdio: 'inherit', shell: true })
     }

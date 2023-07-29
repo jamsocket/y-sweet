@@ -3,6 +3,7 @@
 import { useArray } from '@/lib/provider'
 import { useCallback, useState } from 'react'
 import * as Y from 'yjs'
+import Title from '@/components/Title'
 
 type ToDoItem = {
   text: string
@@ -33,15 +34,15 @@ export function ToDoInput(props: { onItem: (text: string) => void }) {
         type="text"
         value={text}
         onChange={changeCallback}
-        className="flex-1 block rounded-md border-0 px-3.5 py-2 text-gray-900 shadow-sm ring-1 ring-inset
-                ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600
+        className="bg-white flex-1 block ring-pink-900 rounded-md border-0 px-3.5 py-2 text-gray-900 shadow-sm ring-1 ring-inset
+                 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-pink-900
                 sm:text-sm sm:leading-6"
       />
       <button
         type="submit"
-        className="block rounded-md bg-indigo-600 px-3.5 py-2.5 text-center text-sm font-semibold
-                text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2
-                focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+        className="block rounded-md bg-pink-900 px-3.5 py-2.5 text-center text-sm font-semibold
+                text-white shadow-sm hover:bg-pink-900 focus-visible:outline focus-visible:outline-2
+                focus-visible:outline-offset-2 focus-visible:outline-pink-900"
       >
         Add Item
       </button>
@@ -61,8 +62,17 @@ export function ToDoItem({ item }: ToDoItemProps) {
   return (
     <div>
       <label className="flex flex-row space-x-2">
-        <input type="checkbox" checked={item.get('done')} onChange={clickCallback} />
-        <input value={item.get('text')} onChange={(e) => item.set('text', e.target.value)} />
+        <input
+          type="checkbox"
+          className="w-6 cursor-pointer"
+          checked={item.get('done')}
+          onChange={clickCallback}
+        />
+        <input
+          className="bg-transparent text-pink-950 text-lg focus:bg-white"
+          value={item.get('text')}
+          onChange={(e) => item.set('text', e.target.value)}
+        />
       </label>
     </div>
   )
@@ -94,17 +104,17 @@ export function ToDoList() {
   }, [items])
 
   return (
-    <div className="space-y-10">
-      <h1 className="text-4xl font-bold">To-do List</h1>
-      <div className="mx-5 space-y-3">
+    <div className="space-y-10 m-10">
+      <Title>To-do List</Title>
+      <div className="space-y-3">
         {items && items.map((item, index) => <ToDoItem key={index} item={item} />)}
       </div>
       <ToDoInput onItem={pushItem} />
       <button
         onClick={clearCompleted}
-        className="block rounded-md bg-red-600 px-3.5 py-2.5 text-center text-sm
-                font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline
-                focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+        className="block rounded-md bg-pink-900 px-3.5 py-2.5 text-center text-sm
+                font-semibold text-white shadow-sm hover:bg-pink-900 focus-visible:outline
+                focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pink-900"
       >
         Clear Completed
       </button>

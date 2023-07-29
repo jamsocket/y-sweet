@@ -1,5 +1,8 @@
 use crate::r2_store::R2Store;
 use config::Configuration;
+use error::{Error, IntoResponse};
+use futures::StreamExt;
+use std::collections::HashMap;
 use std::sync::Arc;
 use worker::{event, Date, Env, Request, Response, Result, RouteContext, Router};
 use worker_sys::console_log;
@@ -11,6 +14,7 @@ use y_sweet_server_core::{
 
 pub mod config;
 pub mod durable_object;
+pub mod error;
 pub mod r2_store;
 pub mod threadless;
 
@@ -27,8 +31,8 @@ pub fn router() -> Router<'static, ()> {
 
     router
         .get("/", |_, _| Response::ok("Hello world!"))
-        .post_async("/doc/new", new_doc)
-        .post_async("/doc/:doc_id/auth", auth_doc)
+        .post_async("/doc/new", new_doc_handler)
+        .post_async("/doc/:doc_id/auth", auth_doc_handler)
         .get_async("/doc/ws/:doc_id", forward_to_durable_object)
 }
 
@@ -41,12 +45,13 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
     Ok(response)
 }
 
-fn check_server_token(req: &Request, config: &Configuration) -> Result<()> {
+fn check_server_token(req: &Request, config: &Configuration) -> std::result::Result<(), Error> {
     if let Some(auth) = &config.auth {
-        let auth_header = req.headers().get("Authorization")?;
-        let auth_header_val = auth_header.as_deref().ok_or_else(|| {
-            worker::Error::JsError("No Authorization header provided.".to_string())
-        })?;
+        let auth_header = req
+            .headers()
+            .get("Authorization")
+            .map_err(|_| Error::ExpectedAuthHeader)?;
+        let auth_header_val = auth_header.as_deref().ok_or(Error::ExpectedAuthHeader)?;
 
         if auth.server_token() != &auth_header_val[7..] {
             console_log!(
@@ -54,17 +59,21 @@ fn check_server_token(req: &Request, config: &Configuration) -> Result<()> {
                 &auth_header_val[7..],
                 auth.server_token()
             );
-            return Err(worker::Error::JsError(
-                "Invalid Authorization header.".to_string(),
-            ));
+            return Err(Error::BadAuthHeader);
         }
     }
     Ok(())
 }
 
-async fn new_doc(req: Request, ctx: RouteContext<()>) -> Result<Response> {
-    let config = Configuration::from(&ctx.env)
-        .map_err(|e| worker::Error::JsError(format!("Token error: {:?}", e)))?;
+async fn new_doc_handler(req: Request, ctx: RouteContext<()>) -> Result<Response> {
+    new_doc(req, ctx).await.into_response()
+}
+
+async fn new_doc(
+    req: Request,
+    ctx: RouteContext<()>,
+) -> std::result::Result<NewDocResponse, Error> {
+    let config = Configuration::from(&ctx.env)?;
     check_server_token(&req, &config)?;
 
     let doc_id = nanoid::nanoid!();
@@ -77,24 +86,36 @@ async fn new_doc(req: Request, ctx: RouteContext<()>) -> Result<Response> {
 
     let response = NewDocResponse { doc_id };
 
-    Response::from_json(&response)
+    Ok(response)
 }
 
-async fn auth_doc(req: Request, ctx: RouteContext<()>) -> Result<Response> {
+async fn auth_doc_handler(req: Request, ctx: RouteContext<()>) -> Result<Response> {
+    auth_doc(req, ctx).await.into_response()
+}
+
+async fn auth_doc(
+    req: Request,
+    ctx: RouteContext<()>,
+) -> std::result::Result<AuthDocResponse, Error> {
     let config = Configuration::from(&ctx.env).unwrap();
     check_server_token(&req, &config)?;
 
     let host = req
         .headers()
-        .get("Host")?
-        .ok_or_else(|| worker::Error::JsError("No Host header provided.".to_string()))?;
+        .get("Host")
+        .map_err(|_| Error::MissingHostHeader)?
+        .ok_or_else(|| Error::MissingHostHeader)?;
 
     let doc_id = ctx.param("doc_id").unwrap();
 
     let bucket = ctx.env.bucket(BUCKET).unwrap();
     let store = R2Store::new(bucket);
-    if !store.exists(&format!("{doc_id}/data.bin")).await.unwrap() {
-        return Ok(Response::ok(format!("Doc '{doc_id}' does not exist."))?.with_status(404));
+    if !store
+        .exists(&format!("{doc_id}/data.bin"))
+        .await
+        .map_err(|_| Error::UpstreamConnectionError)?
+    {
+        return Err(Error::NoSuchDocument);
     }
 
     let token = config
@@ -103,7 +124,8 @@ async fn auth_doc(req: Request, ctx: RouteContext<()>) -> Result<Response> {
 
     let schema = if config.use_https { "wss" } else { "ws" };
     let base_url = format!("{schema}://{host}/doc/ws");
-    Response::from_json(&AuthDocResponse {
+
+    Ok(AuthDocResponse {
         base_url,
         doc_id: doc_id.to_string(),
         token,
@@ -111,7 +133,30 @@ async fn auth_doc(req: Request, ctx: RouteContext<()>) -> Result<Response> {
 }
 
 async fn forward_to_durable_object(req: Request, ctx: RouteContext<()>) -> Result<Response> {
+    let config = Configuration::from(&ctx.env).unwrap();
     let doc_id = ctx.param("doc_id").unwrap();
+
+    if let Some(auth) = config.auth {
+        // Read query params.
+        let url = req.url()?;
+        let query: HashMap<String, String> = url
+            .query_pairs()
+            .map(|(k, v)| (k.into_owned(), v.into_owned()))
+            .collect();
+
+        let result = query.get("token").ok_or(Error::ExpectedClientAuthHeader);
+        let token = match result {
+            Ok(token) => token,
+            Err(e) => return e.into(),
+        };
+        let result = auth
+            .verify_doc_token(token, doc_id, get_time_millis_since_epoch())
+            .map_err(|_| Error::BadClientAuthHeader);
+        if let Err(e) = result {
+            return e.into();
+        }
+    }
+
     let durable_object = ctx.env.durable_object(DURABLE_OBJECT)?;
     let stub = durable_object.id_from_name(doc_id)?.get_stub()?;
     stub.fetch_with_request(req).await

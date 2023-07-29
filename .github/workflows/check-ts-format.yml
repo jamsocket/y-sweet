@@ -22,6 +22,6 @@ jobs:
       run: npx prettier --check "src/**/*.ts"
       working-directory: examples/
 
-    - name: Check Formatting of Examples
+    - name: Check Formatting of Tests
       run: npx prettier --check "src/**/*.ts"
       working-directory: tests/
