@@ -19,17 +19,13 @@ jobs:
       uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
-        target: x86_64-unknown-linux-musl
         override: true
-
-    - name: Install musl-tools
-      run: sudo apt-get install -y musl-tools
 
     - name: Build
       uses: actions-rs/cargo@v1
       with:
         command: build
-        args: --release --target x86_64-unknown-linux-musl --manifest-path=crates/Cargo.toml
+        args: --release --manifest-path=crates/Cargo.toml
 
     - name: Create Release
       id: create_release
@@ -44,8 +40,7 @@ jobs:
         prerelease: true
 
     - name: Compress binary
-      run: gzip -9 ./target/x86_64-unknown-linux-musl/release/y-sweet-server
-      working-directory: crates
+      run: gzip -9 crates/target/release/y-sweet-server
 
     - name: Upload Release Asset
       uses: actions/upload-release-asset@v1
@@ -53,6 +48,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./crates/target/x86_64-unknown-linux-musl/release/y-sweet-server.gz
+        asset_path: ./crates/target/release/y-sweet-server.gz
         asset_name: y-sweet-server.gz
         asset_content_type: application/gz
