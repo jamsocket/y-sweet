@@ -19,3 +19,5 @@ worker = "=0.0.13" # clamped until https://github.com/cloudflare/workers-rs/issu
 worker-sys = "=0.0.7"
 anyhow = "1.0.72"
 futures = "0.3.28"
+thiserror = "1.0.44"
+serde = { version = "1.0.177", features = ["derive"] }
