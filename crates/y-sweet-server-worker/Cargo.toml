@@ -6,6 +6,11 @@ edition = "2021"
 [lib]
 crate-type = ["cdylib", "rlib"]
 
+[features]
+# whether to expose a fetch event handler (turn off when used as a library by a library that implements its own fetch handler)
+fetch-event = []
+default = ["fetch-event"]
+
 [dependencies]
 async-trait = "0.1.72"
 console_error_panic_hook = "0.1.7"

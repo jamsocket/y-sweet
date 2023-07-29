@@ -4,24 +4,19 @@ use error::{Error, IntoResponse};
 use futures::StreamExt;
 use std::collections::HashMap;
 use std::sync::Arc;
-use threadless::Threadless;
-use worker::{
-    durable_object, event, Date, Env, Request, Response, Result, RouteContext, Router, State,
-    WebSocketPair,
-};
-#[allow(unused)]
+use worker::{event, Date, Env, Request, Response, Result, RouteContext, Router};
 use worker_sys::console_log;
 use y_sweet_server_core::{
     api_types::{AuthDocResponse, NewDocResponse},
-    doc_connection::DocConnection,
     doc_sync::DocWithSyncKv,
     store::Store,
 };
 
-mod config;
-mod error;
-mod r2_store;
-mod threadless;
+pub mod config;
+pub mod durable_object;
+pub mod error;
+pub mod r2_store;
+pub mod threadless;
 
 const BUCKET: &str = "Y_SWEET_DATA";
 const DURABLE_OBJECT: &str = "Y_SWEET";
@@ -31,18 +26,21 @@ fn get_time_millis_since_epoch() -> u64 {
     now.as_millis()
 }
 
-#[event(fetch)]
-pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
-    console_error_panic_hook::set_once();
+pub fn router() -> Router<'static, ()> {
     let router = Router::new();
 
-    let response = router
+    router
         .get("/", |_, _| Response::ok("Hello world!"))
         .post_async("/doc/new", new_doc_handler)
         .post_async("/doc/:doc_id/auth", auth_doc_handler)
         .get_async("/doc/ws/:doc_id", forward_to_durable_object)
-        .run(req, env)
-        .await?;
+}
+
+#[cfg(feature = "fetch-event")]
+#[event(fetch)]
+pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
+    console_error_panic_hook::set_once();
+    let response = router().run(req, env).await?;
 
     Ok(response)
 }
@@ -167,116 +165,4 @@ async fn forward_to_durable_object(req: Request, ctx: RouteContext<()>) -> Resul
 struct DocIdPair {
     id: String,
     doc: DocWithSyncKv,
-}
-
-#[durable_object]
-pub struct YServe {
-    env: Env,
-    lasy_doc: Option<DocIdPair>,
-    state: State,
-}
-
-impl YServe {
-    /// We need to lazily create the doc because the constructor is non-async.
-    pub async fn get_doc(&mut self, doc_id: &str) -> Result<&mut DocWithSyncKv> {
-        let storage = Arc::new(self.state.storage());
-
-        if self.lasy_doc.is_none() {
-            let bucket = self.env.bucket(BUCKET).unwrap();
-            let store = R2Store::new(bucket);
-            let store: Arc<Box<dyn Store>> = Arc::new(Box::new(store));
-            let storage = Threadless(storage);
-            let doc = DocWithSyncKv::new(doc_id, store, move || {
-                let storage = storage.clone();
-                wasm_bindgen_futures::spawn_local(async move {
-                    console_log!("Setting alarm.");
-                    storage.0.set_alarm(10_000).await.unwrap();
-                });
-            })
-            .await
-            .unwrap();
-
-            self.lasy_doc = Some(DocIdPair {
-                doc,
-                id: doc_id.to_owned(),
-            });
-            self.lasy_doc
-                .as_mut()
-                .unwrap()
-                .doc
-                .sync_kv()
-                .persist()
-                .await
-                .unwrap();
-        }
-
-        Ok(&mut self.lasy_doc.as_mut().unwrap().doc)
-    }
-}
-
-#[durable_object]
-impl DurableObject for YServe {
-    fn new(state: State, env: Env) -> Self {
-        Self {
-            env,
-            state,
-            lasy_doc: None,
-        }
-    }
-
-    async fn fetch(&mut self, req: Request) -> Result<Response> {
-        let env: Env = self.env.clone().into();
-
-        Router::with_data(self)
-            .get_async("/doc/ws/:doc_id", websocket_connect)
-            .run(req, env)
-            .await
-    }
-
-    async fn alarm(&mut self) -> Result<Response> {
-        console_log!("Alarm!");
-        let DocIdPair { id, doc } = self.lasy_doc.as_ref().unwrap();
-        doc.sync_kv().persist().await.unwrap();
-        console_log!("Persisted. {}", id);
-        Response::ok("ok")
-    }
-}
-
-async fn websocket_connect(_req: Request, ctx: RouteContext<&mut YServe>) -> Result<Response> {
-    let doc_id = ctx.param("doc_id").unwrap().to_owned();
-    let WebSocketPair { client, server } = WebSocketPair::new()?;
-    server.accept()?;
-
-    let awareness = ctx.data.get_doc(&doc_id).await.unwrap().awareness();
-
-    let connection = {
-        let server = server.clone();
-        DocConnection::new(awareness, move |bytes| {
-            server.send_with_bytes(bytes).unwrap();
-        })
-    };
-
-    wasm_bindgen_futures::spawn_local(async move {
-        let mut events = server.events().unwrap();
-
-        while let Some(event) = events.next().await {
-            match event.unwrap() {
-                worker::WebsocketEvent::Message(message) => {
-                    if let Some(bytes) = message.bytes() {
-                        connection.send(&bytes).await.unwrap();
-                    } else {
-                        server
-                            .send_with_str("Received unexpected text message.")
-                            .unwrap()
-                    }
-                }
-                worker::WebsocketEvent::Close(_) => {
-                    break;
-                }
-            }
-        }
-    });
-
-    let resp = Response::from_websocket(client)?;
-    Ok(resp)
 }
