@@ -29,8 +29,7 @@ jobs:
       uses: actions-rs/cargo@v1
       with:
         command: build
-        args: --release --target x86_64-unknown-linux-musl
-        working-directory: crates
+        args: --release --target x86_64-unknown-linux-musl --manifest-path=crates/Cargo.toml
 
     - name: Create Release
       id: create_release
