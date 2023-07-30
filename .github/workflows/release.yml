@@ -28,7 +28,7 @@ jobs:
         args: --release --manifest-path=crates/Cargo.toml
 
     - name: Compress binary
-      run: gzip -9 --keep crates/target/release/y-sweet-server
+      run: gzip -9 --keep --force crates/target/release/y-sweet-server
 
     - name: Create Release
       id: create_release
