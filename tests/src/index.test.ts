@@ -63,6 +63,22 @@ describe.each(CONFIGURATIONS)(
       })
     })
 
+    test('Specify options as JSON', async () => {
+      const config = JSON.stringify({
+        endpoint: DOCUMENT_MANANGER.baseUrl,
+        token: DOCUMENT_MANANGER.token,
+      })
+
+      expect(typeof config).toBe('string')
+      const docManager = new DocumentManager(config)
+
+      const docResult = await docManager.createDoc()
+      expect(docResult.doc_id).toBeDefined()
+
+      const key = await docManager.getConnectionKey(docResult, {})
+      expect(key.base_url).toBeDefined()
+    })
+
     if (configuration.useAuth) {
       test('Attempting to connect to a document without auth should fail', async () => {
         const docResult = await DOCUMENT_MANANGER.createDoc()
