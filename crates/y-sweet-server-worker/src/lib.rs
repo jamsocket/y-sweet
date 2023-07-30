@@ -25,23 +25,29 @@ fn get_time_millis_since_epoch() -> u64 {
     now.as_millis()
 }
 
-pub fn router() -> Router<'static, ()> {
-    let router = Router::new();
+pub fn router(env: &Env) -> std::result::Result<Router<'static, Configuration>, Error> {
+    let Ok(config) = Configuration::try_from(env) else {
+        return Err(Error::ConfigurationError)
+    };
 
-    router
+    Ok(Router::with_data(config)
         .get("/", |_, _| Response::ok("Hello world!"))
         .post_async("/doc/new", new_doc_handler)
         .post_async("/doc/:doc_id/auth", auth_doc_handler)
-        .get_async("/doc/ws/:doc_id", forward_to_durable_object)
+        .get_async("/doc/ws/:doc_id", forward_to_durable_object))
 }
 
 #[cfg(feature = "fetch-event")]
 #[event(fetch)]
 pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
     console_error_panic_hook::set_once();
-    let response = router().run(req, env).await?;
+    let router = router(&env);
+    let router = match router {
+        Ok(router) => router,
+        Err(err) => return err.into(),
+    };
 
-    Ok(response)
+    router.run(req, env).await
 }
 
 fn check_server_token(req: &Request, config: &Configuration) -> std::result::Result<(), Error> {
@@ -64,16 +70,15 @@ fn check_server_token(req: &Request, config: &Configuration) -> std::result::Res
     Ok(())
 }
 
-async fn new_doc_handler(req: Request, ctx: RouteContext<()>) -> Result<Response> {
+async fn new_doc_handler(req: Request, ctx: RouteContext<Configuration>) -> Result<Response> {
     new_doc(req, ctx).await.into_response()
 }
 
 async fn new_doc(
     req: Request,
-    ctx: RouteContext<()>,
+    ctx: RouteContext<Configuration>,
 ) -> std::result::Result<NewDocResponse, Error> {
-    let config = Configuration::from(&ctx.env)?;
-    check_server_token(&req, &config)?;
+    check_server_token(&req, &ctx.data)?;
 
     let doc_id = nanoid::nanoid!();
     let bucket = ctx.env.bucket(BUCKET).unwrap();
@@ -88,22 +93,21 @@ async fn new_doc(
     Ok(response)
 }
 
-async fn auth_doc_handler(req: Request, ctx: RouteContext<()>) -> Result<Response> {
+async fn auth_doc_handler(req: Request, ctx: RouteContext<Configuration>) -> Result<Response> {
     auth_doc(req, ctx).await.into_response()
 }
 
 async fn auth_doc(
     req: Request,
-    ctx: RouteContext<()>,
+    ctx: RouteContext<Configuration>,
 ) -> std::result::Result<AuthDocResponse, Error> {
-    let config = Configuration::from(&ctx.env).unwrap();
-    check_server_token(&req, &config)?;
+    check_server_token(&req, &ctx.data)?;
 
     let host = req
         .headers()
         .get("Host")
         .map_err(|_| Error::MissingHostHeader)?
-        .ok_or_else(|| Error::MissingHostHeader)?;
+        .ok_or(Error::MissingHostHeader)?;
 
     let doc_id = ctx.param("doc_id").unwrap();
 
@@ -117,11 +121,13 @@ async fn auth_doc(
         return Err(Error::NoSuchDocument);
     }
 
-    let token = config
+    let token = ctx
+        .data
         .auth
+        .as_ref()
         .map(|auth| auth.gen_doc_token(doc_id, get_time_millis_since_epoch()));
 
-    let schema = if config.use_https { "wss" } else { "ws" };
+    let schema = if ctx.data.use_https { "wss" } else { "ws" };
     let base_url = format!("{schema}://{host}/doc/ws");
 
     Ok(AuthDocResponse {
@@ -131,11 +137,13 @@ async fn auth_doc(
     })
 }
 
-async fn forward_to_durable_object(req: Request, ctx: RouteContext<()>) -> Result<Response> {
-    let config = Configuration::from(&ctx.env).unwrap();
+async fn forward_to_durable_object(
+    req: Request,
+    ctx: RouteContext<Configuration>,
+) -> Result<Response> {
     let doc_id = ctx.param("doc_id").unwrap();
 
-    if let Some(auth) = config.auth {
+    if let Some(auth) = &ctx.data.auth {
         // Read query params.
         let url = req.url()?;
         let query: HashMap<String, String> = url
