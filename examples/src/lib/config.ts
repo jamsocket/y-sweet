@@ -1,6 +1,7 @@
-import { DocumentManagerOptions } from './yserv'
+export const ENV_CONFIG: string | undefined = process.env.Y_SWEET_CONFIG
 
-export const ENV_CONFIG: DocumentManagerOptions = {
-  endpoint: process.env.Y_SWEET_ENDPOINT,
-  token: process.env.Y_SWEET_API_TOKEN,
+if (ENV_CONFIG) {
+  console.log('Using config from environment variable Y_SWEET_CONFIG')
+} else {
+  console.log('Using default config')
 }
