@@ -11,7 +11,7 @@ use y_sweet_server_core::{doc_connection::DocConnection, doc_sync::DocWithSyncKv
 #[durable_object]
 pub struct YServe {
     env: Env,
-    lasy_doc: Option<DocIdPair>,
+    lazy_doc: Option<DocIdPair>,
     state: State,
 }
 
@@ -20,7 +20,7 @@ impl YServe {
     pub async fn get_doc(&mut self, doc_id: &str) -> Result<&mut DocWithSyncKv> {
         let storage = Arc::new(self.state.storage());
 
-        if self.lasy_doc.is_none() {
+        if self.lazy_doc.is_none() {
             let bucket = self.env.bucket(BUCKET).unwrap();
             let store = R2Store::new(bucket);
             let store: Arc<Box<dyn Store>> = Arc::new(Box::new(store));
@@ -35,11 +35,11 @@ impl YServe {
             .await
             .unwrap();
 
-            self.lasy_doc = Some(DocIdPair {
+            self.lazy_doc = Some(DocIdPair {
                 doc,
                 id: doc_id.to_owned(),
             });
-            self.lasy_doc
+            self.lazy_doc
                 .as_mut()
                 .unwrap()
                 .doc
@@ -49,7 +49,7 @@ impl YServe {
                 .unwrap();
         }
 
-        Ok(&mut self.lasy_doc.as_mut().unwrap().doc)
+        Ok(&mut self.lazy_doc.as_mut().unwrap().doc)
     }
 }
 
@@ -59,7 +59,7 @@ impl DurableObject for YServe {
         Self {
             env,
             state,
-            lasy_doc: None,
+            lazy_doc: None,
         }
     }
 
@@ -74,7 +74,7 @@ impl DurableObject for YServe {
 
     async fn alarm(&mut self) -> Result<Response> {
         console_log!("Alarm!");
-        let DocIdPair { id, doc } = self.lasy_doc.as_ref().unwrap();
+        let DocIdPair { id, doc } = self.lazy_doc.as_ref().unwrap();
         doc.sync_kv().persist().await.unwrap();
         console_log!("Persisted. {}", id);
         Response::ok("ok")

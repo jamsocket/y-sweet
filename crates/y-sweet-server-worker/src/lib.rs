@@ -1,7 +1,6 @@
 use crate::r2_store::R2Store;
 use config::Configuration;
 use error::{Error, IntoResponse};
-use futures::StreamExt;
 use std::collections::HashMap;
 use std::sync::Arc;
 use worker::{event, Date, Env, Request, Response, Result, RouteContext, Router};
