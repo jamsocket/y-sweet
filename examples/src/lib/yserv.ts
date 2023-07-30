@@ -119,7 +119,9 @@ export async function getConnectionKey(
   return await manager.getConnectionKey(docId, request)
 }
 
-export async function createDoc(options?: DocumentManagerOptions | string): Promise<DocCreationResult> {
+export async function createDoc(
+  options?: DocumentManagerOptions | string,
+): Promise<DocCreationResult> {
   const manager = new DocumentManager(options)
   return await manager.createDoc()
 }
