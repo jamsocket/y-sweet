@@ -27,17 +27,8 @@ jobs:
         command: build
         args: --release --manifest-path=crates/Cargo.toml
 
-    - name: tmp-ls
-      run: ls crates
-    
-    - name: tmp-ls
-      run: ls crates/target
-    
-    - name: tmp-ls
-      run: ls crates/target/release
-
     - name: Compress binary
-      run: gzip -9 crates/target/release/y-sweet-server
+      run: gzip -9 --keep crates/target/release/y-sweet-server
 
     - name: Create Release
       id: create_release
