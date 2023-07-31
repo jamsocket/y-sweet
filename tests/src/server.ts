@@ -59,6 +59,8 @@ export class Server {
       }
 
       this.process = spawn(command, { cwd: workerBase, stdio: 'inherit', shell: true })
+    } else {
+      throw new Error(`Unknown server type ${configuration.server}`)
     }
 
     this.process.on('exit', (code) => {

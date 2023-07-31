@@ -29,7 +29,6 @@ jobs:
 
     - name: Install dependencies of JS library
       run: npm ci
-      working-directory: examples
     - name: Install integration tests
       run: npm ci
       working-directory: tests
