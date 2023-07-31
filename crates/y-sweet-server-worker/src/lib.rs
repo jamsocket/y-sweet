@@ -1,8 +1,8 @@
 use error::{Error, IntoResponse};
 use server_context::ServerContext;
-use worker_sys::console_log;
 use std::collections::HashMap;
 use worker::{event, Date, Env, Request, Response, Result, RouteContext, Router};
+use worker_sys::console_log;
 use y_sweet_server_core::{
     api_types::{AuthDocResponse, NewDocResponse},
     auth::Authenticator,
