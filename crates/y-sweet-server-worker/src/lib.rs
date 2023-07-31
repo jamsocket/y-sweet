@@ -4,7 +4,6 @@ use error::{Error, IntoResponse};
 use std::collections::HashMap;
 use std::sync::Arc;
 use worker::{event, Date, Env, Request, Response, Result, RouteContext, Router};
-use worker_sys::console_log;
 use y_sweet_server_core::{
     api_types::{AuthDocResponse, NewDocResponse},
     doc_sync::DocWithSyncKv,
@@ -58,12 +57,11 @@ fn check_server_token(req: &Request, config: &Configuration) -> std::result::Res
             .map_err(|_| Error::ExpectedAuthHeader)?;
         let auth_header_val = auth_header.as_deref().ok_or(Error::ExpectedAuthHeader)?;
 
-        if auth.server_token() != &auth_header_val[7..] {
-            console_log!(
-                "auth header '{}' '{}'",
-                &auth_header_val[7..],
-                auth.server_token()
-            );
+        if let Some(token) = auth_header_val.strip_prefix("Bearer ") {
+            if auth.server_token() != token {
+                return Err(Error::BadAuthHeader);
+            }
+        } else {
             return Err(Error::BadAuthHeader);
         }
     }
