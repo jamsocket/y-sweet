@@ -20,6 +20,8 @@ pub enum Error {
     NoSuchDocument,
     #[error("Upstream connection error.")]
     UpstreamConnectionError,
+    #[error("Internal error.")]
+    InternalError,
 }
 
 impl Error {
@@ -33,6 +35,7 @@ impl Error {
             Self::UpstreamConnectionError => 500,
             Self::ExpectedClientAuthHeader => 401,
             Self::BadClientAuthHeader => 403,
+            Self::InternalError => 500,
         }
     }
 }
