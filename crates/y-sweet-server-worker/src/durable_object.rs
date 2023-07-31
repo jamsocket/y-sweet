@@ -1,4 +1,4 @@
-use crate::{r2_store::R2Store, threadless::Threadless, DocIdPair, BUCKET};
+use crate::{threadless::Threadless, DocIdPair, server_context::ServerContext};
 use futures::StreamExt;
 use std::sync::Arc;
 use worker::{
@@ -6,7 +6,7 @@ use worker::{
 };
 #[allow(unused)]
 use worker_sys::console_log;
-use y_sweet_server_core::{doc_connection::DocConnection, doc_sync::DocWithSyncKv, store::Store};
+use y_sweet_server_core::{doc_connection::DocConnection, doc_sync::DocWithSyncKv};
 
 #[durable_object]
 pub struct YServe {
@@ -17,13 +17,12 @@ pub struct YServe {
 
 impl YServe {
     /// We need to lazily create the doc because the constructor is non-async.
-    pub async fn get_doc(&mut self, doc_id: &str) -> Result<&mut DocWithSyncKv> {
-        let storage = Arc::new(self.state.storage());
-
+    pub async fn get_doc(&mut self, req: &Request, doc_id: &str) -> Result<&mut DocWithSyncKv> {        
         if self.lazy_doc.is_none() {
-            let bucket = self.env.bucket(BUCKET).unwrap();
-            let store = R2Store::new(bucket);
-            let store: Arc<Box<dyn Store>> = Arc::new(Box::new(store));
+            let mut context = ServerContext::from_request(&req, &self.env).unwrap();
+            let storage = Arc::new(self.state.storage());
+
+            let store = context.store();
             let storage = Threadless(storage);
             let doc = DocWithSyncKv::new(doc_id, store, move || {
                 let storage = storage.clone();
@@ -65,6 +64,9 @@ impl DurableObject for YServe {
 
     async fn fetch(&mut self, req: Request) -> Result<Response> {
         let env: Env = self.env.clone().into();
+        let url = req.url()?;
+        let path = url.path();
+        console_log!("path: {}", path);
 
         Router::with_data(self)
             .get_async("/doc/ws/:doc_id", websocket_connect)
@@ -81,12 +83,12 @@ impl DurableObject for YServe {
     }
 }
 
-async fn websocket_connect(_req: Request, ctx: RouteContext<&mut YServe>) -> Result<Response> {
-    let doc_id = ctx.param("doc_id").unwrap().to_owned();
+async fn websocket_connect(req: Request, ctx: RouteContext<&mut YServe>) -> Result<Response> {
     let WebSocketPair { client, server } = WebSocketPair::new()?;
     server.accept()?;
 
-    let awareness = ctx.data.get_doc(&doc_id).await.unwrap().awareness();
+    let doc_id = ctx.param("doc_id").unwrap().to_owned();
+    let awareness = ctx.data.get_doc(&req, &doc_id).await.unwrap().awareness();
 
     let connection = {
         let server = server.clone();

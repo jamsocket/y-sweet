@@ -1,3 +1,4 @@
+use config::Configuration;
 use error::{Error, IntoResponse};
 use server_context::ServerContext;
 use std::collections::HashMap;
@@ -37,8 +38,6 @@ pub fn router(
 #[cfg(feature = "fetch-event")]
 #[event(fetch)]
 pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
-    use config::Configuration;
-
     console_error_panic_hook::set_once();
 
     let configuration = Configuration::from(&env);
@@ -172,6 +171,11 @@ async fn forward_to_durable_object(
 
     let durable_object = ctx.env.durable_object(DURABLE_OBJECT)?;
     let stub = durable_object.id_from_name(&doc_id)?.get_stub()?;
+
+    // Pass server context to durable object.
+    let mut req = req.clone_mut()?; // Mutating an incoming request without a clone is a runtime error.
+    ctx.data.install_on_request(&mut req)?;
+
     stub.fetch_with_request(req).await
 }
 

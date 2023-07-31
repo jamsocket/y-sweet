@@ -1039,6 +1039,7 @@ dependencies = [
  "js-sys",
  "nanoid",
  "serde",
+ "serde_json",
  "thiserror",
  "wasm-bindgen",
  "wasm-bindgen-futures",

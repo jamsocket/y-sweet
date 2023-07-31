@@ -1,6 +1,9 @@
 use crate::{config::Configuration, error::Error, r2_store::R2Store, BUCKET};
 use std::sync::Arc;
+use worker::{Env, Request};
 use y_sweet_server_core::{auth::Authenticator, store::Store};
+
+const CONTEXT_HEADER: &str = "X-Y-Sweet-Context";
 
 pub struct ServerContext {
     pub config: Configuration,
@@ -10,7 +13,7 @@ pub struct ServerContext {
 }
 
 impl ServerContext {
-    pub fn new(config: Configuration, env: &worker::Env) -> Self {
+    pub fn new(config: Configuration, env: &Env) -> Self {
         let bucket = env.bucket(BUCKET).unwrap();
         let store = R2Store::new(bucket);
         let store: Arc<Box<dyn Store>> = Arc::new(Box::new(store));
@@ -39,5 +42,24 @@ impl ServerContext {
 
     pub fn store(&mut self) -> Arc<Box<dyn Store>> {
         self.store.clone()
+    }
+
+    pub fn install_on_request(&self, req: &mut Request) -> worker::Result<()> {
+        req.headers_mut()?
+            .append(CONTEXT_HEADER, &serde_json::to_string(&self.config)?)?;
+        Ok(())
+    }
+
+    pub fn from_request(req: &Request, env: &Env) -> Result<Self, Error> {
+        let context_header = req
+            .headers()
+            .get(CONTEXT_HEADER)
+            .map_err(|_| Error::InternalError)?;
+        let context_header_val = context_header.as_deref().ok_or(Error::InternalError)?;
+
+        let config: Configuration =
+            serde_json::from_str(context_header_val).map_err(|_| Error::InternalError)?;
+
+        Ok(Self::new(config, env))
     }
 }
