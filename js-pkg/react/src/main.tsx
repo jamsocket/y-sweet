@@ -4,9 +4,9 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { ReactNode } from 'react'
 import { WebsocketProvider } from 'y-websocket'
 import * as Y from 'yjs'
-import { ConnectionKey } from './sdk'
+import { ConnectionKey } from '@y-sweet/sdk'
 import type { Awareness } from 'y-protocols/awareness'
-import { createYjsProvider } from './client'
+import { createYjsProvider } from './yjs-provider'
 
 type YjsContextType = {
   doc: Y.Doc

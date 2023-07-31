@@ -1,6 +1,6 @@
 'use client'
 
-import { useYDoc } from '@y-sweet/js/react'
+import { useYDoc } from '@y-sweet/react'
 import { useEffect, useState } from 'react'
 import * as Y from 'yjs'
 

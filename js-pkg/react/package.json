@@ -1,22 +1,24 @@
 {
-    "name": "@y-sweet/js",
+    "name": "@y-sweet/react",
     "scripts": {
       "build": "tsc",
       "clean": "rm -rf dist && rm -f tsconfig.tsbuildinfo",
-      "dev": "npm run build -- --watch",
-      "prepare": "npm run clean && npm run build"
+      "dev": "npm run build -- --watch"
     },
     "version": "0.0.1",
-    "description": "Javascript/Typescript and React libraries for building collaboration features with y-sweet.",
+    "description": "React library for building collaboration features with y-sweet.",
+    "main": "./dist/main.js",
+    "types": "./dist/main.d.ts",
     "exports": {
-      "./sdk": "./dist/sdk.js",
-      "./client": "./dist/client.js",
-      "./react": "./dist/react.js"
+      ".": {
+        "import": "./dist/main.js",
+        "module": "./dist/main.js",
+        "types": "./dist/main.d.ts"
+      }
     },
     "files": [
       "dist/**/*"
     ],
-    "author": "Paul Butler <paul@driftingin.space>",
     "homepage": "https://github.com/drifting-in-space/y-sweet",
     "repository": {
       "type": "git",
@@ -35,6 +37,7 @@
       "yjs": "^13.0.0"
     },
     "dependencies": {
+      "@y-sweet/sdk": "0.0.1",
       "y-protocols": "^1.0.5",
       "y-websocket": "^1.5.0"
     }

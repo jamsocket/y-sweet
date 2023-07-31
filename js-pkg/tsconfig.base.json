@@ -1,10 +1,7 @@
 {
     "compilerOptions": {
-      "target": "es6",
+      "target": "esnext",
       "lib": ["es2019", "dom"],
-      "outDir": "dist",
-      "rootDir": "src",
-      "jsx": "react-jsx",
       "composite": true,
       "declaration": true,
       "declarationMap": true,
@@ -19,12 +16,5 @@
       "skipLibCheck": true,
       "strict": true,
       "module": "esnext"
-    },
-    "include": [
-      "."
-    ],
-    "exclude": [
-        "dist",
-        "node_modules",
-    ]
+    }
   }

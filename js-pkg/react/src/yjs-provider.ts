@@ -1,6 +1,6 @@
 import { WebsocketProvider } from 'y-websocket'
 import * as Y from 'yjs'
-import { ConnectionKey } from './sdk'
+import { ConnectionKey } from '@y-sweet/sdk'
 import type { Awareness } from 'y-protocols/awareness'
 
 export function createYjsProvider(

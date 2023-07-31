@@ -1,6 +1,6 @@
 'use client'
 
-import { usePresence } from '@y-sweet/js/react'
+import { usePresence } from '@y-sweet/react'
 import { useCallback, useRef } from 'react'
 
 const COLORS = ['bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-pink-500']
