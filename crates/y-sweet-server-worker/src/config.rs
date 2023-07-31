@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use worker::Env;
 
+const BUCKET: &str = "Y_SWEET_DATA";
 const AUTH_KEY: &str = "AUTH_KEY";
 const USE_HTTPS: &str = "USE_HTTPS";
 
@@ -8,6 +9,7 @@ const USE_HTTPS: &str = "USE_HTTPS";
 pub struct Configuration {
     pub auth_key: Option<String>,
     pub use_https: bool,
+    pub bucket: String,
 }
 
 impl From<&Env> for Configuration {
@@ -20,6 +22,7 @@ impl From<&Env> for Configuration {
         Self {
             auth_key,
             use_https,
+            bucket: BUCKET.to_string(),
         }
     }
 }
