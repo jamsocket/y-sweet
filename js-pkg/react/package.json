@@ -3,7 +3,8 @@
     "scripts": {
         "build": "tsc",
         "clean": "rm -rf dist && rm -f tsconfig.tsbuildinfo",
-        "dev": "npm run build -- --watch"
+        "dev": "npm run build -- --watch",
+        "format": "prettier --write \"**/*.{ts,tsx,js,jsx}\""
     },
     "version": "0.0.2",
     "description": "React library for building collaboration features with y-sweet.",
@@ -27,6 +28,7 @@
     "license": "MIT",
     "devDependencies": {
         "@types/react": "^18.2.14",
+        "prettier": "^3.0.0",
         "typescript": "^5.1.6"
     },
     "bugs": {
