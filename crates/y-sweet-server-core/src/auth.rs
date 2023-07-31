@@ -21,6 +21,7 @@ pub enum AuthError {
 
 #[derive(Serialize, Deserialize, PartialEq, PartialOrd, Debug)]
 pub struct Authenticator {
+    #[serde(with = "b64")]
     private_key: Vec<u8>,
     server_token: String,
 }
@@ -40,7 +41,6 @@ pub struct Payload {
 #[derive(Serialize, Deserialize)]
 pub struct AuthenticatedRequest {
     pub payload: Payload,
-    #[serde(with = "b64")]
     pub token: Vec<u8>,
 }
 
