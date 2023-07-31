@@ -1,4 +1,4 @@
-use crate::{config::Configuration, error::Error, r2_store::R2Store, BUCKET};
+use crate::{config::Configuration, error::Error, r2_store::R2Store};
 use std::sync::Arc;
 use worker::{Env, Request};
 use y_sweet_server_core::{auth::Authenticator, store::Store};
@@ -14,7 +14,7 @@ pub struct ServerContext {
 
 impl ServerContext {
     pub fn new(config: Configuration, env: &Env) -> Self {
-        let bucket = env.bucket(BUCKET).unwrap();
+        let bucket = env.bucket(&config.bucket).unwrap();
         let store = R2Store::new(bucket);
         let store: Arc<Box<dyn Store>> = Arc::new(Box::new(store));
 

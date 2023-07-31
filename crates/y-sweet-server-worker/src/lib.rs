@@ -1,9 +1,11 @@
+#[cfg(feature = "fetch-event")]
 use config::Configuration;
 use error::{Error, IntoResponse};
 use server_context::ServerContext;
 use std::collections::HashMap;
-use worker::{event, Date, Env, Request, Response, Result, RouteContext, Router};
-use worker_sys::console_log;
+#[cfg(feature = "fetch-event")]
+use worker::{event, Env};
+use worker::{Date, Request, Response, Result, RouteContext, Router};
 use y_sweet_server_core::{
     api_types::{AuthDocResponse, NewDocResponse},
     auth::Authenticator,
@@ -17,7 +19,6 @@ pub mod r2_store;
 pub mod server_context;
 pub mod threadless;
 
-const BUCKET: &str = "Y_SWEET_DATA";
 const DURABLE_OBJECT: &str = "Y_SWEET";
 
 fn get_time_millis_since_epoch() -> u64 {
@@ -63,7 +64,6 @@ fn check_server_token(
             .map_err(|_| Error::ExpectedAuthHeader)?;
         let auth_header_val = auth_header.as_deref().ok_or(Error::ExpectedAuthHeader)?;
 
-        console_log!("auth_header_val: {:?}", auth_header_val);
         if let Some(token) = auth_header_val.strip_prefix("Bearer ") {
             if auth.server_token() != token {
                 return Err(Error::BadAuthHeader);
