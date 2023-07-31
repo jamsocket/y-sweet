@@ -11,7 +11,11 @@ export class DocumentManager {
   baseUrl: string
   token?: string
 
-  constructor(options?: DocumentManagerOptions) {
+  constructor(options?: DocumentManagerOptions | string) {
+    if (typeof options === 'string') {
+      options = JSON.parse(options) as DocumentManagerOptions
+    }
+
     this.baseUrl = options?.endpoint ?? 'http://127.0.0.1:8080'
     // Remove trailing slash.
     this.baseUrl = this.baseUrl.replace(/\/$/, '')
@@ -100,7 +104,7 @@ export type ConnectionKey = {
 
 export async function getOrCreateDoc(
   docId?: string,
-  options?: DocumentManagerOptions,
+  options?: DocumentManagerOptions | string,
 ): Promise<ConnectionKey> {
   const manager = new DocumentManager(options)
   return await manager.getOrCreateDoc(docId)
@@ -109,13 +113,13 @@ export async function getOrCreateDoc(
 export async function getConnectionKey(
   docId: string | DocCreationResult,
   request: AuthDocRequest,
-  options?: DocumentManagerOptions,
+  options?: DocumentManagerOptions | string,
 ): Promise<ConnectionKey> {
   const manager = new DocumentManager(options)
   return await manager.getConnectionKey(docId, request)
 }
 
-export async function createDoc(options?: DocumentManagerOptions): Promise<DocCreationResult> {
+export async function createDoc(options?: DocumentManagerOptions | string): Promise<DocCreationResult> {
   const manager = new DocumentManager(options)
   return await manager.createDoc()
 }

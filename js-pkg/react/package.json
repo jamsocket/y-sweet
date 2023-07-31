@@ -1,44 +1,44 @@
 {
     "name": "@y-sweet/react",
     "scripts": {
-      "build": "tsc",
-      "clean": "rm -rf dist && rm -f tsconfig.tsbuildinfo",
-      "dev": "npm run build -- --watch"
+        "build": "tsc",
+        "clean": "rm -rf dist && rm -f tsconfig.tsbuildinfo",
+        "dev": "npm run build -- --watch"
     },
-    "version": "0.0.1",
+    "version": "0.0.2",
     "description": "React library for building collaboration features with y-sweet.",
     "main": "./dist/main.js",
     "types": "./dist/main.d.ts",
     "exports": {
-      ".": {
-        "import": "./dist/main.js",
-        "module": "./dist/main.js",
-        "types": "./dist/main.d.ts"
-      }
+        ".": {
+            "import": "./dist/main.js",
+            "module": "./dist/main.js",
+            "types": "./dist/main.d.ts"
+        }
     },
     "files": [
-      "dist/**/*"
+        "dist/**/*"
     ],
     "homepage": "https://github.com/drifting-in-space/y-sweet",
     "repository": {
-      "type": "git",
-      "url": "https://github.com/drifting-in-space/y-sweet.git"
+        "type": "git",
+        "url": "https://github.com/drifting-in-space/y-sweet.git"
     },
     "license": "MIT",
     "devDependencies": {
-      "@types/react": "^18.2.14",
-      "typescript": "^5.1.6"
+        "@types/react": "^18.2.14",
+        "typescript": "^5.1.6"
     },
     "bugs": {
-      "url": "https://github.com/drifting-in-space/y-sweet/issues"
+        "url": "https://github.com/drifting-in-space/y-sweet/issues"
     },
     "peerDependencies": {
-      "react": "^16.8.0 || ^17.0.0 || ^18.0.0",
-      "yjs": "^13.0.0"
+        "react": "^16.8.0 || ^17.0.0 || ^18.0.0",
+        "yjs": "^13.0.0"
     },
     "dependencies": {
-      "@y-sweet/sdk": "0.0.1",
-      "y-protocols": "^1.0.5",
-      "y-websocket": "^1.5.0"
+        "@y-sweet/sdk": "0.0.1",
+        "y-protocols": "^1.0.5",
+        "y-websocket": "^1.5.0"
     }
-  }
+}
