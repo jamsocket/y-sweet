@@ -1,5 +1,6 @@
 use error::{Error, IntoResponse};
 use server_context::ServerContext;
+use worker_sys::console_log;
 use std::collections::HashMap;
 use worker::{event, Date, Env, Request, Response, Result, RouteContext, Router};
 use y_sweet_server_core::{
@@ -63,6 +64,7 @@ fn check_server_token(
             .map_err(|_| Error::ExpectedAuthHeader)?;
         let auth_header_val = auth_header.as_deref().ok_or(Error::ExpectedAuthHeader)?;
 
+        console_log!("auth_header_val: {:?}", auth_header_val);
         if let Some(token) = auth_header_val.strip_prefix("Bearer ") {
             if auth.server_token() != token {
                 return Err(Error::BadAuthHeader);
