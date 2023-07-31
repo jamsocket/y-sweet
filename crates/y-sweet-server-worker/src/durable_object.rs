@@ -1,4 +1,4 @@
-use crate::{threadless::Threadless, DocIdPair, server_context::ServerContext};
+use crate::{server_context::ServerContext, threadless::Threadless, DocIdPair};
 use futures::StreamExt;
 use std::sync::Arc;
 use worker::{
@@ -17,7 +17,7 @@ pub struct YServe {
 
 impl YServe {
     /// We need to lazily create the doc because the constructor is non-async.
-    pub async fn get_doc(&mut self, req: &Request, doc_id: &str) -> Result<&mut DocWithSyncKv> {        
+    pub async fn get_doc(&mut self, req: &Request, doc_id: &str) -> Result<&mut DocWithSyncKv> {
         if self.lazy_doc.is_none() {
             let mut context = ServerContext::from_request(&req, &self.env).unwrap();
             let storage = Arc::new(self.state.storage());
