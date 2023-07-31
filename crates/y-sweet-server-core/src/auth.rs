@@ -19,6 +19,7 @@ pub enum AuthError {
     InvalidSignature,
 }
 
+#[derive(Serialize, Deserialize, PartialEq, PartialOrd, Debug)]
 pub struct Authenticator {
     private_key: Vec<u8>,
     server_token: String,
@@ -39,6 +40,7 @@ pub struct Payload {
 #[derive(Serialize, Deserialize)]
 pub struct AuthenticatedRequest {
     pub payload: Payload,
+    #[serde(with = "b64")]
     pub token: Vec<u8>,
 }
 
@@ -50,6 +52,38 @@ fn bincode_encode<T: Serialize>(value: &T) -> Result<Vec<u8>, bincode::Error> {
 fn bincode_decode<'a, T: Deserialize<'a>>(bytes: &'a [u8]) -> Result<T, bincode::Error> {
     // This uses different defaults than the default bincode::deserialize() function.
     bincode::DefaultOptions::new().deserialize(bytes)
+}
+
+fn b64_encode(bytes: &[u8]) -> String {
+    let mut buf = String::new();
+    general_purpose::STANDARD.encode_string(bytes, &mut buf);
+    buf
+}
+
+fn b64_decode(str: &str) -> Result<Vec<u8>, AuthError> {
+    general_purpose::STANDARD
+        .decode(str)
+        .map_err(|_| AuthError::InvalidToken)
+}
+
+mod b64 {
+    use super::*;
+    use serde::{de, Deserialize, Deserializer, Serializer};
+
+    pub fn serialize<S>(bytes: &[u8], serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&b64_encode(bytes))
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        b64_decode(&s).map_err(de::Error::custom)
+    }
 }
 
 impl Payload {
@@ -111,18 +145,6 @@ fn hash(bytes: &[u8]) -> Vec<u8> {
     hasher.update(bytes);
     let result = hasher.finalize();
     result.to_vec()
-}
-
-fn b64_encode(bytes: &[u8]) -> String {
-    let mut buf = String::new();
-    general_purpose::STANDARD.encode_string(bytes, &mut buf);
-    buf
-}
-
-fn b64_decode(str: &str) -> Result<Vec<u8>, AuthError> {
-    general_purpose::STANDARD
-        .decode(str)
-        .map_err(|_| AuthError::InvalidToken)
 }
 
 impl Authenticator {
@@ -236,5 +258,13 @@ mod tests {
             authenticator.verify_doc_token(&signed, "abc123", 0),
             Err(AuthError::InvalidSignature)
         );
+    }
+
+    #[test]
+    fn test_roundtrip_serde_authenticator() {
+        let authenticator = Authenticator::gen_key().unwrap();
+        let serialized = serde_json::to_string(&authenticator).unwrap();
+        let deserialized: Authenticator = serde_json::from_str(&serialized).unwrap();
+        assert_eq!(authenticator, deserialized);
     }
 }
