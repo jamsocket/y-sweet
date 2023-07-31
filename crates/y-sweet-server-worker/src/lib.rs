@@ -1,19 +1,18 @@
-use crate::r2_store::R2Store;
-use config::Configuration;
 use error::{Error, IntoResponse};
+use server_context::ServerContext;
 use std::collections::HashMap;
-use std::sync::Arc;
 use worker::{event, Date, Env, Request, Response, Result, RouteContext, Router};
 use y_sweet_server_core::{
     api_types::{AuthDocResponse, NewDocResponse},
+    auth::Authenticator,
     doc_sync::DocWithSyncKv,
-    store::Store,
 };
 
 pub mod config;
 pub mod durable_object;
 pub mod error;
 pub mod r2_store;
+pub mod server_context;
 pub mod threadless;
 
 const BUCKET: &str = "Y_SWEET_DATA";
@@ -24,12 +23,10 @@ fn get_time_millis_since_epoch() -> u64 {
     now.as_millis()
 }
 
-pub fn router(env: &Env) -> std::result::Result<Router<'static, Configuration>, Error> {
-    let Ok(config) = Configuration::try_from(env) else {
-        return Err(Error::ConfigurationError)
-    };
-
-    Ok(Router::with_data(config)
+pub fn router(
+    context: ServerContext,
+) -> std::result::Result<Router<'static, ServerContext>, Error> {
+    Ok(Router::with_data(context)
         .get("/", |_, _| Response::ok("Hello world!"))
         .post_async("/doc/new", new_doc_handler)
         .post_async("/doc/:doc_id/auth", auth_doc_handler)
@@ -39,8 +36,14 @@ pub fn router(env: &Env) -> std::result::Result<Router<'static, Configuration>, 
 #[cfg(feature = "fetch-event")]
 #[event(fetch)]
 pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
+    use config::Configuration;
+
     console_error_panic_hook::set_once();
-    let router = router(&env);
+
+    let configuration = Configuration::from(&env);
+    let context = ServerContext::new(configuration, &env);
+
+    let router = router(context);
     let router = match router {
         Ok(router) => router,
         Err(err) => return err.into(),
@@ -49,8 +52,11 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
     router.run(req, env).await
 }
 
-fn check_server_token(req: &Request, config: &Configuration) -> std::result::Result<(), Error> {
-    if let Some(auth) = &config.auth {
+fn check_server_token(
+    req: &Request,
+    auth: Option<&Authenticator>,
+) -> std::result::Result<(), Error> {
+    if let Some(auth) = auth {
         let auth_header = req
             .headers()
             .get("Authorization")
@@ -68,20 +74,18 @@ fn check_server_token(req: &Request, config: &Configuration) -> std::result::Res
     Ok(())
 }
 
-async fn new_doc_handler(req: Request, ctx: RouteContext<Configuration>) -> Result<Response> {
+async fn new_doc_handler(req: Request, ctx: RouteContext<ServerContext>) -> Result<Response> {
     new_doc(req, ctx).await.into_response()
 }
 
 async fn new_doc(
     req: Request,
-    ctx: RouteContext<Configuration>,
+    mut ctx: RouteContext<ServerContext>,
 ) -> std::result::Result<NewDocResponse, Error> {
-    check_server_token(&req, &ctx.data)?;
+    check_server_token(&req, ctx.data.auth()?)?;
 
     let doc_id = nanoid::nanoid!();
-    let bucket = ctx.env.bucket(BUCKET).unwrap();
-    let store = R2Store::new(bucket);
-    let store: Arc<Box<dyn Store>> = Arc::new(Box::new(store));
+    let store = ctx.data.store();
     let dwskv = DocWithSyncKv::new(&doc_id, store, || {}).await.unwrap();
 
     dwskv.sync_kv().persist().await.unwrap();
@@ -91,15 +95,15 @@ async fn new_doc(
     Ok(response)
 }
 
-async fn auth_doc_handler(req: Request, ctx: RouteContext<Configuration>) -> Result<Response> {
+async fn auth_doc_handler(req: Request, ctx: RouteContext<ServerContext>) -> Result<Response> {
     auth_doc(req, ctx).await.into_response()
 }
 
 async fn auth_doc(
     req: Request,
-    ctx: RouteContext<Configuration>,
+    mut ctx: RouteContext<ServerContext>,
 ) -> std::result::Result<AuthDocResponse, Error> {
-    check_server_token(&req, &ctx.data)?;
+    check_server_token(&req, ctx.data.auth()?)?;
 
     let host = req
         .headers()
@@ -107,10 +111,9 @@ async fn auth_doc(
         .map_err(|_| Error::MissingHostHeader)?
         .ok_or(Error::MissingHostHeader)?;
 
-    let doc_id = ctx.param("doc_id").unwrap();
+    let doc_id = ctx.param("doc_id").unwrap().to_string();
 
-    let bucket = ctx.env.bucket(BUCKET).unwrap();
-    let store = R2Store::new(bucket);
+    let store = ctx.data.store();
     if !store
         .exists(&format!("{doc_id}/data.bin"))
         .await
@@ -121,11 +124,14 @@ async fn auth_doc(
 
     let token = ctx
         .data
-        .auth
-        .as_ref()
-        .map(|auth| auth.gen_doc_token(doc_id, get_time_millis_since_epoch()));
+        .auth()?
+        .map(|auth| auth.gen_doc_token(&doc_id, get_time_millis_since_epoch()));
 
-    let schema = if ctx.data.use_https { "wss" } else { "ws" };
+    let schema = if ctx.data.config.use_https {
+        "wss"
+    } else {
+        "ws"
+    };
     let base_url = format!("{schema}://{host}/doc/ws");
 
     Ok(AuthDocResponse {
@@ -137,11 +143,11 @@ async fn auth_doc(
 
 async fn forward_to_durable_object(
     req: Request,
-    ctx: RouteContext<Configuration>,
+    mut ctx: RouteContext<ServerContext>,
 ) -> Result<Response> {
-    let doc_id = ctx.param("doc_id").unwrap();
+    let doc_id = ctx.param("doc_id").unwrap().to_string();
 
-    if let Some(auth) = &ctx.data.auth {
+    if let Some(auth) = ctx.data.auth().unwrap() {
         // Read query params.
         let url = req.url()?;
         let query: HashMap<String, String> = url
@@ -155,7 +161,7 @@ async fn forward_to_durable_object(
             Err(e) => return e.into(),
         };
         let result = auth
-            .verify_doc_token(token, doc_id, get_time_millis_since_epoch())
+            .verify_doc_token(token, &doc_id, get_time_millis_since_epoch())
             .map_err(|_| Error::BadClientAuthHeader);
         if let Err(e) = result {
             return e.into();
@@ -163,7 +169,7 @@ async fn forward_to_durable_object(
     }
 
     let durable_object = ctx.env.durable_object(DURABLE_OBJECT)?;
-    let stub = durable_object.id_from_name(doc_id)?.get_stub()?;
+    let stub = durable_object.id_from_name(&doc_id)?.get_stub()?;
     stub.fetch_with_request(req).await
 }
 

@@ -12,6 +12,16 @@ command = "cargo install -q worker-build --version 0.0.9 && worker-build --relea
 tag = "v1"
 new_classes = ["YServe"]
 
+[[r2_buckets]]
+binding = "Y_SWEET_DATA"
+bucket_name = "y-sweet-data"
+preview_bucket_name = "y-sweet-data-dev"
+
+[durable_objects]
+bindings = [
+  { name = "Y_SWEET", class_name = "YServe" }
+]
+
 [env.staging]
 vars.USE_HTTPS = "true"
 vars.WORKERS_RS_VERSION = "0.0.11"
