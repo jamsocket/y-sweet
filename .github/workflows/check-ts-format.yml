@@ -25,3 +25,11 @@ jobs:
     - name: Check Formatting of Tests
       run: npx prettier --check "src/**/*.ts"
       working-directory: tests/
+
+    - name: Check Formatting of React lib
+      run: npx prettier --check "src/**/*.ts"
+      working-directory: js-pkg/react/
+
+    - name: Check Formatting of SDK
+      run: npx prettier --check "src/**/*.ts"
+      working-directory: js-pkg/sdk/
