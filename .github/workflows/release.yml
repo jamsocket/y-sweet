@@ -8,9 +8,34 @@ on:
         required: true
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+        
+      - name: Install latest rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: beta
+          target: x86_64-apple-darwin
+          default: true
+          override: true
 
+      - name: Build for MacOS
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release --manifest-path=crates/Cargo.toml
+          
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: macos-binary
+          path: ./crates/target/release/y-sweet-server 
+
+  build-linux:
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
@@ -19,35 +44,80 @@ jobs:
       uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
+        target: x86_64-unknown-linux-musl
         override: true
+        
+    - name: Install musl-tools 
+      run: sudo apt-get install -y musl-tools
 
-    - name: Build
+    - name: Build for Linux
       uses: actions-rs/cargo@v1
       with:
         command: build
-        args: --release --manifest-path=crates/Cargo.toml
+        args: --release --target x86_64-unknown-linux-musl --manifest-path=crates/Cargo.toml
+        
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: linux-binary
+        path: ./crates/target/x86_64-unknown-linux-musl/release/y-sweet-server 
 
+  build-windows:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2 
+
+    - name: Setup Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        target: x86_64-pc-windows-gnu
+        override: true
+        
+    - name: Install mingw
+      run: sudo apt-get install -y gcc-mingw-w64
+
+    - name: Build for Windows
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
+        args: --release --target x86_64-pc-windows-gnu --manifest-path=crates/Cargo.toml
+
+    - name: ls
+      run: ls ./crates/target/x86_64-pc-windows-gnu/release
+      
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: windows-binary
+        path: ./crates/target/x86_64-pc-windows-gnu/release/y-sweet-server.exe
+
+  release:
+    needs: [build-linux, build-macos, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v2
     - name: Compress binary
-      run: gzip -9 --keep --force crates/target/release/y-sweet-server
-
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: >
+        gzip -9 --keep --force 
+        windows-binary/y-sweet-server.exe
+        linux-binary/y-sweet-server
+        macos-binary/y-sweet-server
+    - name: ls
+      run: ls -la
+    - name: rename and move
+      run: >
+        mv windows-binary/y-sweet-server.exe.gz y-sweet-server-win-x64.exe.gz &&
+        mv linux-binary/y-sweet-server.gz y-sweet-server-linux-x64.gz &&
+        mv macos-binary/y-sweet-server.gz y-sweet-server-macos-x64.gz
+    - name: Release
+      uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ github.event.inputs.version }}
-        release_name: Release ${{ github.event.inputs.version }}
-        # TODO: remove when ready
+        name: ${{ github.event.inputs.version }}
         draft: true
-        prerelease: true
-
-    - name: Upload Release Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./crates/target/release/y-sweet-server.gz
-        asset_name: y-sweet-server.gz
-        asset_content_type: application/gz
+        files: |
+            y-sweet-server-win-x64.exe.gz
+            y-sweet-server-linux-x64.gz
+            y-sweet-server-macos-x64.gz
