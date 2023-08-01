@@ -34,7 +34,7 @@ jobs:
       uses: actions-rs/cargo@v1
       with:
         command: build
-        args: --release --target x86_64-pc-windows-msvc --manifest-path=crates/Cargo.toml
+        args: --release --target x86_64-pc-windows-gnu --manifest-path=crates/Cargo.toml
 
     - name: Build for MacOS
       uses: actions-rs/cargo@v1
@@ -46,7 +46,7 @@ jobs:
       run: >
         gzip -9 --keep --force 
         crates/target/x86_64-unknown-linux-musl/release/y-sweet-server 
-        crates/target/x86_64-pc-windows-msvc/release/y-sweet-server 
+        crates/target/x86_64-pc-windows-gnu/release/y-sweet-server 
         crates/target/x86_64-apple-darwin/release/y-sweet-server
 
 #    - name: Create Release
