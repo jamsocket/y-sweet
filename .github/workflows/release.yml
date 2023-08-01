@@ -105,13 +105,19 @@ jobs:
         windows-binary/y-sweet-server.exe
         linux-binary/y-sweet-server
         macos-binary/y-sweet-server
-
+    - name: ls
+      run: ls -la
+    - name: rename and move
+      run: >
+        mv windows-binary/y-sweet-server.exe.gz y-sweet-server-win-x64.exe.gz &&
+        mv linux-binary/y-sweet-server y-sweet-server-linux-x64.gz &&
+        mv macos-binary/y-sweet-server y-sweet-server-macos-x64.gz
     - name: Release
       uses: softprops/action-gh-release@v1
       with:
         name: ${{ github.event.inputs.version }}
         draft: true
         files: |
-            windows-binary/y-sweet-server.exe.gz
-            macos-binary/y-sweet-server.gz
-            linux-binary/y-sweet-server.gz
+            y-sweet-server-win-x64.exe.gz
+            y-sweet-server-linux-x64.gz
+            y-sweet-server-macos-x64.gz
