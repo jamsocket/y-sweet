@@ -1,4 +1,4 @@
-# y-sweet
+<img src="logo.svg" />
 
 `y-sweet` is a suite of open-source packages for developing and productionizing Yjs applications.
 
