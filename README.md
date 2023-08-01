@@ -1,16 +1,20 @@
-# y-sweet
+<img src="logo.svg" />
 
-`y-sweet` is a suite of open-source packages for developing and productionizing Yjs applications.
+y-sweet is an open-source stack for building realtime applications on top of the [Yjs](https://github.com/yjs/yjs) CRDT library.
 
-It currently consists of:
-- `y-sweet-server`, a standalone Yjs server
-    - Persists data to S3-compatible storage, [modeled after Figma’s infrastructure](https://digest.browsertech.com/archive/browsertech-digest-figma-is-a-file-editor/).
-    - Scales with a [session backend](https://driftingin.space/posts/session-lived-application-backends) model.
-    - Optionally runs on Cloudflare Workers (with persistence to Cloudflare R2).
-    - Written in Rust.
+The core component of y-sweet is a standalone Yjs server with some unique features:
+
+- Persists document data to a network filesystem or S3-compatible storage, [modeled after Figma’s infrastructure](https://digest.browsertech.com/archive/browsertech-digest-figma-is-a-file-editor/).
+- Scales horizontally with a [session backend](https://driftingin.space/posts/session-lived-application-backends) model.
+- Deploys as a native Linux process, or as a WebAssembly module on Cloudflare's edge.
+- Document-level access control via client tokens.
+- Written in Rust and built on [y-crdt](https://github.com/y-crdt/y-crdt/).
+
+Additionally, the y-sweet stack includes:
 - `@y-sweet/sdk`, a TypeScript library for interacting with `y-sweet-server` from your application backend.
-    - Create and manage documents.
-    - Authorize document access and generate client tokens.
 - `@y-sweet/react`, a React hooks library for building Yjs applications.
+- A debugger for exploring Yjs document and presence state (WIP).
 
-Y-sweet is MIT-licensed open source, and was created by [Drifting in Space](https://driftingin.space).
+The goal of y-sweet is to give developers the end-to-end developer ergonomics they would expect from a proprietary commercial solution, on top of the excellent open-source technology of Yjs, without the lock-in.
+
+y-sweet is MIT-licensed, and was created by [Drifting in Space](https://driftingin.space).
