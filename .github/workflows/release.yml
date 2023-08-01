@@ -99,9 +99,9 @@ jobs:
     - name: Compress binary
       run: >
         gzip -9 --keep --force 
-        windows-binary 
-        linux-binary 
-        macos-binary
+        windows-binary/y-sweet-server
+        linux-binary/y-sweet-server
+        macos-binary/y-sweet-server
 
 #    - name: Create Release
  #     id: create_release
@@ -129,6 +129,6 @@ jobs:
       if: startsWith(github.ref, 'refs/tags/')
       with:
         files: |
-            windows-binary.gz
-            macos-binary.gz
-            linux-binary.gz
+            windows-binary/y-sweet-server.gz
+            macos-binary/y-sweet-server.gz
+            linux-binary/y-sweet-server.gz
