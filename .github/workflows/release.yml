@@ -84,11 +84,14 @@ jobs:
         command: build
         args: --release --target x86_64-pc-windows-gnu --manifest-path=crates/Cargo.toml
 
+    - name: ls
+      run: ls ./creates/target/x86_64-pc-windows-gnu/release
+      
     - name: Upload artifact
       uses: actions/upload-artifact@v2
       with:
         name: windows-binary
-        path: ./crates/target/x86_64-pc-windows-gnu/release/y-sweet-server 
+        path: ./crates/target/x86_64-pc-windows-gnu/release/y-sweet-server.exe
 
   release:
     needs: [build-linux, build-macos, build-windows]
@@ -99,7 +102,7 @@ jobs:
     - name: Compress binary
       run: >
         gzip -9 --keep --force 
-        windows-binary/y-sweet-server
+        windows-binary/y-sweet-server.exe
         linux-binary/y-sweet-server
         macos-binary/y-sweet-server
 
@@ -129,6 +132,6 @@ jobs:
       if: startsWith(github.ref, 'refs/tags/')
       with:
         files: |
-            windows-binary/y-sweet-server.gz
+            windows-binary/y-sweet-server.exe.gz
             macos-binary/y-sweet-server.gz
             linux-binary/y-sweet-server.gz
