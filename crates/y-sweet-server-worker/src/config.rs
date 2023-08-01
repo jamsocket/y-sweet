@@ -10,6 +10,8 @@ pub struct Configuration {
     pub auth_key: Option<String>,
     pub use_https: bool,
     pub bucket: String,
+    pub bucket_prefix: Option<String>,
+    pub url_prefix: Option<String>,
 }
 
 impl From<&Env> for Configuration {
@@ -23,6 +25,8 @@ impl From<&Env> for Configuration {
             auth_key,
             use_https,
             bucket: BUCKET.to_string(),
+            bucket_prefix: None,
+            url_prefix: None,
         }
     }
 }

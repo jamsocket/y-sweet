@@ -25,7 +25,7 @@ impl SyncKv {
         key: &str,
         callback: Callback,
     ) -> Result<Self> {
-        let key = format!("{}/data.bin", key);
+        let key = format!("{}/data.ysweet", key);
         let data = if let Some(snapshot) = store.get(&key).await? {
             tracing::info!(size=?snapshot.len(), "Loaded snapshot");
             bincode::deserialize(&snapshot)?
