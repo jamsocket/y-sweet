@@ -66,10 +66,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
-      
-    - name: Install mingw
-      run: sudo apt-get install -y gcc-mingw-w64
+      uses: actions/checkout@v2 
 
     - name: Setup Rust
       uses: actions-rs/toolchain@v1
@@ -77,6 +74,9 @@ jobs:
         toolchain: stable
         target: x86_64-pc-windows-gnu
         override: true
+        
+    - name: Install mingw
+      run: sudo apt-get install -y gcc-mingw-w64
 
     - name: Build for Windows
       uses: actions-rs/cargo@v1
