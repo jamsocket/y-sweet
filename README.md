@@ -8,7 +8,7 @@ The core component of y-sweet is a standalone Yjs server which:
 - Scales horizontally with a [session backend](https://driftingin.space/posts/session-lived-application-backends) model.
 - Deploys as a native Linux process, or as a WebAssembly module on Cloudflare's edge.
 - Provides document-level access control via client tokens.
-- Is written in Rust and built on the excellent [y-crdt](https://github.com/y-crdt/y-crdt/).
+- Is written in Rust and builds on the excellent [y-crdt](https://github.com/y-crdt/y-crdt/).
 
 The y-sweet server can be used by itself, or with the rest of the y-sweet stack:
 
