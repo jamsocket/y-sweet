@@ -4,6 +4,7 @@ use worker::{Env, Request};
 use y_sweet_server_core::{auth::Authenticator, store::Store};
 
 const CONTEXT_HEADER: &str = "X-Y-Sweet-Context";
+const ROUTE_HEADER: &str = "X-Y-Sweet-Route";
 
 pub struct ServerContext {
     pub config: Configuration,
@@ -15,7 +16,7 @@ pub struct ServerContext {
 impl ServerContext {
     pub fn new(config: Configuration, env: &Env) -> Self {
         let bucket = env.bucket(&config.bucket).unwrap();
-        let store = R2Store::new(bucket);
+        let store = R2Store::new(bucket, config.bucket_prefix.clone());
         let store: Arc<Box<dyn Store>> = Arc::new(Box::new(store));
 
         Self {
@@ -45,9 +46,29 @@ impl ServerContext {
     }
 
     pub fn install_on_request(&self, req: &mut Request) -> worker::Result<()> {
+        let path = req.path();
         req.headers_mut()?
             .append(CONTEXT_HEADER, &serde_json::to_string(&self.config)?)?;
+        req.headers_mut()?.append(ROUTE_HEADER, &path)?;
         Ok(())
+    }
+
+    /// When a request is forwarded to a durable object, it loses any local mutation applied to its path.
+    /// To avoid this, in install_on_request we take the path and store it in a header. Then, this function
+    /// can be called on a request to extract the path from the header and apply it back to the request.
+    pub fn reconstruct_request(req: &Request) -> worker::Result<Request> {
+        let route_header = req
+            .headers()
+            .get(ROUTE_HEADER)
+            .map_err(|_| worker::Error::RustError("Missing route header.".to_string()))?;
+        let route_header_val = route_header
+            .as_deref()
+            .ok_or_else(|| worker::Error::RustError("Couldn't deref route header.".to_string()))?;
+
+        let mut req = req.clone_mut()?;
+        *req.path_mut()? = route_header_val.to_string();
+
+        Ok(req)
     }
 
     pub fn from_request(req: &Request, env: &Env) -> Result<Self, Error> {

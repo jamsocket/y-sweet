@@ -63,7 +63,7 @@ impl Server {
         self.docs.contains_key(doc_id)
             || self
                 .store
-                .exists(&format!("{}/data.bin", doc_id))
+                .exists(&format!("{}/data.ysweet", doc_id))
                 .await
                 .unwrap_or_default()
     }

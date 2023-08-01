@@ -19,7 +19,7 @@ impl YServe {
     /// We need to lazily create the doc because the constructor is non-async.
     pub async fn get_doc(&mut self, req: &Request, doc_id: &str) -> Result<&mut DocWithSyncKv> {
         if self.lazy_doc.is_none() {
-            let mut context = ServerContext::from_request(&req, &self.env).unwrap();
+            let mut context = ServerContext::from_request(req, &self.env).unwrap();
             let storage = Arc::new(self.state.storage());
 
             let store = context.store();
@@ -64,9 +64,7 @@ impl DurableObject for YServe {
 
     async fn fetch(&mut self, req: Request) -> Result<Response> {
         let env: Env = self.env.clone().into();
-        let url = req.url()?;
-        let path = url.path();
-        console_log!("path: {}", path);
+        let req = ServerContext::reconstruct_request(&req)?;
 
         Router::with_data(self)
             .get_async("/doc/ws/:doc_id", websocket_connect)

@@ -106,17 +106,11 @@ async fn auth_doc(
 ) -> std::result::Result<AuthDocResponse, Error> {
     check_server_token(&req, ctx.data.auth()?)?;
 
-    let host = req
-        .headers()
-        .get("Host")
-        .map_err(|_| Error::MissingHostHeader)?
-        .ok_or(Error::MissingHostHeader)?;
-
     let doc_id = ctx.param("doc_id").unwrap().to_string();
 
     let store = ctx.data.store();
     if !store
-        .exists(&format!("{doc_id}/data.bin"))
+        .exists(&format!("{doc_id}/data.ysweet"))
         .await
         .map_err(|_| Error::UpstreamConnectionError)?
     {
@@ -133,7 +127,18 @@ async fn auth_doc(
     } else {
         "ws"
     };
-    let base_url = format!("{schema}://{host}/doc/ws");
+
+    let base_url = if let Some(url_prefix) = &ctx.data.config.url_prefix {
+        format!("{schema}://{url_prefix}/doc/ws")
+    } else {
+        let host = req
+            .headers()
+            .get("Host")
+            .map_err(|_| Error::MissingHostHeader)?
+            .ok_or(Error::MissingHostHeader)?;
+
+        format!("{schema}://{host}/doc/ws")
+    };
 
     Ok(AuthDocResponse {
         base_url,
@@ -173,7 +178,10 @@ async fn forward_to_durable_object(
     let stub = durable_object.id_from_name(&doc_id)?.get_stub()?;
 
     // Pass server context to durable object.
+    let path = req.path();
     let mut req = req.clone_mut()?; // Mutating an incoming request without a clone is a runtime error.
+    *req.path_mut()? = path; // Cloning does not clone path (maybe a workers-rs bug?)
+
     ctx.data.install_on_request(&mut req)?;
 
     stub.fetch_with_request(req).await
