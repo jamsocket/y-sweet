@@ -85,7 +85,7 @@ jobs:
         args: --release --target x86_64-pc-windows-gnu --manifest-path=crates/Cargo.toml
 
     - name: ls
-      run: ls ./creates/target/x86_64-pc-windows-gnu/release
+      run: ls ./crates/target/x86_64-pc-windows-gnu/release
       
     - name: Upload artifact
       uses: actions/upload-artifact@v2
