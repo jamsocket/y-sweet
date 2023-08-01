@@ -21,8 +21,8 @@ jobs:
         toolchain: stable
         override: true
         
-    - name: Install musl-tools
-      run: sudo apt-get install -y musl-tools
+    - name: Install musl-tools and mingw
+      run: sudo apt-get install -y musl-tools gcc-mingw-w64
 
 #    - name: Build for Linux
 #      uses: actions-rs/cargo@v1
