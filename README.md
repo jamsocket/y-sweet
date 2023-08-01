@@ -7,12 +7,11 @@ The core component of y-sweet is a standalone Yjs server with some unique featur
 - Persists document data to a network filesystem or S3-compatible storage, [modeled after Figma’s infrastructure](https://digest.browsertech.com/archive/browsertech-digest-figma-is-a-file-editor/).
 - Scales horizontally with a [session backend](https://driftingin.space/posts/session-lived-application-backends) model.
 - Deploys as a native Linux process, or as a WebAssembly module on Cloudflare's edge.
+- Document-level access control via client tokens.
 - Written in Rust and built on [y-crdt](https://github.com/y-crdt/y-crdt/).
 
 Additionally, the y-sweet stack includes:
 - `@y-sweet/sdk`, a TypeScript library for interacting with `y-sweet-server` from your application backend.
-    - Create and manage documents.
-    - Authorize document access and generate client tokens.
 - `@y-sweet/react`, a React hooks library for building Yjs applications.
 - A debugger for exploring Yjs document and presence state (WIP).
 
