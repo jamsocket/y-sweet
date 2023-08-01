@@ -4,7 +4,7 @@
 
 The core component of y-sweet is a standalone Yjs server which:
 
-- Persists document data to a network filesystem or S3-compatible storage, [modeled after Figma’s infrastructure](https://digest.browsertech.com/archive/browsertech-digest-figma-is-a-file-editor/).
+- Persists document data to a network filesystem or S3-compatible storage, [inspired by Figma’s infrastructure](https://digest.browsertech.com/archive/browsertech-digest-figma-is-a-file-editor/).
 - Scales horizontally with a [session backend](https://driftingin.space/posts/session-lived-application-backends) model.
 - Deploys as a native Linux process, or as a WebAssembly module on Cloudflare's edge.
 - Provides document-level access control via client tokens.
