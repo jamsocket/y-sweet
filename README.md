@@ -8,10 +8,9 @@ It currently consists of:
     - Scales with a [session backend](https://driftingin.space/posts/session-lived-application-backends) model.
     - Optionally runs on Cloudflare Workers (with persistence to Cloudflare R2).
     - Written in Rust.
-- `@y-sweet/js/sdk`, a TypeScript library for interacting with `y-sweet-server` from your application backend.
+- `@y-sweet/sdk`, a TypeScript library for interacting with `y-sweet-server` from your application backend.
     - Create and manage documents.
     - Authorize document access and generate client tokens.
-- `@y-sweet/js/react`, a React hooks library for building Yjs applications.
-- `@y-sweet/js/client`, a TypeScript library with helper functions for non-React apps.
+- `@y-sweet/react`, a React hooks library for building Yjs applications.
 
 Y-sweet is MIT-licensed open source, and was created by [Drifting in Space](https://driftingin.space).

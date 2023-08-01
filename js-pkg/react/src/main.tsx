@@ -1,11 +1,12 @@
 'use client'
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import type { ReactNode } from 'react'
 import { WebsocketProvider } from 'y-websocket'
 import * as Y from 'yjs'
-import { ConnectionKey } from './yserv'
+import { ConnectionKey } from '@y-sweet/sdk'
 import type { Awareness } from 'y-protocols/awareness'
-import { createYjsProvider } from './client'
+import { createYjsProvider } from './yjs-provider'
 
 type YjsContextType = {
   doc: Y.Doc
@@ -69,7 +70,7 @@ export function usePresence<T extends Record<string, any>>(): [
 }
 
 type YDocProviderProps = {
-  children: React.ReactNode
+  children: ReactNode
 
   /** Response of a `getConnectionKey` call, passed from server to client. */
   connectionKey: ConnectionKey

@@ -1,5 +1,5 @@
-import { createYjsProvider } from 'examples/src/lib/client'
-import { DocumentManager } from 'examples/src/lib/yserv'
+import { WebsocketProvider } from 'y-websocket'
+import { DocumentManager } from '../../js-pkg/sdk/src/main'
 import { WebSocket } from 'ws'
 import * as Y from 'yjs'
 import { Server, ServerConfiguration } from './server'
@@ -53,7 +53,9 @@ describe.each(CONFIGURATIONS)(
       }
 
       const doc = new Y.Doc()
-      const provider = createYjsProvider(doc, key, {
+      const params = key.token ? { token: key.token } : undefined
+      const provider = new WebsocketProvider(key.base_url, key.doc_id, doc, {
+        params,
         WebSocketPolyfill: require('ws'),
       })
 
