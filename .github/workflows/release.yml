@@ -110,8 +110,8 @@ jobs:
     - name: rename and move
       run: >
         mv windows-binary/y-sweet-server.exe.gz y-sweet-server-win-x64.exe.gz &&
-        mv linux-binary/y-sweet-server y-sweet-server-linux-x64.gz &&
-        mv macos-binary/y-sweet-server y-sweet-server-macos-x64.gz
+        mv linux-binary/y-sweet-server.gz y-sweet-server-linux-x64.gz &&
+        mv macos-binary/y-sweet-server.gz y-sweet-server-macos-x64.gz
     - name: Release
       uses: softprops/action-gh-release@v1
       with:
