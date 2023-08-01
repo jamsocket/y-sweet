@@ -1,0 +1,24 @@
+{
+  "name": "@y-sweet/monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The monorepo for Y-sweet",
+  "workspaces": [
+    "js-pkg/react",
+    "js-pkg/sdk",
+    "examples"
+  ],
+  "scripts": {
+    "clean": "npm run clean -w js-pkg/sdk -w js-pkg/react",
+    "postinstall": "npm run tsc",
+    "tsc": "npm exec tsc -w js-pkg/sdk -w js-pkg/react",
+    "format": "npm run format -w js-pkg/sdk -w js-pkg/react"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "typescript": "^5.1.6"
+  },
+  "engines": {
+    "node": ">=16.8.0"
+  }
+}

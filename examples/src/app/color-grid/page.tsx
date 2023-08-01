@@ -1,5 +1,5 @@
-import { YDocProvider } from '@/lib/provider'
-import { getOrCreateDoc } from '@/lib/yserv'
+import { YDocProvider } from '@y-sweet/react'
+import { getOrCreateDoc } from '@y-sweet/sdk'
 import { ColorGrid } from './ColorGrid'
 import { ENV_CONFIG } from '@/lib/config'
 

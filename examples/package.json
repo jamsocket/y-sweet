@@ -10,6 +10,8 @@
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,md}\""
   },
   "dependencies": {
+    "@y-sweet/react": "^0.0.2",
+    "@y-sweet/sdk": "^0.0.2",
     "autoprefixer": "10.4.14",
     "codemirror": "^5.65.14",
     "next": "13.4.10",

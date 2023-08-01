@@ -1,14 +1,13 @@
 {
-  "name": "y-sweet-server-tests",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "name": "y-sweet-integration-tests",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Integration tests for Y-sweet.",
   "scripts": {
     "test": "jest --detectOpenHandles --forceExit",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,md}\""
   },
-  "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "devDependencies": {
     "@types/jest": "^29.5.3",
     "@types/ws": "^8.5.5",
@@ -18,6 +17,6 @@
     "typescript": "^5.1.6",
     "ws": "^8.13.0",
     "y-websocket": "^1.5.0",
-    "yjs": "file:../examples/node_modules/yjs"
+    "yjs": "file:../node_modules/yjs"
   }
 }
