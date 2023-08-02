@@ -49,7 +49,7 @@ async function downloadBinary(version, os_type, os_arch) {
   }
 }
 
-const version = '0.0.2'
+const version = require('../package.json').version
 exports.installBinary = async () => {
   const os = require('os')
   const type = os.type()
