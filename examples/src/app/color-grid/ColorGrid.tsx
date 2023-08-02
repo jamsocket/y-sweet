@@ -7,21 +7,24 @@ import Title from '@/components/Title'
 const GRID_SIZE = 10
 const COLORS = ['#500724', '#831843', '#9d174d', '#be185d', '#db2777', '#f472b6', '#f9a8d4', null]
 const DEFAULT_COLOR = 'white'
+const CELL_SIZE_CLASSES = 'w-8 h-8 lg:w-10 lg:h-10'
 
 export function ColorGrid() {
   const items = useMap<string>('colorgrid')
   const [color, setColor] = useState<string | null>(COLORS[0])
 
   return (
-    <div className="space-y-3 m-10">
+    <div className="space-y-3 p-4 lg:p-8">
       <Title>Color Grid</Title>
       <div className="space-x-2 flex flex-row">
-        {COLORS.map((color) => (
+        {COLORS.map((c) => (
           <div
-            key={color}
-            className="w-10 h-10 cursor-pointer"
-            style={{ backgroundColor: color ?? DEFAULT_COLOR }}
-            onClick={() => setColor(color)}
+            key={c}
+            className={`${CELL_SIZE_CLASSES} cursor-pointer ring-2 ring-offset-1 ${
+              c === color ? 'ring-pink-800' : 'ring-transparent'
+            }`}
+            style={{ backgroundColor: c ?? DEFAULT_COLOR }}
+            onClick={() => setColor(c)}
           ></div>
         ))}
       </div>
@@ -35,7 +38,7 @@ export function ColorGrid() {
                 return (
                   <td key={key}>
                     <div
-                      className="w-10 h-10 cursor-pointer"
+                      className={`${CELL_SIZE_CLASSES} cursor-pointer`}
                       style={{ backgroundColor: item || DEFAULT_COLOR }}
                       onClick={() => {
                         if (color === null) {

@@ -29,7 +29,7 @@ export function ToDoInput(props: { onItem: (text: string) => void }) {
   )
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-row space-x-2">
+    <form onSubmit={onSubmit} className="flex flex-row space-x-2 max-w-2xl">
       <input
         type="text"
         value={text}
@@ -44,7 +44,7 @@ export function ToDoInput(props: { onItem: (text: string) => void }) {
                 text-white shadow-sm hover:bg-pink-900 focus-visible:outline focus-visible:outline-2
                 focus-visible:outline-offset-2 focus-visible:outline-pink-900"
       >
-        Add Item
+        Add
       </button>
     </form>
   )
@@ -69,7 +69,7 @@ export function ToDoItem({ item }: ToDoItemProps) {
           onChange={clickCallback}
         />
         <input
-          className="bg-transparent text-pink-950 text-lg focus:bg-white"
+          className="bg-transparent p-1 rounded text-pink-950 text-lg focus:bg-white"
           value={item.get('text')}
           onChange={(e) => item.set('text', e.target.value)}
         />
@@ -104,9 +104,9 @@ export function ToDoList() {
   }, [items])
 
   return (
-    <div className="space-y-10 m-10">
+    <div className="space-y-4 p-4 lg:p-8">
       <Title>To-do List</Title>
-      <div className="space-y-3">
+      <div className="space-y-1">
         {items && items.map((item, index) => <ToDoItem key={index} item={item} />)}
       </div>
       <ToDoInput onItem={pushItem} />
