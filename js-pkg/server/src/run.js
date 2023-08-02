@@ -5,7 +5,7 @@ const { installBinary, binaryExists } = require('./get_binary')
 
 async function runBinary() {
   try {
-    var binpath = await binaryExists()
+    var binpath = binaryExists()
   } catch {
     binpath = await installBinary()
   }

@@ -53,6 +53,6 @@ exports.installBinary = async () => {
   return await downloadBinary(version, type, arch)
 }
 
-exports.binaryExists = async () => {
+exports.binaryExists = () => {
   return require.resolve('y-serv')
 }
