@@ -1,0 +1,24 @@
+{
+    "name": "@y-sweet/server",
+    "bin": {
+        "y-serv": "./src/run.js"
+    },
+    "scripts": {
+        "postinstall": "node src/install.js",
+        "format": "prettier --write \"**/*.{ts,tsx,js,jsx}\""
+    },
+    "version": "0.0.2",
+    "description": "y-serv",
+    "homepage": "https://github.com/drifting-in-space/y-sweet",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/drifting-in-space/y-sweet.git"
+    },
+    "license": "MIT",
+    "devDependencies": {
+        "prettier": "^3.0.0"
+    },
+    "bugs": {
+        "url": "https://github.com/drifting-in-space/y-sweet/issues"
+    }
+}
