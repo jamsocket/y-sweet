@@ -61,10 +61,10 @@ export function ToDoItem({ item }: ToDoItemProps) {
 
   return (
     <div>
-      <label className="flex flex-row space-x-2">
+      <label className="flex flex-row space-x-2 items-center">
         <input
           type="checkbox"
-          className="w-6 cursor-pointer"
+          className="w-6 h-6 cursor-pointer"
           checked={item.get('done')}
           onChange={clickCallback}
         />
