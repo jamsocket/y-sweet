@@ -119,9 +119,7 @@ export async function getClientToken(
   return await manager.getClientToken(docId, request)
 }
 
-export async function createDoc(
-  options?: ServerToken | string,
-): Promise<DocCreationResult> {
+export async function createDoc(options?: ServerToken | string): Promise<DocCreationResult> {
   const manager = new DocumentManager(options)
   return await manager.createDoc()
 }
