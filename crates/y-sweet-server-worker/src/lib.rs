@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use worker::{event, Env};
 use worker::{Date, Request, Response, Result, RouteContext, Router};
 use y_sweet_server_core::{
-    api_types::{AuthDocResponse, NewDocResponse},
+    api_types::{ClientToken, NewDocResponse},
     auth::Authenticator,
     doc_sync::DocWithSyncKv,
 };
@@ -91,7 +91,7 @@ async fn new_doc(
 
     dwskv.sync_kv().persist().await.unwrap();
 
-    let response = NewDocResponse { doc_id };
+    let response = NewDocResponse { doc: doc_id };
 
     Ok(response)
 }
@@ -103,7 +103,7 @@ async fn auth_doc_handler(req: Request, ctx: RouteContext<ServerContext>) -> Res
 async fn auth_doc(
     req: Request,
     mut ctx: RouteContext<ServerContext>,
-) -> std::result::Result<AuthDocResponse, Error> {
+) -> std::result::Result<ClientToken, Error> {
     check_server_token(&req, ctx.data.auth()?)?;
 
     let doc_id = ctx.param("doc_id").unwrap().to_string();
@@ -128,7 +128,7 @@ async fn auth_doc(
         "ws"
     };
 
-    let base_url = if let Some(url_prefix) = &ctx.data.config.url_prefix {
+    let url = if let Some(url_prefix) = &ctx.data.config.url_prefix {
         format!("{schema}://{url_prefix}/doc/ws")
     } else {
         let host = req
@@ -140,9 +140,9 @@ async fn auth_doc(
         format!("{schema}://{host}/doc/ws")
     };
 
-    Ok(AuthDocResponse {
-        base_url,
-        doc_id: doc_id.to_string(),
+    Ok(ClientToken {
+        url,
+        doc: doc_id.to_string(),
         token,
     })
 }

@@ -22,7 +22,7 @@ describe.each(CONFIGURATIONS)(
     beforeAll(async () => {
       SERVER = new Server(configuration)
       DOCUMENT_MANANGER = new DocumentManager({
-        endpoint: SERVER.serverUrl(),
+        url: SERVER.serverUrl(),
         token: SERVER.serverToken,
       })
 
@@ -35,16 +35,16 @@ describe.each(CONFIGURATIONS)(
 
     test('Create new doc', async () => {
       const result = await DOCUMENT_MANANGER.createDoc()
-      expect(typeof result.doc_id).toBe('string')
+      expect(typeof result.doc).toBe('string')
     })
 
     test('Attempt to access non-existing doc', async () => {
-      await expect(DOCUMENT_MANANGER.getConnectionKey('foobar', {})).rejects.toThrow('404')
+      await expect(DOCUMENT_MANANGER.getClientToken('foobar', {})).rejects.toThrow('404')
     })
 
     test('Create and connect to doc', async () => {
       const docResult = await DOCUMENT_MANANGER.createDoc()
-      const key = await DOCUMENT_MANANGER.getConnectionKey(docResult, {})
+      const key = await DOCUMENT_MANANGER.getClientToken(docResult, {})
 
       if (configuration.useAuth) {
         expect(key.token).toBeDefined()
@@ -54,7 +54,7 @@ describe.each(CONFIGURATIONS)(
 
       const doc = new Y.Doc()
       const params = key.token ? { token: key.token } : undefined
-      const provider = new WebsocketProvider(key.base_url, key.doc_id, doc, {
+      const provider = new WebsocketProvider(key.url, key.doc, doc, {
         params,
         WebSocketPolyfill: require('ws'),
       })
@@ -67,7 +67,7 @@ describe.each(CONFIGURATIONS)(
 
     test('Specify options as JSON', async () => {
       const config = JSON.stringify({
-        endpoint: DOCUMENT_MANANGER.baseUrl,
+        url: DOCUMENT_MANANGER.baseUrl,
         token: DOCUMENT_MANANGER.token,
       })
 
@@ -75,21 +75,21 @@ describe.each(CONFIGURATIONS)(
       const docManager = new DocumentManager(config)
 
       const docResult = await docManager.createDoc()
-      expect(docResult.doc_id).toBeDefined()
+      expect(docResult.doc).toBeDefined()
 
-      const key = await docManager.getConnectionKey(docResult, {})
-      expect(key.base_url).toBeDefined()
+      const key = await docManager.getClientToken(docResult, {})
+      expect(key.url).toBeDefined()
     })
 
     if (configuration.useAuth) {
       test('Attempting to connect to a document without auth should fail', async () => {
         const docResult = await DOCUMENT_MANANGER.createDoc()
-        const key = await DOCUMENT_MANANGER.getConnectionKey(docResult, {})
+        const key = await DOCUMENT_MANANGER.getClientToken(docResult, {})
 
         expect(key.token).toBeDefined()
         delete key.token
 
-        let ws = new WebSocket(`${key.base_url}/${key.doc_id}`)
+        let ws = new WebSocket(`${key.url}/${key.doc}`)
         let result = new Promise<void>((resolve, reject) => {
           ws.addEventListener('open', () => {
             resolve()

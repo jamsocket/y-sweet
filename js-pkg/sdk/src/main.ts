@@ -1,9 +1,15 @@
 export type DocCreationResult = {
-  doc_id: string
+  doc: string
 }
 
-export type DocumentManagerOptions = {
-  endpoint?: string
+export type ClientToken = {
+  url: string
+  doc: string
+  token?: string
+}
+
+export type ServerToken = {
+  url?: string
   token?: string
 }
 
@@ -11,12 +17,12 @@ export class DocumentManager {
   baseUrl: string
   token?: string
 
-  constructor(options?: DocumentManagerOptions | string) {
+  constructor(options?: ServerToken | string) {
     if (typeof options === 'string') {
-      options = JSON.parse(options) as DocumentManagerOptions
+      options = JSON.parse(options) as ServerToken
     }
 
-    this.baseUrl = options?.endpoint ?? 'http://127.0.0.1:8080'
+    this.baseUrl = options?.url ?? 'http://127.0.0.1:8080'
     // Remove trailing slash.
     this.baseUrl = this.baseUrl.replace(/\/$/, '')
     this.token = options?.token
@@ -59,21 +65,21 @@ export class DocumentManager {
     return result.json()
   }
 
-  public async getOrCreateDoc(docId?: string): Promise<ConnectionKey> {
+  public async getOrCreateDoc(docId?: string): Promise<ClientToken> {
     if (!docId) {
       let room = await this.createDoc()
-      docId = room.doc_id
+      docId = room.doc
     }
 
-    return await this.getConnectionKey(docId, {})
+    return await this.getClientToken(docId, {})
   }
 
-  public async getConnectionKey(
+  public async getClientToken(
     docId: string | DocCreationResult,
     request: AuthDocRequest,
-  ): Promise<ConnectionKey> {
+  ): Promise<ClientToken> {
     if (typeof docId !== 'string') {
-      docId = docId.doc_id
+      docId = docId.doc
     }
 
     const result = await this.doFetch(`doc/${docId}/auth`, {
@@ -96,31 +102,25 @@ export type AuthDocRequest = {
   metadata?: Record<string, any>
 }
 
-export type ConnectionKey = {
-  base_url: string
-  doc_id: string
-  token?: string
-}
-
 export async function getOrCreateDoc(
   docId?: string,
-  options?: DocumentManagerOptions | string,
-): Promise<ConnectionKey> {
+  options?: ServerToken | string,
+): Promise<ClientToken> {
   const manager = new DocumentManager(options)
   return await manager.getOrCreateDoc(docId)
 }
 
-export async function getConnectionKey(
+export async function getClientToken(
   docId: string | DocCreationResult,
   request: AuthDocRequest,
-  options?: DocumentManagerOptions | string,
-): Promise<ConnectionKey> {
+  options?: ServerToken | string,
+): Promise<ClientToken> {
   const manager = new DocumentManager(options)
-  return await manager.getConnectionKey(docId, request)
+  return await manager.getClientToken(docId, request)
 }
 
 export async function createDoc(
-  options?: DocumentManagerOptions | string,
+  options?: ServerToken | string,
 ): Promise<DocCreationResult> {
   const manager = new DocumentManager(options)
   return await manager.createDoc()
