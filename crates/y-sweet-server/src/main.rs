@@ -163,11 +163,11 @@ async fn main() -> Result<()> {
                 println!();
                 println!("    // The token is hard-coded for simplicity of the example. Use a secret manager in production!");
                 println!(
-                    r#"    const params = {{"token": "{}"}})"#,
+                    r#"    const params = {{"url": "http://127.0.0.1:8080", "token": "{}"}})"#,
                     auth.server_token().bright_purple()
                 );
                 println!("    const docInfo = createDoc(params)");
-                println!("    const connectionKey = getConnectionKey(docInfo['doc_id'], params)");
+                println!("    const connectionKey = getClientToken(docInfo, {{}}, params)");
                 println!();
                 println!("Only use the server token on the server, do not expose the server token to clients.");
                 println!("getConnectionKey() will return a derived token that clients can use to scoped to a specific document.");
