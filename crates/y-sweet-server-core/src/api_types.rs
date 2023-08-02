@@ -5,7 +5,7 @@ use serde_json::Value;
 
 #[derive(Serialize)]
 pub struct NewDocResponse {
-    pub doc_id: String,
+    pub doc: String,
 }
 
 #[derive(Deserialize)]
@@ -35,9 +35,9 @@ pub struct AuthDocRequest {
 }
 
 #[derive(Serialize)]
-pub struct AuthDocResponse {
-    pub base_url: String,
-    pub doc_id: String,
+pub struct ClientToken {
+    pub url: String,
+    pub doc: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub token: Option<String>,
 }

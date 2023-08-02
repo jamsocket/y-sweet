@@ -29,7 +29,7 @@ jobs:
 
     - name: Install dependencies of JS library
       run: npm ci
-    - name: Install integration tests
+    - name: Test deps
       run: npm ci
       working-directory: tests
     - name: Run integration tests

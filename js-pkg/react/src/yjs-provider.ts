@@ -1,16 +1,21 @@
 import { WebsocketProvider } from 'y-websocket'
 import * as Y from 'yjs'
-import { ConnectionKey } from '@y-sweet/sdk'
 import type { Awareness } from 'y-protocols/awareness'
+
+export type ClientToken = {
+  url: string
+  doc: string
+  token?: string
+}
 
 export function createYjsProvider(
   doc: Y.Doc,
-  connectionKey: ConnectionKey,
+  clientToken: ClientToken,
   extraOptions: Partial<WebsocketParams> = {},
 ) {
-  const params = connectionKey.token ? { token: connectionKey.token } : undefined
+  const params = clientToken.token ? { token: clientToken.token } : undefined
 
-  const provider = new WebsocketProvider(connectionKey.base_url, connectionKey.doc_id, doc, {
+  const provider = new WebsocketProvider(clientToken.url, clientToken.doc, doc, {
     params,
     ...extraOptions,
   })

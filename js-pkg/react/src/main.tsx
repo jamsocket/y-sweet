@@ -4,9 +4,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { ReactNode } from 'react'
 import { WebsocketProvider } from 'y-websocket'
 import * as Y from 'yjs'
-import { ConnectionKey } from '@y-sweet/sdk'
 import type { Awareness } from 'y-protocols/awareness'
-import { createYjsProvider } from './yjs-provider'
+import { ClientToken, createYjsProvider } from './yjs-provider'
 
 type YjsContextType = {
   doc: Y.Doc
@@ -73,7 +72,7 @@ type YDocProviderProps = {
   children: ReactNode
 
   /** Response of a `getConnectionKey` call, passed from server to client. */
-  connectionKey: ConnectionKey
+  clientToken: ClientToken
 
   /** If set to a string, the URL query parameter with this name
    * will be set to the doc id from connectionKey. */
@@ -81,7 +80,7 @@ type YDocProviderProps = {
 }
 
 export function YDocProvider(props: YDocProviderProps) {
-  const { children, connectionKey: auth } = props
+  const { children, clientToken: auth } = props
 
   const [ctx, setCtx] = useState<YjsContextType | null>(null)
 
@@ -98,15 +97,15 @@ export function YDocProvider(props: YDocProviderProps) {
       provider.destroy()
       doc.destroy()
     }
-  }, [auth.token, auth.base_url, auth.doc_id])
+  }, [auth.token, auth.url, auth.doc])
 
   useEffect(() => {
     if (props.setQueryParam) {
       const url = new URL(window.location.href)
-      url.searchParams.set(props.setQueryParam, auth.doc_id)
+      url.searchParams.set(props.setQueryParam, auth.doc)
       window.history.replaceState({}, '', url.toString())
     }
-  }, [props.setQueryParam, auth.doc_id])
+  }, [props.setQueryParam, auth.doc])
 
   if (ctx === null) return null
 

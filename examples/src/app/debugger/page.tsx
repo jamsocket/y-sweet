@@ -1,5 +1,5 @@
 import { YDocProvider } from '@y-sweet/react'
-import { getConnectionKey } from '@y-sweet/sdk'
+import { getClientToken } from '@y-sweet/sdk'
 import { Console } from './Console'
 import { ENV_CONFIG } from '@/lib/config'
 
@@ -14,10 +14,10 @@ export default async function Home({ searchParams }: HomeProps) {
     return <p>Missing doc param</p>
   }
 
-  const connectionKey = await getConnectionKey(searchParams.doc, {}, ENV_CONFIG)
+  const clientToken = await getClientToken(searchParams.doc, {}, ENV_CONFIG)
 
   return (
-    <YDocProvider connectionKey={connectionKey}>
+    <YDocProvider clientToken={clientToken}>
       <Console />
     </YDocProvider>
   )

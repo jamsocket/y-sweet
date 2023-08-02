@@ -21,7 +21,7 @@ use std::{
 use tokio::sync::mpsc::channel;
 use tracing::{span, Instrument, Level};
 use y_sweet_server_core::{
-    api_types::{AuthDocRequest, AuthDocResponse, NewDocResponse},
+    api_types::{AuthDocRequest, ClientToken, NewDocResponse},
     auth::Authenticator,
     doc_connection::DocConnection,
     doc_sync::DocWithSyncKv,
@@ -242,7 +242,7 @@ async fn new_doc(
     server_state.check_auth(authorization)?;
 
     let doc_id = server_state.create_doc().await;
-    Ok(Json(NewDocResponse { doc_id }))
+    Ok(Json(NewDocResponse { doc: doc_id }))
 }
 
 async fn auth_doc(
@@ -251,7 +251,7 @@ async fn auth_doc(
     State(server_state): State<Arc<Server>>,
     Path(doc_id): Path<String>,
     Json(_body): Json<AuthDocRequest>,
-) -> Result<Json<AuthDocResponse>, StatusCode> {
+) -> Result<Json<ClientToken>, StatusCode> {
     server_state.check_auth(authorization)?;
 
     if !server_state.doc_exists(&doc_id).await {
@@ -266,10 +266,10 @@ async fn auth_doc(
     };
 
     let schema = if server_state.use_https { "wss" } else { "ws" };
-    let base_url = format!("{schema}://{host}/doc/ws");
-    Ok(Json(AuthDocResponse {
-        base_url,
-        doc_id,
+    let url = format!("{schema}://{host}/doc/ws");
+    Ok(Json(ClientToken {
+        url,
+        doc: doc_id,
         token,
     }))
 }
