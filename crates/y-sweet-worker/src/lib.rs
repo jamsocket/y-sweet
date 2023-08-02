@@ -6,7 +6,7 @@ use std::collections::HashMap;
 #[cfg(feature = "fetch-event")]
 use worker::{event, Env};
 use worker::{Date, Request, Response, Result, RouteContext, Router};
-use y_sweet_server_core::{
+use y_sweet_core::{
     api_types::{ClientToken, NewDocResponse},
     auth::Authenticator,
     doc_sync::DocWithSyncKv,

@@ -6,7 +6,7 @@ use worker::{
 };
 #[allow(unused)]
 use worker_sys::console_log;
-use y_sweet_server_core::{doc_connection::DocConnection, doc_sync::DocWithSyncKv};
+use y_sweet_core::{doc_connection::DocConnection, doc_sync::DocWithSyncKv};
 
 #[durable_object]
 pub struct YServe {

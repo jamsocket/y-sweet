@@ -1,5 +1,5 @@
 [package]
-name = "y-sweet-server-core"
+name = "y-sweet-core"
 version = "0.1.0"
 edition = "2021"
 

@@ -12,18 +12,18 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./crates/y-sweet-server-worker
+        working-directory: ./crates/y-sweet-worker
 
     steps:
     - uses: actions/checkout@v3
     - uses: Swatinem/rust-cache@v2
       with:
         cache-on-failure: "true"
-        # y-sweet-server-worker is excluded from the outer Cargo "workspace"
+        # y-sweet-worker is excluded from the outer Cargo "workspace"
         # because it has a different target (wasm rather than system arch). We
         # still want to cache its output, so we do that here.
         # See: https://github.com/Swatinem/rust-cache
-        workspaces: "crates -> target\ncrates/y-sweet-server-worker -> target"
+        workspaces: "crates -> target\ncrates/y-sweet-worker -> target"
 
     - name: Use Node.js
       uses: actions/setup-node@v3

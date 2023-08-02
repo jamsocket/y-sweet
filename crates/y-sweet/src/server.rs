@@ -20,7 +20,7 @@ use std::{
 };
 use tokio::sync::mpsc::channel;
 use tracing::{span, Instrument, Level};
-use y_sweet_server_core::{
+use y_sweet_core::{
     api_types::{AuthDocRequest, ClientToken, NewDocResponse},
     auth::Authenticator,
     doc_connection::DocConnection,

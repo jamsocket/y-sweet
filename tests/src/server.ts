@@ -46,7 +46,7 @@ export class Server {
 
       this.process = spawn(command, { cwd: yServeBase, stdio: 'inherit', shell: true })
     } else if (configuration.server === 'worker') {
-      const workerBase = join(yServeBase, 'y-sweet-server-worker')
+      const workerBase = join(yServeBase, 'y-sweet-worker')
       let command = `npx wrangler dev --persist-to ${this.dataDir} --port ${this.port}`
 
       if (configuration.useAuth) {

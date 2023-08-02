@@ -1,7 +1,7 @@
 use crate::{config::Configuration, error::Error, r2_store::R2Store};
 use std::sync::Arc;
 use worker::{Env, Request};
-use y_sweet_server_core::{auth::Authenticator, store::Store};
+use y_sweet_core::{auth::Authenticator, store::Store};
 
 const CONTEXT_HEADER: &str = "X-Y-Sweet-Context";
 const ROUTE_HEADER: &str = "X-Y-Sweet-Route";

@@ -21,4 +21,4 @@ jobs:
         run: cargo fmt -- --check
       - name: Check format
         run: cargo fmt -- --check
-        working-directory: ./crates/y-sweet-server-worker
+        working-directory: ./crates/y-sweet-worker
