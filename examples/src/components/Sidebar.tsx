@@ -136,7 +136,7 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
           </div>
         </div>
         <div className="flex flex-1 flex-col lg:pl-64 h-full">
-          <div className="sticky top-0 z-10 bg-pink-950/50 pl-1 py-1 lg:hidden">
+          <div className="sticky top-0 z-10 bg-pink-900 pl-1 py-1 lg:hidden">
             <button
               type="button"
               className="-ml-0.5 -mt-0.5 inline-flex h-12 w-12 items-center justify-center rounded-md text-pink-100 hover:text-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
@@ -147,9 +147,7 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
             </button>
           </div>
           {/* <main className="flex-1 p-8 relative z-0 h-full">{children}</main> */}
-          <div className="bg-[radial-gradient(at_bottom_left,_var(--tw-gradient-stops))] from-white via-pink-50 to-pink-200 opacity-80 mt-2 mr-2 rounded-lg mb-2">
-            {children}
-          </div>
+          <div className="h-full lg:mt-2 lg:mb-2">{children}</div>
         </div>
       </div>
     </>

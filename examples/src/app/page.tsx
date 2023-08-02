@@ -7,9 +7,9 @@ type HomeProps = {
 
 export default async function Home({ searchParams }: HomeProps) {
   return (
-    <div className="space-y-4 m-10">
+    <div className="space-y-4 p-4 lg:p-8">
       <Title>Demos</Title>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-2xl">
         <ProjectLink name="Color Grid" url="/color-grid" />
         <ProjectLink name="To Do List" url="/to-do-list" />
         <ProjectLink name="Text Editor" url="/text-editor" />
@@ -27,7 +27,7 @@ function ProjectLink(props: ProjectLinkProps) {
   return (
     <Link
       href={props.url}
-      className="text-pink-950 font-medium bg-neutral-600 bg-opacity-10 hover:bg-white transition-all p-10 rounded-lg"
+      className="text-pink-950 text-base lg:text-lg font-medium bg-white/50 border border-white/80 shadow-sm hover:bg-white/90 transition-all text-center py-6 lg:py-10 rounded-lg"
     >
       {props.name}
     </Link>

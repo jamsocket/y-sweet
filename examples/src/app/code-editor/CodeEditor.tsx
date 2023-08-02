@@ -58,7 +58,7 @@ export function CodeEditor() {
   )
 
   return (
-    <div className="m-10 space-y-3">
+    <div className="p-4 lg:p-8 space-y-4">
       <Title>Code Editor</Title>
       <div>
         <textarea ref={codeMirrorRef} />
