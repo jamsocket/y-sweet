@@ -13,9 +13,7 @@ use std::{
 use stores::blobstore::S3Store;
 use tracing::metadata::LevelFilter;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
-use y_sweet_core::{
-    auth::Authenticator, doc_connection::DOC_NAME, store::Store, sync_kv::SyncKv,
-};
+use y_sweet_core::{auth::Authenticator, doc_connection::DOC_NAME, store::Store, sync_kv::SyncKv};
 use yrs::{Doc, Transact};
 use yrs_kvstore::DocOps;
 
