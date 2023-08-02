@@ -43,15 +43,15 @@ async function downloadBinary(version, os_type, os_arch) {
     }
     let dirpath = path.join(modpath, 'y-sweet', 'bin')
     await fs.mkdir(dirpath, { recursive: true })
-    let filepath = path.join(dirpath, 'y-sweet')
+    let filepath = path.join(dirpath, `y-sweet-${version}`)
     let file = await downloadFile(url, filepath)
     return file
   }
 }
 
+const version = '0.0.2'
 exports.installBinary = async () => {
   const os = require('os')
-  const version = '0.0.2'
   const type = os.type()
   const arch = os.arch()
 
@@ -59,5 +59,5 @@ exports.installBinary = async () => {
 }
 
 exports.binaryExists = () => {
-  return path.join(require.resolve('y-sweet'), 'y-sweet')
+  return path.join(require.resolve('y-sweet'), `y-sweet-${version}`)
 }
