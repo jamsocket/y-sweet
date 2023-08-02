@@ -27,13 +27,13 @@ export function TextEditor() {
       Quill.register('modules/cursors', QuillCursors)
       const quill = new Quill(editorRef.current, {
         theme: 'snow',
-        placeholder: 'start collaborating or debating about barbie vs oppenheimer...',
+        placeholder: 'Start collaborating...',
         modules: {
           cursors: true,
           toolbar: [
             [{ header: [1, 2, false] }],
-            ['bold', 'italic', 'underline', 'strike'],
-            [{ list: 'ordered' }, { list: 'bullet' }],
+            ['bold', 'italic', 'underline'],
+            [{ list: 'ordered' }],
             ['link'],
           ],
         },
@@ -43,9 +43,11 @@ export function TextEditor() {
   }, [yText, awareness])
 
   return (
-    <div className="m-10 space-y-3">
+    <div className="p-4 sm:p-8 space-y-3">
       <Title>A Collaborative Text Editor</Title>
-      <div ref={editorRef} />
+      <div className="bg-white/90">
+        <div ref={editorRef} />
+      </div>
     </div>
   )
 }
