@@ -39,6 +39,7 @@
         "yjs": "^13.0.0"
     },
     "dependencies": {
+        "@y-sweet/sdk": "0.0.2",
         "y-protocols": "^1.0.5",
         "y-websocket": "^1.5.0"
     }

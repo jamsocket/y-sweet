@@ -18,5 +18,8 @@
     "ws": "^8.13.0",
     "y-websocket": "^1.5.0",
     "yjs": "file:../node_modules/yjs"
+  },
+  "dependencies": {
+    "@y-sweet/sdk": "0.0.2"
   }
 }

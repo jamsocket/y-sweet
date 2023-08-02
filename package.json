@@ -6,7 +6,8 @@
   "workspaces": [
     "js-pkg/react",
     "js-pkg/sdk",
-    "examples"
+    "examples",
+    "tests"
   ],
   "scripts": {
     "clean": "npm run clean -w js-pkg/sdk -w js-pkg/react",
