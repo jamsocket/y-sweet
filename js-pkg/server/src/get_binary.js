@@ -39,7 +39,7 @@ async function downloadBinary(version, os_type, os_arch) {
     } catch {
       continue
     }
-    let file = await downloadFile(url, path.join(filepath, 'y-serv'))
+    let file = await downloadFile(url, path.join(filepath, 'y-sweet'))
     return file
   }
 }
@@ -54,5 +54,5 @@ exports.installBinary = async () => {
 }
 
 exports.binaryExists = () => {
-  return require.resolve('y-serv')
+  return require.resolve('y-sweet')
 }

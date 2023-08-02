@@ -1,14 +1,14 @@
 {
-    "name": "@y-sweet/server",
+    "name": "y-sweet",
     "bin": {
-        "y-serv": "./src/run.js"
+        "y-sweet": "./src/run.js"
     },
     "scripts": {
         "postinstall": "node src/install.js",
         "format": "prettier --write \"**/*.{ts,tsx,js,jsx}\""
     },
     "version": "0.0.2",
-    "description": "y-serv",
+    "description": "npm wrapper for y-sweet server",
     "homepage": "https://github.com/drifting-in-space/y-sweet",
     "repository": {
         "type": "git",
