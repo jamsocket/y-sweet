@@ -28,9 +28,9 @@ async function downloadFile(url, file_path) {
   } else if (res.status !== 200) {
     throw new Error(`Error downloading ${url}: server returned ${res.status}`)
   }
-  const fileStream = await fs.open(path, 'w', 0o770).then((fh) => fh.createWriteStream())
+  const fileStream = await fs.open(file_path, 'w', 0o770).then((fh) => fh.createWriteStream())
   await finished(Readable.fromWeb(res.body).pipe(zlib.createGunzip()).pipe(fileStream))
-  return destination
+  return file_path
 }
 
 async function downloadBinary(version, os_type, os_arch) {
