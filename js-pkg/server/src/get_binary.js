@@ -35,20 +35,23 @@ async function downloadFile(url, file_path) {
 
 async function downloadBinary(version, os_type, os_arch) {
   const url = binaryUrl(version, os_type, os_arch)
-  for (let filepath of module.paths) {
+  for (let modpath of module.paths) {
     try {
-      await fs.access(filepath)
+      await fs.access(modpath)
     } catch {
       continue
     }
-    let file = await downloadFile(url, path.join(filepath, 'y-sweet'))
+    let dirpath = path.join(modpath, 'y-sweet', 'bin')
+    await fs.mkdir(dirpath, { recursive: true })
+    let filepath = path.join(dirpath, 'y-sweet')
+    let file = await downloadFile(url, filepath)
     return file
   }
 }
 
 exports.installBinary = async () => {
   const os = require('os')
-  const version = require('../package.json').version
+  const version = '0.0.2'
   const type = os.type()
   const arch = os.arch()
 
@@ -56,5 +59,5 @@ exports.installBinary = async () => {
 }
 
 exports.binaryExists = () => {
-  return require.resolve('y-sweet')
+  return path.join(require.resolve('y-sweet'), 'y-sweet')
 }
