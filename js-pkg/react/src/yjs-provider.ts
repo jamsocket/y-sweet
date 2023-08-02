@@ -1,7 +1,12 @@
 import { WebsocketProvider } from 'y-websocket'
 import * as Y from 'yjs'
-import { ClientToken } from '@y-sweet/sdk'
 import type { Awareness } from 'y-protocols/awareness'
+
+export type ClientToken = {
+  url: string
+  doc: string
+  token?: string
+}
 
 export function createYjsProvider(
   doc: Y.Doc,
