@@ -17,26 +17,6 @@ All examples are open source and live in this repository, within [/examples](htt
 
 # Using @y-sweet/react
 
-### YDocProvider
-
-Wrap the root component of your app with the YDocProvider and provide your api key.
-
-```tsx filename="Home.tsx"
-export default async function Home({ searchParams }: HomeProps) {
-    const apiToken = {
-    "endpoint":"https://y-sweet.net/project/EMwBNR17f4Bn1SN1uFEEi/",
-    "token":"AAAgBQcOc66DXGOCecN17S4VciBCS9eR/GGsFH4H8a0hhY4="
-    }
-    const connectionKey = await getOrCreateDoc(searchParams.doc, apiToken)
-
-    return (
-        <YDocProvider connectionKey={connectionKey} setQueryParam="doc">
-            // Call your collaborative interface here
-        </YDocProvider>
-    )
-}
-```
-
 ### `useMap` is a shared object or map
 
 `useMap` exposes a Yjs `Y.Map`. You can refer to [the documentation for `Y.Map` here](https://docs.yjs.dev/api/shared-types/y.map).
