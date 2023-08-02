@@ -1,5 +1,6 @@
 const fs = require('fs/promises')
 const path = require('path')
+const VERSION = require('../package.json').version
 
 function getSuffix(os_type, os_arch) {
   if (os_type === 'Windows_NT' && os_arch === 'x64') return 'win-x64.exe.gz'
@@ -49,17 +50,16 @@ async function downloadBinary(version, os_type, os_arch) {
   }
 }
 
-const version = require('../package.json').version
 exports.installBinary = async () => {
   const os = require('os')
   const type = os.type()
   const arch = os.arch()
 
-  return await downloadBinary(version, type, arch)
+  return await downloadBinary(VERSION, type, arch)
 }
 
 exports.binaryExists = async () => {
-  let binpath = path.join(require.resolve('y-sweet'), 'bin', `y-sweet-${version}`)
+  let binpath = path.join(require.resolve('y-sweet'), 'bin', `y-sweet-${VERSION}`)
   fs.access(binpath).await
   return binpath
 }
