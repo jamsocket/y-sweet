@@ -16,17 +16,19 @@ function binaryUrl(version, os_type, os_arch) {
   return url
 }
 
-async function downloadFile(url, filename_or_folder = '.') {
+async function downloadFile(url, file_path) {
   const zlib = require('zlib')
   const { Readable } = require('stream')
   const { finished } = require('stream/promises')
   const res = await fetch(url)
   if (res.status === 404) {
-    throw new Error('no such binary')
+    throw new Error(
+      `Tried to download ${url} but the file was not found. It may have been removed.`,
+    )
+  } else if (res.status !== 200) {
+    throw new Error(`Error downloading ${url}: server returned ${res.status}`)
   }
-  let tmpdir = await fs.mkdtemp('bin')
-  const destination = path.resolve(tmpdir, filename_or_folder)
-  const fileStream = await fs.open(destination, 'w', 0o770).then((fh) => fh.createWriteStream())
+  const fileStream = await fs.open(path, 'w', 0o770).then((fh) => fh.createWriteStream())
   await finished(Readable.fromWeb(res.body).pipe(zlib.createGunzip()).pipe(fileStream))
   return destination
 }
