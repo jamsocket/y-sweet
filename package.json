@@ -11,8 +11,8 @@
   ],
   "scripts": {
     "clean": "npm run clean -w js-pkg/sdk -w js-pkg/react",
-    "postinstall": "npm run tsc",
-    "tsc": "npm exec tsc -w js-pkg/sdk -w js-pkg/react",
+    "postinstall": "npm run build",
+    "build": "npm run build -w js-pkg/sdk -w js-pkg/react",
     "format": "npm run format -w js-pkg/sdk -w js-pkg/react"
   },
   "license": "MIT",

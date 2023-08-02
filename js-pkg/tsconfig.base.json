@@ -1,8 +1,7 @@
 {
     "compilerOptions": {
-      "target": "esnext",
+      "target": "es2020",
       "lib": ["es2019", "dom"],
-      "composite": true,
       "declaration": true,
       "declarationMap": true,
       "esModuleInterop": true,
@@ -10,11 +9,12 @@
       "inlineSources": false,
       "isolatedModules": true,
       "moduleResolution": "node",
+      "noEmit": true,
       "noUnusedLocals": false,
       "noUnusedParameters": false,
       "preserveWatchOutput": true,
       "skipLibCheck": true,
       "strict": true,
-      "module": "esnext"
+      "module": "es2020"
     }
   }
