@@ -4,7 +4,7 @@
   "private": true,
   "description": "Integration tests for Y-sweet.",
   "scripts": {
-    "test": "jest --detectOpenHandles --forceExit",
+    "test": "tsc && jest --detectOpenHandles --forceExit",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,md}\""
   },
   "license": "MIT",
