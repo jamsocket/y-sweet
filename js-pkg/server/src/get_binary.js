@@ -24,8 +24,8 @@ async function downloadFile(url, filename_or_folder = '.') {
   if (res.status === 404) {
     throw new Error('no such binary')
   }
-  await fs.mkdir('bin').catch(() => {})
-  const destination = path.resolve('./bin', filename_or_folder)
+  let tmpdir = await fs.mkdtemp('bin')
+  const destination = path.resolve(tmpdir, filename_or_folder)
   const fileStream = await fs.open(destination, 'w', 0o770).then((fh) => fh.createWriteStream())
   await finished(Readable.fromWeb(res.body).pipe(zlib.createGunzip()).pipe(fileStream))
   return destination
