@@ -58,6 +58,8 @@ exports.installBinary = async () => {
   return await downloadBinary(version, type, arch)
 }
 
-exports.binaryExists = () => {
-  return path.join(require.resolve('y-sweet'), `y-sweet-${version}`)
+exports.binaryExists = async () => {
+  let binpath = path.join(require.resolve('y-sweet'), 'bin', `y-sweet-${version}`)
+  fs.access(binpath).await
+  return binpath
 }
