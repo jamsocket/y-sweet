@@ -3,6 +3,7 @@
 import { useMap } from '@y-sweet/react'
 import { useState } from 'react'
 import Title from '@/components/Title'
+import CopyLink from '@/components/CopyLink'
 
 const GRID_SIZE = 10
 const COLORS = ['#500724', '#831843', '#9d174d', '#be185d', '#db2777', '#f472b6', '#f9a8d4', null]
@@ -55,6 +56,7 @@ export function ColorGrid() {
           ))}
         </tbody>
       </table>
+      <CopyLink/>
     </div>
   )
 }
