@@ -56,7 +56,7 @@ export function ColorGrid() {
           ))}
         </tbody>
       </table>
-      <CopyLink/>
+      <CopyLink />
     </div>
   )
 }

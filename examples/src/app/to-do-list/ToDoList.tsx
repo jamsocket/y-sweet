@@ -119,7 +119,7 @@ export function ToDoList() {
       >
         Clear Completed
       </button>
-      <CopyLink/>
+      <CopyLink />
     </div>
   )
 }

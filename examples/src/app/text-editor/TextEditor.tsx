@@ -49,7 +49,7 @@ export function TextEditor() {
       <div className="bg-white/90">
         <div ref={editorRef} />
       </div>
-      <CopyLink/>
+      <CopyLink />
     </div>
   )
 }

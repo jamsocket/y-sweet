@@ -64,7 +64,7 @@ export function CodeEditor() {
       <div>
         <textarea ref={codeMirrorRef} />
       </div>
-      <CopyLink/>
+      <CopyLink />
     </div>
   )
 }
