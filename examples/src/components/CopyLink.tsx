@@ -21,9 +21,9 @@ export default function CopyLink(){
       };
 
     return(
-        <div className="flex flex-col text-left">
-            <span className="text-pink-900 pb-2 py-6">Open this doc in a new window or share with a friend:</span>
-            <button className="w-28 py-2 rounded-lg bg-pink-950 text-white" onClick={copyLinkToClipboard}>{buttonState}</button>
+        <div className="p-6 flex flex-col text-left rounded-lg bg-white/50 border border-white/80 shadow-sm">
+            <span className="text-pink-900 pb-2">Open this doc in a new window or share with a friend:</span>
+            <button className="w-28 py-2 rounded-lg bg-pink-950 text-white transition-all hover:bg-pink-900" onClick={copyLinkToClipboard}>{buttonState}</button>
         </div>
     )
 }
