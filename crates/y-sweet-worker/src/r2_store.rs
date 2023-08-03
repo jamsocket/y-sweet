@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use worker::Bucket;
-use y_sweet_server_core::store::Store;
+use y_sweet_core::store::Store;
 
 pub struct R2Store {
     bucket: Bucket,

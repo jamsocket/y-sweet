@@ -32,7 +32,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: macos-binary
-          path: ./crates/target/release/y-sweet-server 
+          path: ./crates/target/release/y-sweet 
 
   build-linux:
     runs-on: ubuntu-latest
@@ -60,7 +60,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: linux-binary
-        path: ./crates/target/x86_64-unknown-linux-musl/release/y-sweet-server 
+        path: ./crates/target/x86_64-unknown-linux-musl/release/y-sweet 
 
   build-windows:
     runs-on: ubuntu-latest
@@ -91,7 +91,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: windows-binary
-        path: ./crates/target/x86_64-pc-windows-gnu/release/y-sweet-server.exe
+        path: ./crates/target/x86_64-pc-windows-gnu/release/y-sweet.exe
 
   release:
     needs: [build-linux, build-macos, build-windows]
@@ -102,22 +102,22 @@ jobs:
     - name: Compress binary
       run: >
         gzip -9 --keep --force 
-        windows-binary/y-sweet-server.exe
-        linux-binary/y-sweet-server
-        macos-binary/y-sweet-server
+        windows-binary/y-sweet.exe
+        linux-binary/y-sweet
+        macos-binary/y-sweet
     - name: ls
       run: ls -la
     - name: rename and move
       run: >
-        mv windows-binary/y-sweet-server.exe.gz y-sweet-server-win-x64.exe.gz &&
-        mv linux-binary/y-sweet-server.gz y-sweet-server-linux-x64.gz &&
-        mv macos-binary/y-sweet-server.gz y-sweet-server-macos-x64.gz
+        mv windows-binary/y-sweet.exe.gz y-sweet-win-x64.exe.gz &&
+        mv linux-binary/y-sweet.gz y-sweet-linux-x64.gz &&
+        mv macos-binary/y-sweet.gz y-sweet-macos-x64.gz
     - name: Release
       uses: softprops/action-gh-release@v1
       with:
         name: ${{ github.event.inputs.version }}
         draft: true
         files: |
-            y-sweet-server-win-x64.exe.gz
-            y-sweet-server-linux-x64.gz
-            y-sweet-server-macos-x64.gz
+            y-sweet-win-x64.exe.gz
+            y-sweet-linux-x64.gz
+            y-sweet-macos-x64.gz

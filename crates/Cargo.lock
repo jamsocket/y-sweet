@@ -2172,7 +2172,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "y-sweet-server"
+name = "y-sweet"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -2193,13 +2193,13 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "url",
- "y-sweet-server-core",
+ "y-sweet-core",
  "yrs",
  "yrs-kvstore",
 ]
 
 [[package]]
-name = "y-sweet-server-core"
+name = "y-sweet-core"
 version = "0.1.0"
 dependencies = [
  "anyhow",

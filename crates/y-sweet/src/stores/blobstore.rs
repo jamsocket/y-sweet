@@ -4,7 +4,7 @@ use s3::bucket::Bucket;
 use s3::creds::Credentials;
 use s3::error::S3Error;
 use s3::region::Region;
-use y_sweet_server_core::store::Store;
+use y_sweet_core::store::Store;
 
 pub struct S3Store {
     bucket: Bucket,

@@ -13,9 +13,7 @@ use std::{
 use stores::blobstore::S3Store;
 use tracing::metadata::LevelFilter;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
-use y_sweet_server_core::{
-    auth::Authenticator, doc_connection::DOC_NAME, store::Store, sync_kv::SyncKv,
-};
+use y_sweet_core::{auth::Authenticator, doc_connection::DOC_NAME, store::Store, sync_kv::SyncKv};
 use yrs::{Doc, Transact};
 use yrs_kvstore::DocOps;
 
@@ -151,11 +149,11 @@ async fn main() -> Result<()> {
 
                 println!("{}", serde_json::to_string_pretty(&result)?);
             } else {
-                println!("Run y-sweet-server with the following option to require authentication:");
+                println!("Run y-sweet with the following option to require authentication:");
                 println!();
                 println!("   --auth {}", auth.private_key().bright_blue());
                 println!();
-                println!("Then, when interacting with y-sweet-server from your own server, pass the following server token:");
+                println!("Then, when interacting with y-sweet from your own server, pass the following server token:");
                 println!();
                 println!("   {}", auth.server_token().bright_purple());
                 println!();

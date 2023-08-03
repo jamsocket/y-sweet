@@ -4,7 +4,7 @@ use std::{
     fs::{create_dir_all, remove_file},
     path::PathBuf,
 };
-use y_sweet_server_core::store::Store;
+use y_sweet_core::store::Store;
 
 pub struct FileSystemStore {
     base_path: PathBuf,

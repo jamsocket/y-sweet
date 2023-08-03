@@ -1,5 +1,5 @@
 [package]
-name = "y-sweet-server"
+name = "y-sweet"
 version = "0.1.0"
 edition = "2021"
 
@@ -22,6 +22,6 @@ tokio-stream = "0.1.14"
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter", "fmt"] }
 url = "2.4.0"
-y-sweet-server-core = { path = "../y-sweet-server-core" }
+y-sweet-core = { path = "../y-sweet-core" }
 yrs = "0.16.9"
 yrs-kvstore = "0.1.0"

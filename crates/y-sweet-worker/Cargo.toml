@@ -1,5 +1,5 @@
 [package]
-name = "y-sweet-server-worker"
+name = "y-sweet-worker"
 version = "0.1.0"
 edition = "2021"
 
@@ -16,7 +16,7 @@ async-trait = "0.1.72"
 console_error_panic_hook = "0.1.7"
 js-sys = "0.3.57"
 nanoid = "0.4.0"
-y-sweet-server-core = { path = "../y-sweet-server-core" }
+y-sweet-core = { path = "../y-sweet-core" }
 wasm-bindgen = "=0.2.84"
 wasm-bindgen-futures = "=0.4.30"
 web-sys = "=0.3.60"

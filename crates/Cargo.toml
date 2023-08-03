@@ -1,11 +1,11 @@
 [workspace]
 members = [
-    "y-sweet-server",
-    "y-sweet-server-core",
+    "y-sweet",
+    "y-sweet-core",
 ]
 
 exclude = [
-    "y-sweet-server-worker",
+    "y-sweet-worker",
 ]
 
 [patch.crates-io]

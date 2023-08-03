@@ -1009,7 +1009,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "y-sweet-server-core"
+name = "y-sweet-core"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -1029,7 +1029,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "y-sweet-server-worker"
+name = "y-sweet-worker"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -1046,7 +1046,7 @@ dependencies = [
  "web-sys",
  "worker",
  "worker-sys",
- "y-sweet-server-core",
+ "y-sweet-core",
 ]
 
 [[package]]
