@@ -1,25 +1,20 @@
 #![doc = include_str!("../README.md")]
 
 use crate::stores::filesystem::FileSystemStore;
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use clap::{Parser, Subcommand};
 use colored::Colorize;
-use dump::dump;
 use s3::Region;
 use serde_json::json;
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     path::PathBuf,
-    sync::Arc,
 };
 use stores::blobstore::S3Store;
 use tracing::metadata::LevelFilter;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
-use y_sweet_core::{auth::Authenticator, doc_connection::DOC_NAME, store::Store, sync_kv::SyncKv};
-use yrs::{Doc, Transact};
-use yrs_kvstore::DocOps;
+use y_sweet_core::{auth::Authenticator, store::Store};
 
-mod dump;
 mod server;
 mod stores;
 
@@ -46,11 +41,6 @@ enum ServSubcommand {
 
         #[clap(long)]
         use_https: bool,
-    },
-
-    Dump {
-        store_path: String,
-        doc_id: String,
     },
 
     GenAuth {
@@ -127,18 +117,6 @@ async fn main() -> Result<()> {
             tracing::info!(%address, "Listening");
 
             server.serve(&addr).await?;
-        }
-        ServSubcommand::Dump { doc_id, store_path } => {
-            let store = get_store_from_opts(store_path)?;
-            let sync_kv = SyncKv::new(Arc::new(store), doc_id, || {}).await?;
-            let doc = Doc::new();
-
-            let mut txn = doc.transact_mut();
-            sync_kv
-                .load_doc(DOC_NAME, &mut txn)
-                .map_err(|e| anyhow!("Error loading doc: {:?}", e))?;
-
-            dump(&txn)
         }
         ServSubcommand::GenAuth { json } => {
             let auth = Authenticator::gen_key()?;
