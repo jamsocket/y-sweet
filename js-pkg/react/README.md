@@ -43,8 +43,8 @@ const items = useArray<Y.Map<any>>('todolist')
 
 const pushItem = useCallback((text: string) => {
     let item = new Y.Map([
-    ['text', text],
-    ['done', false],
+        ['text', text],
+        ['done', false],
     ] as [string, any][])
 
     items?.push([item])
@@ -54,8 +54,8 @@ const clearCompleted = useCallback(() => {
     let indexOffset = 0
     items?.forEach((item, index) => {
         if (item.get('done')) {
-        items.delete(index - indexOffset, 1)
-        indexOffset += 1
+            items.delete(index - indexOffset, 1)
+            indexOffset += 1
         }
     })
 }, [items])
@@ -109,11 +109,11 @@ setPresence({
     onMouseMove={updatePresence}
 >
     {Array.from(presence.entries()).map(([key, value]) => (
-    <div
-        key={key}
-        className={`absolute rounded-full ${value.color}`}
-        style={{ left: value.x - 6, top: value.y - 8, width: 10, height: 10 }}
-    />
+        <div
+            key={key}
+            className={`absolute rounded-full ${value.color}`}
+            style={{ left: value.x - 6, top: value.y - 8, width: 10, height: 10 }}
+        />
     ))}
 </div>
 ```

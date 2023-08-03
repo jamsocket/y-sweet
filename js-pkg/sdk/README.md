@@ -4,7 +4,7 @@ JavaScript/TypeScript backend SDK for building collaboration features with y-swe
 
 ## Installation
 ```
-npm install @y-sweet/react
+npm install @y-sweet/sdk
 ```
 
 ## Documentation
