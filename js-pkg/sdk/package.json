@@ -1,9 +1,9 @@
 {
     "name": "@y-sweet/sdk",
     "scripts": {
-        "build": "tsc",
-        "clean": "rm -rf dist && rm -f tsconfig.tsbuildinfo",
-        "dev": "npm run build -- --watch",
+        "build": "tsup",
+        "clean": "rm -rf dist",
+        "dev": "tsup --watch",
         "format": "prettier --write \"**/*.{ts,tsx,js,jsx}\""
     },
     "version": "0.0.2",
@@ -12,9 +12,15 @@
     "types": "./dist/main.d.ts",
     "exports": {
         ".": {
-            "import": "./dist/main.js",
-            "module": "./dist/main.js",
-            "types": "./dist/main.d.ts"
+            "import": {
+                "types": "./dist/main.d.mts",
+                "default": "./dist/main.mjs"
+            },
+            "require": {
+                "types": "./dist/main.d.ts",
+                "module": "./dist/main.mjs",
+                "default": "./dist/main.js"
+            }
         }
     },
     "files": [
@@ -28,6 +34,7 @@
     "license": "MIT",
     "devDependencies": {
         "prettier": "^3.0.0",
+        "tsup": "^7.2.0",
         "typescript": "^5.1.6"
     },
     "bugs": {
