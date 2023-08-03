@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")]
+
 use crate::stores::filesystem::FileSystemStore;
 use anyhow::{anyhow, Result};
 use clap::{Parser, Subcommand};
