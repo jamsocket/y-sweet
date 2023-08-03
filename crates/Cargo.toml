@@ -7,8 +7,3 @@ members = [
 exclude = [
     "y-sweet-worker",
 ]
-
-[patch.crates-io]
-# Awaiting https://github.com/y-crdt/y-crdt/pull/307
-lib0 = { git="https://github.com/paulgb/y-crdt.git", branch="paulgb/add-root-keys" }
-yrs = { git="https://github.com/paulgb/y-crdt.git", branch="paulgb/add-root-keys" }

@@ -1,7 +1,11 @@
 [package]
 name = "y-sweet-core"
-version = "0.1.0"
+version = "0.0.1"
 edition = "2021"
+description = "Sans-IO core of the y-sweet yjs CRDT server."
+license = "MIT"
+homepage = "https://y-sweet.dev"
+repository = "https://github.com/drifting-in-space/y-sweet"
 
 [dependencies]
 anyhow = "1.0.72"

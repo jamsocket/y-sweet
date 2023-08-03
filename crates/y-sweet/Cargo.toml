@@ -1,7 +1,11 @@
 [package]
 name = "y-sweet"
-version = "0.1.0"
+version = "0.0.1"
 edition = "2021"
+description = "A standalone Yjs CRDT server with built-in persistence and auth."
+license = "MIT"
+homepage = "https://y-sweet.dev"
+repository = "https://github.com/drifting-in-space/y-sweet"
 
 [dependencies]
 anyhow = "1.0.72"
@@ -22,6 +26,6 @@ tokio-stream = "0.1.14"
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter", "fmt"] }
 url = "2.4.0"
-y-sweet-core = { path = "../y-sweet-core" }
+y-sweet-core = { version="0.0.1", path = "../y-sweet-core" }
 yrs = "0.16.9"
 yrs-kvstore = "0.1.0"
