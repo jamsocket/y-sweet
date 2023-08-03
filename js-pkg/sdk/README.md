@@ -2,6 +2,8 @@
 
 JavaScript/TypeScript backend SDK for building collaboration features with y-sweet.
 
+[![Version](https://img.shields.io/npm/v/@y-sweet/sdk)](https://npmjs.org/package/@y-sweet/sdk)
+
 ## Installation
 ```
 npm install @y-sweet/sdk
