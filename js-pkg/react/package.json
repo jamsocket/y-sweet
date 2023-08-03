@@ -6,7 +6,7 @@
         "dev": "tsup --watch",
         "format": "prettier --write \"**/*.{ts,tsx,js,jsx}\""
     },
-    "version": "0.0.2",
+    "version": "0.0.3",
     "description": "React library for building collaboration features with y-sweet.",
     "main": "./dist/main.js",
     "types": "./dist/main.d.ts",
@@ -46,7 +46,7 @@
         "yjs": "^13.0.0"
     },
     "dependencies": {
-        "@y-sweet/sdk": "0.0.2",
+        "@y-sweet/sdk": "0.0.3",
         "y-protocols": "^1.0.5",
         "y-websocket": "^1.5.0"
     }

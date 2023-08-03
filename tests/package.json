@@ -20,6 +20,6 @@
     "yjs": "file:../node_modules/yjs"
   },
   "dependencies": {
-    "@y-sweet/sdk": "0.0.2"
+    "@y-sweet/sdk": "0.0.3"
   }
 }

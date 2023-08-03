@@ -2,6 +2,8 @@
 
 React library for building collaboration features with y-sweet.
 
+[![Version](https://img.shields.io/npm/v/@y-sweet/react)](https://npmjs.org/package/@y-sweet/react)
+
 ## Installation
 ```
 npm install @y-sweet/react
