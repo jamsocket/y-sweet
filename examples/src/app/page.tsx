@@ -18,17 +18,17 @@ export default async function Home({ searchParams }: HomeProps) {
         <ProjectLink
           name="To Do List"
           url="/to-do-list"
-          description="Write and clear a to do list."
+          description="Create and edit items in a to do list."
         />
         <ProjectLink
           name="Text Editor"
           url="/text-editor"
-          description="A collaborative text editor that uses a quill yjs binding."
+          description="A collaborative text editor built on top of the open-source Quill package."
         />
         <ProjectLink
           name="Code Editor"
           url="/code-editor"
-          description="A collaborative code editor that uses a codemirror yjs binding."
+          description="A collaborative code editor built on top of the open source CodeMirror package."
         />
       </div>
     </div>

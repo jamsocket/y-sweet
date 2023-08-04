@@ -2,7 +2,7 @@
 import { useState } from 'react'
 
 export default function CopyLink() {
-  const [buttonState, setButtonState] = useState('Copy link')
+  const [copied, setCopied] = useState(false)
 
   const copyLinkToClipboard = () => {
     const currentPageURL = window.location.href
@@ -10,7 +10,7 @@ export default function CopyLink() {
     navigator.clipboard
       .writeText(currentPageURL)
       .then(() => {
-        setButtonState('Copied!')
+        setCopied(true)
       })
       .catch((error) => {
         console.error('Failed to copy link: ', error)
@@ -18,15 +18,15 @@ export default function CopyLink() {
   }
 
   return (
-    <div className="p-6 flex flex-col text-left rounded-lg bg-white/50 border border-white/80 shadow-sm">
-      <span className="text-pink-900 pb-2">
-        Open this doc in a new window or share with a friend:
+    <div className="pt-6 flex text-left items-center">
+      <span className="text-neutral-400 pr-2">
+        Share this document
       </span>
       <button
-        className="w-28 py-2 rounded-lg bg-pink-950 text-white transition-all hover:bg-pink-900"
+        className="w-24 py-1 rounded-lg bg-neutral-50 border-white border text-neutral-400 transition-all hover:bg-white"
         onClick={copyLinkToClipboard}
       >
-        {buttonState}
+        {copied ? 'Copied!' : 'Copy Link'}
       </button>
     </div>
   )
