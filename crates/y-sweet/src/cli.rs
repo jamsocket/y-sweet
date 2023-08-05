@@ -25,6 +25,17 @@ pub fn print_server_url(auth: Option<&Authenticator>, url_prefix: Option<&Url>, 
     println!("    cd examples/");
     println!("    Y_SWEET_CONFIG={} npm run dev", token.bright_purple());
     println!();
+    if auth.is_some() {
+        println!(
+            "{} {} {}",
+            "****".bright_yellow().bold(),
+            "If you are running in production, pass --prod to avoid logging this message."
+                .bright_red()
+                .bold(),
+            "****".bright_yellow().bold(),
+        );
+        println!();
+    }
 }
 
 pub fn print_auth_message(auth: &Authenticator) {

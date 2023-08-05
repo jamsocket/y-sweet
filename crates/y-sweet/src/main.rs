@@ -43,6 +43,9 @@ enum ServSubcommand {
 
         #[clap(long)]
         url_prefix: Option<Url>,
+
+        #[clap(long)]
+        prod: bool,
     },
 
     GenAuth {
@@ -92,6 +95,7 @@ async fn main() -> Result<()> {
             store_path,
             auth,
             url_prefix,
+            prod,
         } => {
             let auth = if let Some(auth) = auth {
                 Some(Authenticator::new(auth)?)
@@ -105,8 +109,10 @@ async fn main() -> Result<()> {
                 *port,
             );
 
-            print_server_url(auth.as_ref(), url_prefix.as_ref(), addr);
-
+            if !prod {
+                print_server_url(auth.as_ref(), url_prefix.as_ref(), addr);
+            }
+            
             let store = get_store_from_opts(store_path)?;
 
             let server = server::Server::new(
