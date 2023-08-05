@@ -17,24 +17,35 @@ export class DocumentManager {
   baseUrl: string
   token?: string
 
-  constructor(options?: ServerToken | string) {
-    if (typeof options === 'string') {
-      options = JSON.parse(options) as ServerToken
+  constructor(serverToken?: ServerToken | string) {
+    if (serverToken === undefined) {
+      serverToken = {}
+    } else if (typeof serverToken === 'string') {
+      const parsedUrl = new URL(serverToken)
+      let token
+      if (parsedUrl.username) {
+        // Decode the token from the URL.
+        token = decodeURIComponent(parsedUrl.username)
+      }
+      parsedUrl.username = ''
+
+      const url = parsedUrl.toString()
+      serverToken = {
+        url,
+        token,
+      }
     }
 
-    this.baseUrl = options?.url ?? 'http://127.0.0.1:8080'
-    // Remove trailing slash.
-    this.baseUrl = this.baseUrl.replace(/\/$/, '')
-    this.token = options?.token
+    this.baseUrl = (serverToken.url ?? 'http://127.0.0.1:8080').replace(/\/$/, '')
+    this.token = serverToken.token
+    console.log(`Using server URL ${this.baseUrl}`)
   }
 
   async doFetch(url: string, body?: any): Promise<Response> {
     let method = 'GET'
     let headers: [string, string][] = []
     if (this.token) {
-      // let tokenBuffer = Buffer.from(this.token)
-      // headers.push(['Authorization', `Bearer ${tokenBuffer.toString('base64')}`])
-      // Tokens now come base64 encoded.
+      // Tokens come base64 encoded.
       headers.push(['Authorization', `Bearer ${this.token}`])
     }
 
@@ -104,22 +115,22 @@ export type AuthDocRequest = {
 
 export async function getOrCreateDoc(
   docId?: string,
-  options?: ServerToken | string,
+  serverToken?: ServerToken | string,
 ): Promise<ClientToken> {
-  const manager = new DocumentManager(options)
+  const manager = new DocumentManager(serverToken)
   return await manager.getOrCreateDoc(docId)
 }
 
 export async function getClientToken(
   docId: string | DocCreationResult,
   request: AuthDocRequest,
-  options?: ServerToken | string,
+  serverToken?: ServerToken | string,
 ): Promise<ClientToken> {
-  const manager = new DocumentManager(options)
+  const manager = new DocumentManager(serverToken)
   return await manager.getClientToken(docId, request)
 }
 
-export async function createDoc(options?: ServerToken | string): Promise<DocCreationResult> {
-  const manager = new DocumentManager(options)
+export async function createDoc(serverToken?: ServerToken | string): Promise<DocCreationResult> {
+  const manager = new DocumentManager(serverToken)
   return await manager.createDoc()
 }
