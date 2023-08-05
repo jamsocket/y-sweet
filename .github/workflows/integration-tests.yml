@@ -21,11 +21,12 @@ jobs:
     - uses: Swatinem/rust-cache@v2
       with:
         cache-on-failure: "true"
+        cache-all-crates: "true"
         # y-sweet-worker is excluded from the outer Cargo "workspace"
         # because it has a different target (wasm rather than system arch). We
         # still want to cache its output, so we do that here.
         # See: https://github.com/Swatinem/rust-cache
-        workspaces: "crates -> target\ncrates/y-sweet-worker -> target"
+        workspaces: "crates\ncrates/y-sweet-worker"
 
     - name: Install dependencies of JS library
       run: npm ci
