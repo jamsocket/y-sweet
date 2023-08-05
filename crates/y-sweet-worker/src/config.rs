@@ -26,8 +26,12 @@ impl From<&Env> for Configuration {
             .unwrap_or(false);
         let timeout_interval = Duration::from_secs(
             env.var(CHECKPOINT_FREQ_SECONDS)
-                .map(|s| s.to_string().parse().expect("Could not parse CHECKPOINT_FREQ_SECONDS as u64"))
-                .unwrap_or(45)
+                .map(|s| {
+                    s.to_string()
+                        .parse()
+                        .expect("Could not parse CHECKPOINT_FREQ_SECONDS as u64")
+                })
+                .unwrap_or(45),
         );
         Self {
             auth_key,
