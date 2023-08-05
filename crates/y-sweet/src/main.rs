@@ -112,7 +112,7 @@ async fn main() -> Result<()> {
             if !prod {
                 print_server_url(auth.as_ref(), url_prefix.as_ref(), addr);
             }
-            
+
             let store = get_store_from_opts(store_path)?;
 
             let server = server::Server::new(
