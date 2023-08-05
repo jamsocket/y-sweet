@@ -20,7 +20,11 @@ impl DocWithSyncKv {
         self.sync_kv.clone()
     }
 
-    pub async fn new<F>(key: &str, store: Option<Arc<Box<dyn Store>>>, dirty_callback: F) -> Result<Self>
+    pub async fn new<F>(
+        key: &str,
+        store: Option<Arc<Box<dyn Store>>>,
+        dirty_callback: F,
+    ) -> Result<Self>
     where
         F: Fn() + Send + Sync + 'static,
     {
