@@ -168,37 +168,9 @@ impl<'a> yrs_kvstore::KVStore<'a> for SyncKv {
 #[cfg(test)]
 mod test {
     use super::*;
-    use async_trait::async_trait;
-    use dashmap::DashMap;
+    use crate::store::MemoryStore;
     use std::sync::atomic::AtomicUsize;
     use tokio;
-
-    #[derive(Default, Clone)]
-    struct MemoryStore {
-        data: Arc<DashMap<String, Vec<u8>>>,
-    }
-
-    #[cfg_attr(not(feature = "single-threaded"), async_trait)]
-    #[cfg_attr(feature = "single-threaded", async_trait(?Send))]
-    impl Store for MemoryStore {
-        async fn get(&self, key: &str) -> Result<Option<Vec<u8>>> {
-            Ok(self.data.get(key).map(|v| v.clone()))
-        }
-
-        async fn set(&self, key: &str, value: Vec<u8>) -> Result<()> {
-            self.data.insert(key.to_owned(), value);
-            Ok(())
-        }
-
-        async fn remove(&self, key: &str) -> Result<()> {
-            self.data.remove(key);
-            Ok(())
-        }
-
-        async fn exists(&self, key: &str) -> Result<bool> {
-            Ok(self.data.contains_key(key))
-        }
-    }
 
     #[derive(Default, Clone)]
     struct CallbackCounter {
@@ -230,7 +202,7 @@ mod test {
         sync_kv.set(b"foo", b"bar");
         assert_eq!(sync_kv.get(b"foo"), Some(b"bar".to_vec()));
 
-        assert!(store.data.is_empty());
+        assert!(store.is_empty());
 
         // We should have received a dirty callback.
         assert_eq!(c.count(), 1);
@@ -253,7 +225,7 @@ mod test {
             sync_kv.set(b"foo", b"bar");
             assert_eq!(sync_kv.get(b"foo"), Some(b"bar".to_vec()));
 
-            assert!(store.data.is_empty());
+            assert!(store.is_empty());
 
             sync_kv.persist().await.unwrap();
         }
