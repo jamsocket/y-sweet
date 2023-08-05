@@ -86,7 +86,7 @@ async fn new_doc(
     check_server_token(&req, ctx.data.auth()?)?;
 
     let doc_id = nanoid::nanoid!();
-    let store = ctx.data.store();
+    let store = Some(ctx.data.store());
     let dwskv = DocWithSyncKv::new(&doc_id, store, || {}).await.unwrap();
 
     dwskv.sync_kv().persist().await.unwrap();

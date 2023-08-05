@@ -22,7 +22,7 @@ impl YServe {
             let mut context = ServerContext::from_request(req, &self.env).unwrap();
             let storage = Arc::new(self.state.storage());
 
-            let store = context.store();
+            let store = Some(context.store());
             let storage = Threadless(storage);
             let doc = DocWithSyncKv::new(doc_id, store, move || {
                 let storage = storage.clone();
