@@ -1,5 +1,5 @@
 import { WebsocketProvider } from 'y-websocket'
-import { DocumentManager } from '../../js-pkg/sdk/src/main'
+import { DocumentManager } from '@y-sweet/sdk'
 import { WebSocket } from 'ws'
 import * as Y from 'yjs'
 import { Server, ServerConfiguration } from './server'

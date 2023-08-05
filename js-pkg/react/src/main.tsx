@@ -5,7 +5,8 @@ import type { ReactNode } from 'react'
 import { WebsocketProvider } from 'y-websocket'
 import * as Y from 'yjs'
 import type { Awareness } from 'y-protocols/awareness'
-import { ClientToken, createYjsProvider } from './yjs-provider'
+import { ClientToken } from '@y-sweet/sdk'
+import { createYjsProvider } from './yjs-provider'
 
 type YjsContextType = {
   doc: Y.Doc
