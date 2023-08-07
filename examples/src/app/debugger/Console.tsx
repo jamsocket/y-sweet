@@ -202,6 +202,8 @@ function PrettyValue(props: { value: any }) {
     } else {
       return <span className="text-purple-600">false</span>
     }
+  } else if (typeof props.value === 'number') {
+    return <span className="text-yellow-600">{props.value}</span>
   } else {
     console.log('unimplemented value type', typeof props.value)
     return <span>unknown type</span>
