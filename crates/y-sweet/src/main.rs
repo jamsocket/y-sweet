@@ -18,6 +18,8 @@ use y_sweet_core::{auth::Authenticator, store::Store};
 mod server;
 mod stores;
 
+const DEFAULT_S3_REGION: Region = Region::UsEast1;
+
 #[derive(Parser)]
 struct Opts {
     #[clap(subcommand)]
@@ -57,8 +59,12 @@ fn get_store_from_opts(store_path: &str) -> Result<Box<dyn Store>> {
                 region
             }
             Err(e) => {
-                tracing::warn!(error=?e, "Failed to get region from environment, using default.");
-                Region::UsEast1
+                tracing::warn!(
+                    error=?e,
+                    "Failed to get region from environment, using default ({}).",
+                    DEFAULT_S3_REGION
+                );
+                DEFAULT_S3_REGION
             }
         };
         let url = url::Url::parse(store_path)?;
