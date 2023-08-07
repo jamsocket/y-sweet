@@ -12,8 +12,8 @@
   "dependencies": {
     "@headlessui/react": "^1.7.16",
     "@heroicons/react": "^2.0.18",
-    "@y-sweet/react": "^0.0.3",
-    "@y-sweet/sdk": "^0.0.3",
+    "@y-sweet/react": "^0.0.4",
+    "@y-sweet/sdk": "^0.0.4",
     "autoprefixer": "10.4.14",
     "codemirror": "^5.65.14",
     "next": "13.4.10",
