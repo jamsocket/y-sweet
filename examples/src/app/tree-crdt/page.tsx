@@ -4,15 +4,15 @@ import { getOrCreateDoc } from '@y-sweet/sdk'
 import { TreeView } from './TreeView'
 
 type HomeProps = {
-    searchParams: Record<string, string>
+  searchParams: Record<string, string>
 }
 
 export default async function Home({ searchParams }: HomeProps) {
-    const clientToken = await getOrCreateDoc(searchParams.doc, ENV_CONFIG)
+  const clientToken = await getOrCreateDoc(searchParams.doc, ENV_CONFIG)
 
-    return (
-        <YDocProvider clientToken={clientToken} setQueryParam="doc">
-            <TreeView />
-        </YDocProvider>
-    )
+  return (
+    <YDocProvider clientToken={clientToken} setQueryParam="doc">
+      <TreeView />
+    </YDocProvider>
+  )
 }
