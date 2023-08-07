@@ -24,7 +24,7 @@ impl YServe {
             let mut context = ServerContext::from_request(req, &self.env).unwrap();
             let storage = Arc::new(self.state.storage());
 
-            let store = context.store();
+            let store = Some(context.store());
             let storage = Threadless(storage);
             let config = Configuration::from(&self.env);
             let timeout_interval_ms: i64 = config

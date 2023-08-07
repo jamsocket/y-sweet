@@ -31,7 +31,7 @@ struct Opts {
 #[derive(Subcommand)]
 enum ServSubcommand {
     Serve {
-        store_path: String,
+        store: Option<String>,
 
         #[clap(long, default_value = "8080")]
         port: u16,
@@ -104,7 +104,7 @@ async fn main() -> Result<()> {
             port,
             host,
             checkpoint_freq_seconds,
-            store_path,
+            store,
             auth,
             url_prefix,
             prod,
@@ -121,11 +121,16 @@ async fn main() -> Result<()> {
                 *port,
             );
 
+            let store = if let Some(store) = store {
+                Some(get_store_from_opts(&store)?)
+            } else {
+                tracing::warn!("No store set. Documents will be stored in memory only.");
+                None
+            };
+
             if !prod {
                 print_server_url(auth.as_ref(), url_prefix.as_ref(), addr);
             }
-
-            let store = get_store_from_opts(store_path)?;
 
             let server = server::Server::new(
                 store,

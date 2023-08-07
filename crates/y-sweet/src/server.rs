@@ -38,7 +38,7 @@ fn current_time_epoch_millis() -> u64 {
 
 pub struct Server {
     docs: DashMap<String, DocWithSyncKv>,
-    store: Arc<Box<dyn Store>>,
+    store: Option<Arc<Box<dyn Store>>>,
     checkpoint_freq: Duration,
     authenticator: Option<Authenticator>,
     url_prefix: Option<Url>,
@@ -46,14 +46,14 @@ pub struct Server {
 
 impl Server {
     pub async fn new(
-        store: Box<dyn Store>,
+        store: Option<Box<dyn Store>>,
         checkpoint_freq: Duration,
         authenticator: Option<Authenticator>,
         url_prefix: Option<Url>,
     ) -> Result<Self> {
         Ok(Self {
             docs: DashMap::new(),
-            store: Arc::new(store),
+            store: store.map(Arc::new),
             checkpoint_freq,
             authenticator,
             url_prefix,
@@ -61,12 +61,17 @@ impl Server {
     }
 
     pub async fn doc_exists(&self, doc_id: &str) -> bool {
-        self.docs.contains_key(doc_id)
-            || self
-                .store
+        if self.docs.contains_key(doc_id) {
+            return true;
+        }
+        if let Some(store) = &self.store {
+            store
                 .exists(&format!("{}/data.ysweet", doc_id))
                 .await
                 .unwrap_or_default()
+        } else {
+            false
+        }
     }
 
     pub async fn create_doc(&self) -> Result<String> {
