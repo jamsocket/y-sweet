@@ -20,6 +20,8 @@ mod cli;
 mod server;
 mod stores;
 
+const DEFAULT_S3_REGION: Region = Region::UsEast1;
+
 #[derive(Parser)]
 struct Opts {
     #[clap(subcommand)]
@@ -56,12 +58,22 @@ enum ServSubcommand {
 
 fn get_store_from_opts(store_path: &str) -> Result<Box<dyn Store>> {
     if store_path.starts_with("s3://") {
-        let region = Region::UsEast1;
-
+        let region = match Region::from_default_env() {
+            Ok(region) => {
+                tracing::info!(region=?region, "Using region from environment.");
+                region
+            }
+            Err(e) => {
+                tracing::warn!(
+                    error=?e,
+                    "Failed to get region from environment, using default ({}).",
+                    DEFAULT_S3_REGION
+                );
+                DEFAULT_S3_REGION
+            }
+        };
         let url = url::Url::parse(store_path)?;
-        if url.scheme() != "s3" {
-            return Err(anyhow::anyhow!("Invalid S3 URL"));
-        }
+
         let bucket = url
             .host_str()
             .ok_or_else(|| anyhow::anyhow!("Invalid S3 URL"))?

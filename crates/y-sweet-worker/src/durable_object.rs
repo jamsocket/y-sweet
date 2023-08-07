@@ -1,4 +1,6 @@
-use crate::{server_context::ServerContext, threadless::Threadless, DocIdPair};
+use crate::{
+    config::Configuration, server_context::ServerContext, threadless::Threadless, DocIdPair,
+};
 use futures::StreamExt;
 use std::sync::Arc;
 use worker::{
@@ -24,11 +26,18 @@ impl YServe {
 
             let store = context.store();
             let storage = Threadless(storage);
+            let config = Configuration::from(&self.env);
+            let timeout_interval_ms: i64 = config
+                .timeout_interval
+                .as_millis()
+                .try_into()
+                .expect("Should be able to convert timeout interval to i64");
+
             let doc = DocWithSyncKv::new(doc_id, store, move || {
                 let storage = storage.clone();
                 wasm_bindgen_futures::spawn_local(async move {
                     console_log!("Setting alarm.");
-                    storage.0.set_alarm(10_000).await.unwrap();
+                    storage.0.set_alarm(timeout_interval_ms).await.unwrap();
                 });
             })
             .await
