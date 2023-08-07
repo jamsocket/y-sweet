@@ -73,23 +73,26 @@ impl Server {
         }
     }
 
-    pub async fn create_doc(&self) -> String {
+    pub async fn create_doc(&self) -> Result<String> {
         let doc_id = nanoid::nanoid!();
-        self.load_doc(&doc_id).await;
+        self.load_doc(&doc_id).await?;
         tracing::info!(doc_id=?doc_id, "Created doc");
-        doc_id
+        Ok(doc_id)
     }
 
-    pub async fn load_doc(&self, doc_id: &str) {
+    pub async fn load_doc(&self, doc_id: &str) -> Result<()> {
         let (send, mut recv) = channel(1024);
 
         let dwskv = DocWithSyncKv::new(doc_id, self.store.clone(), move || {
             send.try_send(()).unwrap();
         })
-        .await
-        .unwrap();
+        .await?;
 
-        dwskv.sync_kv().persist().await.unwrap();
+        dwskv
+            .sync_kv()
+            .persist()
+            .await
+            .map_err(|e| anyhow!("Error persisting: {:?}", e))?;
 
         {
             let sync_kv = dwskv.sync_kv();
@@ -123,6 +126,7 @@ impl Server {
         }
 
         self.docs.insert(doc_id.to_string(), dwskv);
+        Ok(())
     }
 
     pub async fn get_or_create_doc(
@@ -131,7 +135,7 @@ impl Server {
     ) -> Result<MappedRef<String, DocWithSyncKv, DocWithSyncKv>> {
         if !self.docs.contains_key(doc_id) {
             tracing::info!(doc_id=?doc_id, "Loading doc");
-            self.load_doc(doc_id).await;
+            self.load_doc(doc_id).await?;
         }
 
         Ok(self
@@ -246,7 +250,10 @@ async fn new_doc(
 ) -> Result<Json<NewDocResponse>, StatusCode> {
     server_state.check_auth(authorization)?;
 
-    let doc_id = server_state.create_doc().await;
+    let doc_id = server_state.create_doc().await.map_err(|d| {
+        tracing::error!(?d, "Failed to create doc");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
     Ok(Json(NewDocResponse { doc: doc_id }))
 }
 

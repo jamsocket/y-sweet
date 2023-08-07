@@ -1,5 +1,5 @@
 use crate::store::Store;
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::{
     collections::BTreeMap,
     convert::Infallible,
@@ -28,9 +28,9 @@ impl SyncKv {
         let key = format!("{}/data.ysweet", key);
 
         let data = if let Some(store) = &store {
-            if let Some(snapshot) = store.get(&key).await? {
+            if let Some(snapshot) = store.get(&key).await.context("Failed to get from store.")? {
                 tracing::info!(size=?snapshot.len(), "Loaded snapshot");
-                bincode::deserialize(&snapshot)?
+                bincode::deserialize(&snapshot).context("Failed to deserialize.")?
             } else {
                 BTreeMap::new()
             }
