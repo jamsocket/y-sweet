@@ -5,7 +5,7 @@ use server_context::ServerContext;
 use std::collections::HashMap;
 #[cfg(feature = "fetch-event")]
 use worker::{event, Env};
-use worker::{Date, Request, Response, Result, RouteContext, Router};
+use worker::{Date, Request, Response, Result, RouteContext, Router, Url};
 use y_sweet_core::{
     api_types::{ClientToken, NewDocResponse},
     auth::Authenticator,
@@ -122,14 +122,16 @@ async fn auth_doc(
         .auth()?
         .map(|auth| auth.gen_doc_token(&doc_id, get_time_millis_since_epoch()));
 
-    let schema = if ctx.data.config.use_https {
-        "wss"
-    } else {
-        "ws"
-    };
-
     let url = if let Some(url_prefix) = &ctx.data.config.url_prefix {
-        format!("{schema}://{url_prefix}/doc/ws")
+        let mut parsed = Url::parse(url_prefix).map_err(|_| Error::ConfigurationError)?;
+        match parsed.scheme() {
+            "http" => parsed.set_scheme("ws").map_err(|_| Error::InternalError)?,
+            "https" => parsed.set_scheme("wss").map_err(|_| Error::InternalError)?,
+            _ => return Err(Error::ConfigurationError),
+        };
+        let result = parsed.join("/doc/ws").unwrap();
+
+        result.to_string()
     } else {
         let host = req
             .headers()
@@ -137,7 +139,18 @@ async fn auth_doc(
             .map_err(|_| Error::MissingHostHeader)?
             .ok_or(Error::MissingHostHeader)?;
 
-        format!("{schema}://{host}/doc/ws")
+        // X-Forwarded-Proto is a Cloudflare-specific header. It is set to "http" or "https" depending on the request protocol.
+        // https://developers.cloudflare.com/fundamentals/get-started/reference/http-request-headers/#x-forwarded-proto
+        let use_https = req
+            .headers()
+            .get("X-Forwarded-Proto")
+            .unwrap_or(None)
+            .map(|d| d == "https")
+            .unwrap_or_default();
+
+        let scheme = if use_https { "wss" } else { "ws" };
+
+        format!("{scheme}://{host}/doc/ws")
     };
 
     Ok(ClientToken {

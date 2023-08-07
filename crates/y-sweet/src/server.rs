@@ -20,6 +20,7 @@ use std::{
 };
 use tokio::sync::mpsc::channel;
 use tracing::{span, Instrument, Level};
+use url::Url;
 use y_sweet_core::{
     api_types::{AuthDocRequest, ClientToken, NewDocResponse},
     auth::Authenticator,
@@ -40,7 +41,7 @@ pub struct Server {
     store: Option<Arc<Box<dyn Store>>>,
     checkpoint_freq: Duration,
     authenticator: Option<Authenticator>,
-    use_https: bool,
+    url_prefix: Option<Url>,
 }
 
 impl Server {
@@ -48,14 +49,14 @@ impl Server {
         store: Option<Box<dyn Store>>,
         checkpoint_freq: Duration,
         authenticator: Option<Authenticator>,
-        use_https: bool,
+        url_prefix: Option<Url>,
     ) -> Result<Self> {
         Ok(Self {
             docs: DashMap::new(),
             store: store.map(Arc::new),
             checkpoint_freq,
             authenticator,
-            use_https,
+            url_prefix,
         })
     }
 
@@ -277,8 +278,16 @@ async fn auth_doc(
         None
     };
 
-    let schema = if server_state.use_https { "wss" } else { "ws" };
-    let url = format!("{schema}://{host}/doc/ws");
+    let url = if let Some(url_prefix) = &server_state.url_prefix {
+        let mut url = url_prefix.clone();
+        let scheme = if url.scheme() == "https" { "wss" } else { "ws" };
+        url.set_scheme(scheme).unwrap();
+        url.join("/doc/ws").unwrap().to_string();
+        url.to_string()
+    } else {
+        format!("ws://{host}/doc/ws")
+    };
+
     Ok(Json(ClientToken {
         url,
         doc: doc_id,
