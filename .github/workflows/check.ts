@@ -1,4 +1,4 @@
-// Called from .github/workflows/check-ts-format.yml
+// Called from .github/workflows/check-ts.yml
 
 import fs from 'fs';
 import path from 'path';

@@ -1,4 +1,4 @@
-name: Check TypeScript Format
+name: Check TypeScript code
 
 on:
   push:
