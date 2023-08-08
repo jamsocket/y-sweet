@@ -51,6 +51,8 @@ export class NodeBox {
   }
 
   getChildren(): LayoutNode[] {
-    return this.getChildrenInner(0, 0, 1 / this.width, 1 / this.height, null)
+    return this.getChildrenInner(0, 0, 1 / this.width, 1 / this.height, null).sort((a, b) =>
+      a.treeNode.id().localeCompare(b.treeNode.id()),
+    )
   }
 }

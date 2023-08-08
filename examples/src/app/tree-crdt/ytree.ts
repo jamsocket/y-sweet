@@ -196,9 +196,26 @@ export class YTreeNode {
       console.error("Can't reparent root.")
       return
     }
+
+    let oldParent = this.tree.structure.get(this._id)!.parent!
+
     if (newParent.id() === this._id) {
       return
     }
+
+    // Detect if the new parent is a descendant of the new child.
+    let probe = newParent.id()
+    while (probe !== ROOT_ID) {
+      let probeParent = this.tree.structure.get(probe)!.parent!
+      if (probeParent === this._id) {
+        console.log('reparenting', probe, 'to', oldParent)
+        this.tree.map.get(probe)!.get(PARENT).set(oldParent, ++this.tree.maxClock)
+        break
+      }
+      probe = probeParent
+    }
+
+    console.log('reparenting', this._id, 'to', newParent.id())
     this.tree.map.get(this._id)!.get(PARENT).set(newParent.id(), ++this.tree.maxClock)
   }
 }
