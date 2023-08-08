@@ -113,39 +113,39 @@ export class YTree {
     let queueBuilder = new RadixPriorityQueueBuilder<[string, string]>() // [child, parent]
 
     unrootedNodes.forEach((_, nodeId) => {
-        let node = map[nodeId]!
-        let parents: Record<string, number> = node[PARENT]
-        for (let [parent, priority] of Object.entries(parents)) {
-            queueBuilder.addEntry(priority, [nodeId, parent])
-        }
+      let node = map[nodeId]!
+      let parents: Record<string, number> = node[PARENT]
+      for (let [parent, priority] of Object.entries(parents)) {
+        queueBuilder.addEntry(priority, [nodeId, parent])
+      }
     })
 
     let queue = queueBuilder.build()
 
     for (let [child, parent] of queue) {
-        let parentChain = unrootedNodes.get(child)
-        if (!parentChain) {
-            // node has been parented
-            console.log('node has been parented')
-            continue
-        }
-        if (rootedNodes.has(parent)) {
-            // node's parent has been parented, but node hasn't
-            rootedNodes.get(parent)!.children.add(child)
-            rootedNodes.set(child, { parent: parent, children: new Set<string>() })
-            unrootedNodes.delete(child)
+      let parentChain = unrootedNodes.get(child)
+      if (!parentChain) {
+        // node has been parented
+        console.log('node has been parented')
+        continue
+      }
+      if (rootedNodes.has(parent)) {
+        // node's parent has been parented, but node hasn't
+        rootedNodes.get(parent)!.children.add(child)
+        rootedNodes.set(child, { parent: parent, children: new Set<string>() })
+        unrootedNodes.delete(child)
 
-            // loop over children of node and parent them
-            for (let [loopChild, loopParent] of parentChain.childParentPairsFrom(child)) {
-                if (rootedNodes.has(loopChild)) {
-                    break // if this node is rooted, its children are too
-                }
+        // loop over children of node and parent them
+        for (let [loopChild, loopParent] of parentChain.childParentPairsFrom(child)) {
+          if (rootedNodes.has(loopChild)) {
+            break // if this node is rooted, its children are too
+          }
 
-                rootedNodes.get(loopParent)!.children.add(loopChild)
-                rootedNodes.set(loopChild, { parent: loopParent, children: new Set<string>() })
-                unrootedNodes.delete(loopChild)
-            }
+          rootedNodes.get(loopParent)!.children.add(loopChild)
+          rootedNodes.set(loopChild, { parent: loopParent, children: new Set<string>() })
+          unrootedNodes.delete(loopChild)
         }
+      }
     }
 
     this.structure = rootedNodes
