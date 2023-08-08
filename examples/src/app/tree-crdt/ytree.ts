@@ -148,6 +148,9 @@ export class YTree {
       }
     }
 
+    if (unrootedNodes.size > 0) {
+      console.warn('Some nodes left unrooted!', unrootedNodes)
+    }
     this.structure = rootedNodes
     if (this.onChange) {
       this.onChange()
@@ -208,14 +211,12 @@ export class YTreeNode {
     while (probe !== ROOT_ID) {
       let probeParent = this.tree.structure.get(probe)!.parent!
       if (probeParent === this._id) {
-        console.log('reparenting', probe, 'to', oldParent)
         this.tree.map.get(probe)!.get(PARENT).set(oldParent, ++this.tree.maxClock)
         break
       }
       probe = probeParent
     }
 
-    console.log('reparenting', this._id, 'to', newParent.id())
     this.tree.map.get(this._id)!.get(PARENT).set(newParent.id(), ++this.tree.maxClock)
   }
 }
