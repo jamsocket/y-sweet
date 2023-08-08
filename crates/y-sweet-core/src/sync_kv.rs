@@ -1,5 +1,5 @@
 use crate::store::Store;
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::{
     collections::BTreeMap,
     convert::Infallible,
@@ -13,7 +13,7 @@ use yrs_kvstore::{DocOps, KVEntry};
 
 pub struct SyncKv {
     data: Arc<Mutex<BTreeMap<Vec<u8>, Vec<u8>>>>,
-    store: Arc<Box<dyn Store>>,
+    store: Option<Arc<Box<dyn Store>>>,
     key: String,
     dirty: AtomicBool,
     dirty_callback: Box<dyn Fn() + Send + Sync>,
@@ -21,14 +21,19 @@ pub struct SyncKv {
 
 impl SyncKv {
     pub async fn new<Callback: Fn() + Send + Sync + 'static>(
-        store: Arc<Box<dyn Store>>,
+        store: Option<Arc<Box<dyn Store>>>,
         key: &str,
         callback: Callback,
     ) -> Result<Self> {
         let key = format!("{}/data.ysweet", key);
-        let data = if let Some(snapshot) = store.get(&key).await? {
-            tracing::info!(size=?snapshot.len(), "Loaded snapshot");
-            bincode::deserialize(&snapshot)?
+
+        let data = if let Some(store) = &store {
+            if let Some(snapshot) = store.get(&key).await.context("Failed to get from store.")? {
+                tracing::info!(size=?snapshot.len(), "Loaded snapshot");
+                bincode::deserialize(&snapshot).context("Failed to deserialize.")?
+            } else {
+                BTreeMap::new()
+            }
         } else {
             BTreeMap::new()
         };
@@ -50,12 +55,15 @@ impl SyncKv {
     }
 
     pub async fn persist(&self) -> Result<(), Box<dyn std::error::Error>> {
-        let snapshot = {
-            let data = self.data.lock().unwrap();
-            bincode::serialize(&*data)?
-        };
-        tracing::info!(size=?snapshot.len(), "Persisting snapshot");
-        self.store.set(&self.key, snapshot).await?;
+        if let Some(store) = &self.store {
+            let snapshot = {
+                let data = self.data.lock().unwrap();
+                bincode::serialize(&*data)?
+            };
+
+            tracing::info!(size=?snapshot.len(), "Persisting snapshot");
+            store.set(&self.key, snapshot).await?;
+        }
         self.dirty.store(false, Ordering::Relaxed);
         Ok(())
     }
@@ -222,7 +230,7 @@ mod test {
     async fn calls_sync_callback() {
         let store = MemoryStore::default();
         let c = CallbackCounter::default();
-        let sync_kv = SyncKv::new(Arc::new(Box::new(store.clone())), "foo", c.callback())
+        let sync_kv = SyncKv::new(Some(Arc::new(Box::new(store.clone()))), "foo", c.callback())
             .await
             .unwrap();
 
@@ -246,7 +254,7 @@ mod test {
         let store = MemoryStore::default();
 
         {
-            let sync_kv = SyncKv::new(Arc::new(Box::new(store.clone())), "foo", || ())
+            let sync_kv = SyncKv::new(Some(Arc::new(Box::new(store.clone()))), "foo", || ())
                 .await
                 .unwrap();
 
@@ -259,7 +267,7 @@ mod test {
         }
 
         {
-            let sync_kv = SyncKv::new(Arc::new(Box::new(store.clone())), "foo", || ())
+            let sync_kv = SyncKv::new(Some(Arc::new(Box::new(store.clone()))), "foo", || ())
                 .await
                 .unwrap();
 

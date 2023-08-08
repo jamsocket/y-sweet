@@ -85,7 +85,7 @@ impl Awareness {
 
     /// Sets a current [Awareness] instance state to a corresponding JSON string. This state will
     /// be replicated to other clients as part of the [AwarenessUpdate] and it will trigger an event
-    /// to be emitted if current instance was created using [Awareness::with_observer] method.
+    /// to be emitted if current instance was created using Awareness::with_observer method.
     ///
     pub fn set_local_state<S: Into<String>>(&mut self, json: S) {
         let client_id = self.doc.client_id();

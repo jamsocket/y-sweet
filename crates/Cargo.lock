@@ -845,8 +845,9 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "lib0"
-version = "0.16.9"
-source = "git+https://github.com/paulgb/y-crdt.git?branch=paulgb/add-root-keys#4866d4f1eb2fad2bc67a712da75cafdd29050954"
+version = "0.16.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "29dc19a026a0d45fc391898c6d4a6d0a5aab5ae6a826ebddc0f33572ffdae8dc"
 dependencies = [
  "thiserror",
 ]
@@ -2173,7 +2174,7 @@ dependencies = [
 
 [[package]]
 name = "y-sweet"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2200,7 +2201,7 @@ dependencies = [
 
 [[package]]
 name = "y-sweet-core"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2222,8 +2223,9 @@ dependencies = [
 
 [[package]]
 name = "yrs"
-version = "0.16.9"
-source = "git+https://github.com/paulgb/y-crdt.git?branch=paulgb/add-root-keys#4866d4f1eb2fad2bc67a712da75cafdd29050954"
+version = "0.16.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c48071f2693893c866cffdad3e6a931aefcd14e4400d45353a0e3f91a96e80b"
 dependencies = [
  "atomic_refcell",
  "lib0",

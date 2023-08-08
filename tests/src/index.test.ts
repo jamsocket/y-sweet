@@ -1,5 +1,5 @@
 import { WebsocketProvider } from 'y-websocket'
-import { DocumentManager } from '../../js-pkg/sdk/src/main'
+import { DocumentManager } from '@y-sweet/sdk'
 import { WebSocket } from 'ws'
 import * as Y from 'yjs'
 import { Server, ServerConfiguration } from './server'
@@ -65,14 +65,11 @@ describe.each(CONFIGURATIONS)(
       })
     })
 
-    test('Specify options as JSON', async () => {
-      const config = JSON.stringify({
-        url: DOCUMENT_MANANGER.baseUrl,
-        token: DOCUMENT_MANANGER.token,
-      })
+    test('Configure server with URL', async () => {
+      let url = new URL(DOCUMENT_MANANGER.baseUrl)
+      url.username = encodeURIComponent(DOCUMENT_MANANGER.token ?? '')
 
-      expect(typeof config).toBe('string')
-      const docManager = new DocumentManager(config)
+      const docManager = new DocumentManager(url.toString())
 
       const docResult = await docManager.createDoc()
       expect(docResult.doc).toBeDefined()

@@ -1,25 +1,26 @@
+#![doc = include_str!("../README.md")]
+
 use crate::stores::filesystem::FileSystemStore;
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use clap::{Parser, Subcommand};
-use colored::Colorize;
-use dump::dump;
+use cli::{print_auth_message, print_server_url};
 use s3::Region;
 use serde_json::json;
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     path::PathBuf,
-    sync::Arc,
 };
 use stores::blobstore::S3Store;
 use tracing::metadata::LevelFilter;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
-use y_sweet_core::{auth::Authenticator, doc_connection::DOC_NAME, store::Store, sync_kv::SyncKv};
-use yrs::{Doc, Transact};
-use yrs_kvstore::DocOps;
+use url::Url;
+use y_sweet_core::{auth::Authenticator, store::Store};
 
-mod dump;
+mod cli;
 mod server;
 mod stores;
+
+const DEFAULT_S3_REGION: Region = Region::UsEast1;
 
 #[derive(Parser)]
 struct Opts {
@@ -30,7 +31,7 @@ struct Opts {
 #[derive(Subcommand)]
 enum ServSubcommand {
     Serve {
-        store_path: String,
+        store: Option<String>,
 
         #[clap(long, default_value = "8080")]
         port: u16,
@@ -43,12 +44,10 @@ enum ServSubcommand {
         auth: Option<String>,
 
         #[clap(long)]
-        use_https: bool,
-    },
+        url_prefix: Option<Url>,
 
-    Dump {
-        store_path: String,
-        doc_id: String,
+        #[clap(long)]
+        prod: bool,
     },
 
     GenAuth {
@@ -59,12 +58,22 @@ enum ServSubcommand {
 
 fn get_store_from_opts(store_path: &str) -> Result<Box<dyn Store>> {
     if store_path.starts_with("s3://") {
-        let region = Region::UsEast1;
-
+        let region = match Region::from_default_env() {
+            Ok(region) => {
+                tracing::info!(region=?region, "Using region from environment.");
+                region
+            }
+            Err(e) => {
+                tracing::warn!(
+                    error=?e,
+                    "Failed to get region from environment, using default ({}).",
+                    DEFAULT_S3_REGION
+                );
+                DEFAULT_S3_REGION
+            }
+        };
         let url = url::Url::parse(store_path)?;
-        if url.scheme() != "s3" {
-            return Err(anyhow::anyhow!("Invalid S3 URL"));
-        }
+
         let bucket = url
             .host_str()
             .ok_or_else(|| anyhow::anyhow!("Invalid S3 URL"))?
@@ -95,9 +104,10 @@ async fn main() -> Result<()> {
             port,
             host,
             checkpoint_freq_seconds,
-            store_path,
+            store,
             auth,
-            use_https,
+            url_prefix,
+            prod,
         } => {
             let auth = if let Some(auth) = auth {
                 Some(Authenticator::new(auth)?)
@@ -111,13 +121,22 @@ async fn main() -> Result<()> {
                 *port,
             );
 
-            let store = get_store_from_opts(store_path)?;
+            let store = if let Some(store) = store {
+                Some(get_store_from_opts(&store)?)
+            } else {
+                tracing::warn!("No store set. Documents will be stored in memory only.");
+                None
+            };
+
+            if !prod {
+                print_server_url(auth.as_ref(), url_prefix.as_ref(), addr);
+            }
 
             let server = server::Server::new(
                 store,
                 std::time::Duration::from_secs(*checkpoint_freq_seconds),
                 auth,
-                *use_https,
+                url_prefix.clone(),
             )
             .await?;
 
@@ -125,18 +144,6 @@ async fn main() -> Result<()> {
             tracing::info!(%address, "Listening");
 
             server.serve(&addr).await?;
-        }
-        ServSubcommand::Dump { doc_id, store_path } => {
-            let store = get_store_from_opts(store_path)?;
-            let sync_kv = SyncKv::new(Arc::new(store), doc_id, || {}).await?;
-            let doc = Doc::new();
-
-            let mut txn = doc.transact_mut();
-            sync_kv
-                .load_doc(DOC_NAME, &mut txn)
-                .map_err(|e| anyhow!("Error loading doc: {:?}", e))?;
-
-            dump(&txn)
         }
         ServSubcommand::GenAuth { json } => {
             let auth = Authenticator::gen_key()?;
@@ -149,26 +156,7 @@ async fn main() -> Result<()> {
 
                 println!("{}", serde_json::to_string_pretty(&result)?);
             } else {
-                println!("Run y-sweet with the following option to require authentication:");
-                println!();
-                println!("   --auth {}", auth.private_key().bright_blue());
-                println!();
-                println!("Then, when interacting with y-sweet from your own server, pass the following server token:");
-                println!();
-                println!("   {}", auth.server_token().bright_purple());
-                println!();
-                println!("For example:");
-                println!();
-                println!("    // The token is hard-coded for simplicity of the example. Use a secret manager in production!");
-                println!(
-                    r#"    const params = {{"url": "http://127.0.0.1:8080", "token": "{}"}})"#,
-                    auth.server_token().bright_purple()
-                );
-                println!("    const docInfo = createDoc(params)");
-                println!("    const connectionKey = getClientToken(docInfo, {{}}, params)");
-                println!();
-                println!("Only use the server token on the server, do not expose the server token to clients.");
-                println!("getConnectionKey() will return a derived token that clients can use to scoped to a specific document.");
+                print_auth_message(&auth);
             }
         }
     }

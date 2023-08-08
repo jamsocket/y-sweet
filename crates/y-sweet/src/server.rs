@@ -20,6 +20,7 @@ use std::{
 };
 use tokio::sync::mpsc::channel;
 use tracing::{span, Instrument, Level};
+use url::Url;
 use y_sweet_core::{
     api_types::{AuthDocRequest, ClientToken, NewDocResponse},
     auth::Authenticator,
@@ -37,54 +38,62 @@ fn current_time_epoch_millis() -> u64 {
 
 pub struct Server {
     docs: DashMap<String, DocWithSyncKv>,
-    store: Arc<Box<dyn Store>>,
+    store: Option<Arc<Box<dyn Store>>>,
     checkpoint_freq: Duration,
     authenticator: Option<Authenticator>,
-    use_https: bool,
+    url_prefix: Option<Url>,
 }
 
 impl Server {
     pub async fn new(
-        store: Box<dyn Store>,
+        store: Option<Box<dyn Store>>,
         checkpoint_freq: Duration,
         authenticator: Option<Authenticator>,
-        use_https: bool,
+        url_prefix: Option<Url>,
     ) -> Result<Self> {
         Ok(Self {
             docs: DashMap::new(),
-            store: Arc::new(store),
+            store: store.map(Arc::new),
             checkpoint_freq,
             authenticator,
-            use_https,
+            url_prefix,
         })
     }
 
     pub async fn doc_exists(&self, doc_id: &str) -> bool {
-        self.docs.contains_key(doc_id)
-            || self
-                .store
+        if self.docs.contains_key(doc_id) {
+            return true;
+        }
+        if let Some(store) = &self.store {
+            store
                 .exists(&format!("{}/data.ysweet", doc_id))
                 .await
                 .unwrap_or_default()
+        } else {
+            false
+        }
     }
 
-    pub async fn create_doc(&self) -> String {
+    pub async fn create_doc(&self) -> Result<String> {
         let doc_id = nanoid::nanoid!();
-        self.load_doc(&doc_id).await;
+        self.load_doc(&doc_id).await?;
         tracing::info!(doc_id=?doc_id, "Created doc");
-        doc_id
+        Ok(doc_id)
     }
 
-    pub async fn load_doc(&self, doc_id: &str) {
+    pub async fn load_doc(&self, doc_id: &str) -> Result<()> {
         let (send, mut recv) = channel(1024);
 
         let dwskv = DocWithSyncKv::new(doc_id, self.store.clone(), move || {
             send.try_send(()).unwrap();
         })
-        .await
-        .unwrap();
+        .await?;
 
-        dwskv.sync_kv().persist().await.unwrap();
+        dwskv
+            .sync_kv()
+            .persist()
+            .await
+            .map_err(|e| anyhow!("Error persisting: {:?}", e))?;
 
         {
             let sync_kv = dwskv.sync_kv();
@@ -118,6 +127,7 @@ impl Server {
         }
 
         self.docs.insert(doc_id.to_string(), dwskv);
+        Ok(())
     }
 
     pub async fn get_or_create_doc(
@@ -126,7 +136,7 @@ impl Server {
     ) -> Result<MappedRef<String, DocWithSyncKv, DocWithSyncKv>> {
         if !self.docs.contains_key(doc_id) {
             tracing::info!(doc_id=?doc_id, "Loading doc");
-            self.load_doc(doc_id).await;
+            self.load_doc(doc_id).await?;
         }
 
         Ok(self
@@ -241,7 +251,10 @@ async fn new_doc(
 ) -> Result<Json<NewDocResponse>, StatusCode> {
     server_state.check_auth(authorization)?;
 
-    let doc_id = server_state.create_doc().await;
+    let doc_id = server_state.create_doc().await.map_err(|d| {
+        tracing::error!(?d, "Failed to create doc");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
     Ok(Json(NewDocResponse { doc: doc_id }))
 }
 
@@ -265,8 +278,16 @@ async fn auth_doc(
         None
     };
 
-    let schema = if server_state.use_https { "wss" } else { "ws" };
-    let url = format!("{schema}://{host}/doc/ws");
+    let url = if let Some(url_prefix) = &server_state.url_prefix {
+        let mut url = url_prefix.clone();
+        let scheme = if url.scheme() == "https" { "wss" } else { "ws" };
+        url.set_scheme(scheme).unwrap();
+        url.join("/doc/ws").unwrap().to_string();
+        url.to_string()
+    } else {
+        format!("ws://{host}/doc/ws")
+    };
+
     Ok(Json(ClientToken {
         url,
         doc: doc_id,
