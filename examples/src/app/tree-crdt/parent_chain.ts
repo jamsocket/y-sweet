@@ -1,6 +1,6 @@
 export class ParentChain {
   childToParent: Map<string, string> = new Map()
-  parentToChild: Map<string, string> = new Map()
+  parentToChild: Map<string, string | null> = new Map()
   _hasCycle: boolean = false
   lastParent: string | null = null
 
@@ -26,8 +26,8 @@ export class ParentChain {
 
     if (this.lastParent) {
       this.childToParent.set(this.lastParent, parent)
-      this.parentToChild.set(parent, this.lastParent)
     }
+    this.parentToChild.set(parent, this.lastParent)
 
     this.lastParent = parent
   }
@@ -45,11 +45,12 @@ export class ParentChain {
   }
 
   [Symbol.iterator](): IterableIterator<string> {
-    return this.childToParent.values()[Symbol.iterator]()
+    return this.parentToChild.keys()[Symbol.iterator]()
   }
 }
 
 class ChildParentIterator {
+  firstParent: string | null
   lastParent: string | null
 
   constructor(
@@ -57,20 +58,21 @@ class ChildParentIterator {
     lastParent: string | null = null,
   ) {
     this.lastParent = lastParent
+    this.firstParent = lastParent
   }
 
   next(): { value: [string, string]; done: boolean } {
     if (this.lastParent) {
       let child = this.chain.parentToChild.get(this.lastParent)
-      if (!child) {
-        return { value: null as any, done: true }
+      if (!child || child === this.firstParent) {
+        return { done: true, value: undefined! }
       }
 
       let result: [string, string] = [child, this.lastParent]
       this.lastParent = child
       return { value: result, done: false }
     } else {
-      return { value: null as any, done: true }
+      return { done: true, value: undefined! }
     }
   }
 }
