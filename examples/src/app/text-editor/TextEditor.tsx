@@ -4,6 +4,7 @@ import { useText, useAwareness } from '@y-sweet/react'
 import { useEffect, useRef } from 'react'
 import { QuillBinding } from 'y-quill'
 import Title from '@/components/Title'
+import CopyLink from '@/components/CopyLink'
 
 import 'quill/dist/quill.snow.css'
 
@@ -48,6 +49,7 @@ export function TextEditor() {
       <div className="bg-white/90">
         <div ref={editorRef} />
       </div>
+      <CopyLink />
     </div>
   )
 }
