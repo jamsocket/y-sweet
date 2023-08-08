@@ -1,3 +1,5 @@
+// Called from .github/workflows/check-ts-format.yml
+
 import fs from 'fs';
 import path from 'path';
 
