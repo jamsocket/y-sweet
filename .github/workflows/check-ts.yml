@@ -1,4 +1,4 @@
-name: Check TypeScript Format
+name: Check TypeScript code
 
 on:
   push:
@@ -33,3 +33,6 @@ jobs:
     - name: Check Formatting of SDK
       run: npx prettier --check "src/**/*.{ts,tsx}"
       working-directory: js-pkg/sdk/
+
+    - name: Check that workspace package versions match
+      run: npx ts-node .github/workflows/check.ts
