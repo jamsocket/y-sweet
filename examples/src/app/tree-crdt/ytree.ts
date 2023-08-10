@@ -21,11 +21,135 @@ function highestPriorityParent(map: Record<string, number>): [string | null, num
   return [maxParent, maxPriority]
 }
 
+type JsonNode = {
+  parent: {
+    [key: string]: number
+  },
+  [key: string]: any
+}
+
+type JsonMap = {
+  [key: string]: JsonNode
+}
+
+export function buildTree(map: JsonMap): [Map<string, NodeRelations>, number] {
+  let maxClock = 0
+
+  // First, parent any child that can be parented via the most recent entry.
+  // This should usually cover the vast majority of nodes.
+
+  // Map of node IDs to their parent and children.
+  let rootedNodes = new Map<string, NodeRelations>()
+
+  // The root node is special; it cannot be reparented.
+  rootedNodes.set(ROOT_ID, { parent: null, children: new Set<string>() })
+
+  // A map of node IDs that are detached from the root to their children.
+  let unrootedNodes = new Map<string, ParentChain>()
+
+  Object.entries(map).forEach(([id, node]) => {
+    // Chain of unparented parents from the node we started at.
+    // Only unparented parents are added to this list; as soon as we
+    // find a parented node we parent the nodes to that parent in
+    // the reverse order of this list.
+    let parentChain = new ParentChain()
+
+    while (!parentChain.hasCycle()) {
+      if (unrootedNodes.has(id)) {
+        return
+      }
+
+      parentChain.push(id)
+
+      if (rootedNodes.has(id)) {
+        // The parent is part of a chain to the root; go down the chain and parent.
+
+        for (let [child, parent] of parentChain.childParentPairs()) {
+          rootedNodes.get(parent)!.children.add(child)
+          rootedNodes.set(child, { parent: id, children: new Set<string>() })
+        }
+
+        return
+      }
+
+      let [parent, priority] = highestPriorityParent(node[PARENT])
+      maxClock = Math.max(maxClock, priority)
+
+      if (!parent) {
+        console.warn(`Ignoring node ${id} which has no parent.`, node)
+        return
+      }
+
+      let tryNode: JsonNode | undefined
+      if (parent !== ROOT_ID) {
+        tryNode = map[parent]
+        if (!tryNode) {
+          console.warn(`Ignoring node ${parent} which does not exist.`)
+          return
+        }
+      }
+
+      id = parent
+      node = tryNode!
+    }
+
+    for (let node of parentChain) {
+      unrootedNodes.set(node, parentChain)
+    }
+  })
+
+  // Now, parent the cycles.
+
+  let queueBuilder = new RadixPriorityQueueBuilder<[string, string]>() // [child, parent]
+
+  unrootedNodes.forEach((_, nodeId) => {
+    let node = map[nodeId]!
+    let parents: Record<string, number> = node[PARENT]
+    for (let [parent, priority] of Object.entries(parents)) {
+      queueBuilder.addEntry(priority, [nodeId, parent])
+    }
+  })
+
+  let queue = queueBuilder.build()
+
+  for (let [child, parent] of queue) {
+    let parentChain = unrootedNodes.get(child)
+    if (!parentChain) {
+      // node has been parented
+      console.log('node has been parented')
+      continue
+    }
+    if (rootedNodes.has(parent)) {
+      // node's parent has been parented, but node hasn't
+      rootedNodes.get(parent)!.children.add(child)
+      rootedNodes.set(child, { parent: parent, children: new Set<string>() })
+      unrootedNodes.delete(child)
+
+      // loop over children of node and parent them
+      for (let [loopChild, loopParent] of parentChain.childParentPairsFrom(child)) {
+        if (rootedNodes.has(loopChild)) {
+          break // if this node is rooted, its children are too
+        }
+
+        rootedNodes.get(loopParent)!.children.add(loopChild)
+        rootedNodes.set(loopChild, { parent: loopParent, children: new Set<string>() })
+        unrootedNodes.delete(loopChild)
+      }
+    }
+  }
+
+  if (unrootedNodes.size > 0) {
+    console.warn('Some nodes left unrooted!', unrootedNodes)
+  }
+
+  return [rootedNodes, maxClock]
+}
+
 export class YTree {
   // Map of parent id to map of child YTreeNodes. A null parent id means the root.
   structure: Map<string, NodeRelations> = new Map()
   maxClock: number = 0
-  onChange?: () => void = () => {}
+  onChange?: () => void = () => { }
 
   constructor(public map: Y.Map<Y.Map<any>>) {
     this.map.observeDeep((e) => {
@@ -45,113 +169,12 @@ export class YTree {
   updateChildren() {
     let map = this.map.toJSON()
 
-    // First, parent any child that can be parented via the most recent entry.
-    // This should usually cover the vast majority of nodes.
+    console.log('map', map)
+    let [structure, maxClock] = buildTree(map)
+    this.maxClock = maxClock
+    console.log('structure', structure)
 
-    // Map of node IDs to their parent and children.
-    let rootedNodes = new Map<string, NodeRelations>()
-
-    // The root node is special; it cannot be reparented.
-    rootedNodes.set(ROOT_ID, { parent: null, children: new Set<string>() })
-
-    // A map of node IDs that are detached from the root to their children.
-    let unrootedNodes = new Map<string, ParentChain>()
-
-    Object.entries(map).forEach(([id, node]) => {
-      // Chain of unparented parents from the node we started at.
-      // Only unparented parents are added to this list; as soon as we
-      // find a parented node we parent the nodes to that parent in
-      // the reverse order of this list.
-      let parentChain = new ParentChain()
-
-      while (!parentChain.hasCycle()) {
-        if (unrootedNodes.has(id)) {
-          return
-        }
-
-        parentChain.push(id)
-
-        if (rootedNodes.has(id)) {
-          // The parent is part of a chain to the root; go down the chain and parent.
-
-          for (let [child, parent] of parentChain.childParentPairs()) {
-            rootedNodes.get(parent)!.children.add(child)
-            rootedNodes.set(child, { parent: id, children: new Set<string>() })
-          }
-
-          return
-        }
-
-        let [parent, priority] = highestPriorityParent(node[PARENT])
-        this.maxClock = Math.max(this.maxClock, priority)
-
-        if (!parent) {
-          console.warn(`Ignoring node ${id} which has no parent.`, node)
-          return
-        }
-
-        let tryNode: Y.Map<any> | undefined
-        if (parent !== ROOT_ID) {
-          tryNode = map[parent]
-          if (!tryNode) {
-            console.warn(`Ignoring node ${parent} which does not exist.`)
-            return
-          }
-        }
-
-        id = parent
-        node = tryNode!
-      }
-
-      for (let node of parentChain) {
-        unrootedNodes.set(node, parentChain)
-      }
-    })
-
-    // Now, parent the cycles.
-
-    let queueBuilder = new RadixPriorityQueueBuilder<[string, string]>() // [child, parent]
-
-    unrootedNodes.forEach((_, nodeId) => {
-      let node = map[nodeId]!
-      let parents: Record<string, number> = node[PARENT]
-      for (let [parent, priority] of Object.entries(parents)) {
-        queueBuilder.addEntry(priority, [nodeId, parent])
-      }
-    })
-
-    let queue = queueBuilder.build()
-
-    for (let [child, parent] of queue) {
-      let parentChain = unrootedNodes.get(child)
-      if (!parentChain) {
-        // node has been parented
-        console.log('node has been parented')
-        continue
-      }
-      if (rootedNodes.has(parent)) {
-        // node's parent has been parented, but node hasn't
-        rootedNodes.get(parent)!.children.add(child)
-        rootedNodes.set(child, { parent: parent, children: new Set<string>() })
-        unrootedNodes.delete(child)
-
-        // loop over children of node and parent them
-        for (let [loopChild, loopParent] of parentChain.childParentPairsFrom(child)) {
-          if (rootedNodes.has(loopChild)) {
-            break // if this node is rooted, its children are too
-          }
-
-          rootedNodes.get(loopParent)!.children.add(loopChild)
-          rootedNodes.set(loopChild, { parent: loopParent, children: new Set<string>() })
-          unrootedNodes.delete(loopChild)
-        }
-      }
-    }
-
-    if (unrootedNodes.size > 0) {
-      console.warn('Some nodes left unrooted!', unrootedNodes)
-    }
-    this.structure = rootedNodes
+    this.structure = structure
     if (this.onChange) {
       this.onChange()
     }
@@ -162,7 +185,7 @@ export class YTreeNode {
   constructor(
     private _id: string,
     public tree: YTree,
-  ) {}
+  ) { }
 
   id(): string {
     return this._id
