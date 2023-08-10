@@ -129,10 +129,8 @@ export class YTree {
   updateChildren() {
     let map = this.map.toJSON()
 
-    console.log('map', JSON.stringify(map))
     let [structure, maxClock] = buildTree(map)
     this.maxClock = maxClock
-    console.log('structure', JSON.stringify(structure))
 
     this.structure = structure
     if (this.onChange) {
@@ -183,23 +181,28 @@ export class YTreeNode {
       return
     }
 
-    let oldParent = this.tree.structure.get(this._id)!.parent!
+    this.tree.map.doc!.transact(() => {
+      let oldParent = this.tree.structure.get(this._id)!.parent!
 
-    if (newParent.id() === this._id) {
-      return
-    }
-
-    // Detect if the new parent is a descendant of the new child.
-    let probe = newParent.id()
-    while (probe !== ROOT_ID) {
-      let probeParent = this.tree.structure.get(probe)!.parent!
-      if (probeParent === this._id) {
-        this.tree.map.get(probe)!.get(PARENT).set(oldParent, ++this.tree.maxClock)
-        break
+      if (newParent.id() === this._id) {
+        return
       }
-      probe = probeParent
-    }
 
-    this.tree.map.get(this._id)!.get(PARENT).set(newParent.id(), ++this.tree.maxClock)
+      // Detect if the new parent was a descendant of the new child.
+      let probe = newParent.id()
+      while (probe !== ROOT_ID) {
+        let probeParent = this.tree.structure.get(probe)!.parent!
+        if (probeParent === this._id) {
+          // If the new parent was a descendant of the new child, the old node has a
+          // child node (probe) which is an ancestor of the new parent. We promote that child
+          // to the parent's place by reparenting it to the original parent's parent.
+          this.tree.map.get(probe)!.get(PARENT).set(oldParent, ++this.tree.maxClock)
+          break
+        }
+        probe = probeParent
+      }
+
+      this.tree.map.get(this._id)!.get(PARENT).set(newParent.id(), ++this.tree.maxClock)
+    })
   }
 }

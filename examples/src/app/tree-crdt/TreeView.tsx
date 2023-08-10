@@ -5,6 +5,7 @@ import { LayoutNode, NodeBox, Point } from './tree_layout'
 import { ROOT_ID, YTree, YTreeNode } from './ytree'
 import { useMap } from '@y-sweet/react'
 import * as Y from 'yjs'
+import CopyLink from '@/components/CopyLink'
 
 function useDragHelper(callback: (origin: LayoutNode, target: LayoutNode) => void) {
   const [dragOrigin, setDragOrigin] = useState<LayoutNode | null>(null)
@@ -202,5 +203,18 @@ export function TreeView() {
     setTree(root)
   }, [])
 
-  return <div className="p-10">{tree && <Tree root={tree} />}</div>
+  return (
+    <div>
+      <p>
+        This is a variation of Evan Wallace’s{' '}
+        <a href="https://madebyevan.com/algos/crdt-mutable-tree-hierarchy/">
+          Mutable Tree Hierarchy CRDT
+        </a>{' '}
+        on top of Yjs. Double-click a node to add a child; drag a node to another node to reparent
+        it.
+      </p>
+      <div className="p-10">{tree && <Tree root={tree} />}</div>
+      <CopyLink />
+    </div>
+  )
 }

@@ -72,7 +72,7 @@ test('complex conflict', () => {
     },
     k4jn9: { parent: { incec: 8 } },
     nepu5: { parent: { k4jn9: 9 } },
-    bopjo: { parent: { bwyl7: 12 } }, // ignored
+    bopjo: { parent: { bwyl7: 12 } },
   }
 
   let [structure, maxClock] = buildTree(tree)
