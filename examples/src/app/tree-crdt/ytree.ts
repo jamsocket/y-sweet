@@ -1,7 +1,6 @@
 import * as Y from 'yjs'
 import { randomColor, randomString } from './util'
 import { RadixPriorityQueueBuilder } from './radixpq'
-// import { ParentChain } from './parent_chain'
 
 export const ROOT_ID = '__root'
 const PARENT = 'parent'

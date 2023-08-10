@@ -206,7 +206,7 @@ export function TreeView() {
   }, [])
 
   return (
-    <div className='p-4 sm:p-8 space-y-3'>
+    <div className="p-4 sm:p-8 space-y-3">
       <Paragraph>
         This is a variation of Evan Wallace’s{' '}
         <Link href="https://madebyevan.com/algos/crdt-mutable-tree-hierarchy/">
