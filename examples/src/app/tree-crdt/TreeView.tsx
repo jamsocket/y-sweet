@@ -6,6 +6,8 @@ import { ROOT_ID, YTree, YTreeNode } from './ytree'
 import { useMap } from '@y-sweet/react'
 import * as Y from 'yjs'
 import CopyLink from '@/components/CopyLink'
+import Paragraph from '@/components/Paragraph'
+import { Link } from '@/components/Link'
 
 function useDragHelper(callback: (origin: LayoutNode, target: LayoutNode) => void) {
   const [dragOrigin, setDragOrigin] = useState<LayoutNode | null>(null)
@@ -204,16 +206,16 @@ export function TreeView() {
   }, [])
 
   return (
-    <div>
-      <p>
+    <div className='p-4 sm:p-8 space-y-3'>
+      <Paragraph>
         This is a variation of Evan Wallace’s{' '}
-        <a href="https://madebyevan.com/algos/crdt-mutable-tree-hierarchy/">
+        <Link href="https://madebyevan.com/algos/crdt-mutable-tree-hierarchy/">
           Mutable Tree Hierarchy CRDT
-        </a>{' '}
+        </Link>{' '}
         on top of Yjs. Double-click a node to add a child; drag a node to another node to reparent
         it.
-      </p>
-      <div className="p-10">{tree && <Tree root={tree} />}</div>
+      </Paragraph>
+      {tree && <Tree root={tree} />}
       <CopyLink />
     </div>
   )
