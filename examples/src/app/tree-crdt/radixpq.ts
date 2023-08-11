@@ -34,7 +34,7 @@ export class RadixPriorityQueueIterator<T> {
     this.subIter = null
   }
 
-  next(): { value: T; done: boolean } {
+  next(): { value: T; done: false } | { value: void; done: true } {
     while (true) {
       if (this.subIter) {
         const result = this.subIter.next()
@@ -45,7 +45,7 @@ export class RadixPriorityQueueIterator<T> {
       } else {
         const result = this.iter.next()
         if (result.done) {
-          return { value: undefined!, done: true }
+          return { value: undefined, done: true }
         }
         this.subIter = result.value[1]?.entries()
       }
