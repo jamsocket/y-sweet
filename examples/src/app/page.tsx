@@ -30,6 +30,11 @@ export default async function Home({ searchParams }: HomeProps) {
           url="/code-editor"
           description="A collaborative code editor built on top of the open source CodeMirror package."
         />
+        <ProjectLink
+          name="Tree CRDT"
+          url="/tree-crdt"
+          description="A collaborative tree with reparenting."
+        />
       </div>
     </div>
   )
