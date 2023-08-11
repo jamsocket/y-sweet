@@ -1,11 +1,11 @@
-import { defineConfig } from "tsup"
+import { defineConfig } from 'tsup'
 
 export default defineConfig({
-  entry: ["src/main.tsx"],
+  entry: ['src/main.tsx'],
   dts: true,
   splitting: true,
   clean: true,
-  target: "es2020",
-  format: ["esm", "cjs"],
+  target: 'es2020',
+  format: ['esm', 'cjs'],
   sourcemap: true,
 })
