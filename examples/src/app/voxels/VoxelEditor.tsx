@@ -77,7 +77,13 @@ function Voxel(props: { voxel: Voxel; name?: string }) {
     props.voxel.position[2],
   ]
   return (
-    <mesh name={props.name} position={position} scale={1} castShadow={props.voxel.opacity === 1} receiveShadow={true}>
+    <mesh
+      name={props.name}
+      position={position}
+      scale={1}
+      castShadow={props.voxel.opacity === 1}
+      receiveShadow={true}
+    >
       <boxGeometry args={[1, 1, 1]} />
 
       <meshPhongMaterial
