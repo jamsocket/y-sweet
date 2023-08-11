@@ -32,7 +32,7 @@ export function useAwareness(): Awareness {
 }
 
 type UsePresenceOptions = {
-  excludeSelf?: boolean
+  includeSelf?: boolean
 }
 
 export function usePresence<T extends Record<string, any>>(
@@ -41,14 +41,14 @@ export function usePresence<T extends Record<string, any>>(
   const awareness = useAwareness()
   const [presence, setPresence] = useState<Map<number, T>>(new Map())
 
-  const excludeSelf = options?.excludeSelf ?? true
+  const includeSelf = options?.includeSelf || false
 
   useEffect(() => {
     if (awareness) {
       const callback = () => {
         const map = new Map()
         awareness.getStates().forEach((state, clientID) => {
-          if (excludeSelf && clientID === awareness.clientID) return
+          if (!includeSelf && clientID === awareness.clientID) return
 
           if (Object.keys(state).length > 0) {
             map.set(clientID, state)
