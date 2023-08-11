@@ -77,7 +77,7 @@ function Voxel(props: { voxel: Voxel; name?: string }) {
     props.voxel.position[2],
   ]
   return (
-    <mesh name={props.name} position={position} scale={1}>
+    <mesh name={props.name} position={position} scale={1} castShadow={props.voxel.opacity === 1} receiveShadow={true}>
       <boxGeometry args={[1, 1, 1]} />
 
       <meshPhongMaterial
@@ -178,10 +178,12 @@ export function VoxelEditor() {
   return (
     <>
       <div style={{ position: 'absolute', top: 0, right: 0, left: 0, bottom: 0 }}>
-        <Canvas>
+        <Canvas shadows>
           <OrbitControls ref={setInitialCameraPosition} />
-          <ambientLight intensity={1.8} />
-          <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} />
+          <ambientLight intensity={2} />
+          <pointLight position={[0, 10, 0]} intensity={100} castShadow />
+          <pointLight position={[10, 10, 10]} intensity={100} castShadow />
+          <pointLight position={[10, 10, 0]} intensity={100} castShadow />
 
           {ghostPosition ? (
             <Voxel voxel={{ position: ghostPosition, color: 0x000000, opacity: 0.5 }} />
@@ -201,9 +203,9 @@ export function VoxelEditor() {
           <gridHelper args={[DIM, DIM]} position={[0, 0.001, 0]} />
 
           <group onPointerMove={pointerMove} onClick={handleClick}>
-            <mesh scale={1} position={[0, -0.05, 0]}>
+            <mesh scale={1} position={[0, -0.05, 0]} castShadow receiveShadow>
               <boxGeometry args={[DIM, 0.1, DIM]} />
-              <meshStandardMaterial color="#eee" opacity={1} />
+              <meshPhongMaterial color="#eee" opacity={1} />
             </mesh>
             <VoxelSet voxels={voxelArray} />
           </group>
