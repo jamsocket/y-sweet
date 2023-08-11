@@ -53,6 +53,9 @@ function Nav({ curRoute, onClickLink }: { curRoute: string; onClickLink?: () => 
             <NavLink href="/code-editor" curRoute={curRoute}>
               Code Editor
             </NavLink>
+            <NavLink href="/tree-crdt" curRoute={curRoute}>
+              Tree CRDT
+            </NavLink>
           </ul>
           <h3 className="px-6 text-xs tracking-wide text-pink-100 mt-6 mb-2">LEARN</h3>
           <NavLink href="https://y-sweet.dev">Docs</NavLink>
