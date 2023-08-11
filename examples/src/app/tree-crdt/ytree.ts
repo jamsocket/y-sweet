@@ -117,7 +117,7 @@ export class YTree {
     this.updateChildren()
   }
 
-  setOnChange(onChange: () => void) {
+  setOnChange(onChange?: () => void) {
     this.onChange = onChange
   }
 

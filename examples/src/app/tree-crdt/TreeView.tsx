@@ -203,6 +203,10 @@ export function TreeView() {
     let root = tree.root()
 
     setTree(root)
+
+    return () => {
+      tree.setOnChange(undefined)
+    }
   }, [])
 
   return (
