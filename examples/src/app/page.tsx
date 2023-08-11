@@ -30,6 +30,11 @@ export default async function Home({ searchParams }: HomeProps) {
           url="/code-editor"
           description="A collaborative code editor built on top of the open source CodeMirror package."
         />
+        <ProjectLink
+          name="Voxel Editor"
+          url="/voxel-editor"
+          description="A collaborative voxel editor"
+        />
       </div>
     </div>
   )
