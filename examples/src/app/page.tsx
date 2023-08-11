@@ -35,6 +35,11 @@ export default async function Home({ searchParams }: HomeProps) {
           url="/tree-crdt"
           description="A collaborative tree with reparenting."
         />
+        <ProjectLink
+          name="Voxel Draw"
+          url="/voxels"
+          description="A collaborative voxel drawing app."
+        />
       </div>
     </div>
   )
