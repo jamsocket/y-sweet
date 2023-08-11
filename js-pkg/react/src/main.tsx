@@ -31,18 +31,25 @@ export function useAwareness(): Awareness {
   return yjsCtx.provider.awareness
 }
 
-export function usePresence<T extends Record<string, any>>(): [
-  Map<number, T>,
-  (presence: T) => void,
-] {
+type UsePresenceOptions = {
+  excludeSelf?: boolean
+}
+
+export function usePresence<T extends Record<string, any>>(
+  options?: UsePresenceOptions,
+): [Map<number, T>, (presence: T) => void] {
   const awareness = useAwareness()
   const [presence, setPresence] = useState<Map<number, T>>(new Map())
+
+  const excludeSelf = options?.excludeSelf ?? true
 
   useEffect(() => {
     if (awareness) {
       const callback = () => {
         const map = new Map()
         awareness.getStates().forEach((state, clientID) => {
+          if (excludeSelf && clientID === awareness.clientID) return
+
           if (Object.keys(state).length > 0) {
             map.set(clientID, state)
           }
