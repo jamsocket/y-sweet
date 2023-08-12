@@ -3,8 +3,8 @@ export type DocCreationResult = {
 }
 
 export type ClientToken = {
-  url: string
-  doc: string
+  base_url: string
+  doc_id: string
   token?: string
 }
 
