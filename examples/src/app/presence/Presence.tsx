@@ -15,7 +15,7 @@ export function Presence() {
       y: e.clientY - e.currentTarget.offsetTop,
       color: myColor.current,
     })
-  }, [])
+  }, [setPresence])
 
   return (
     <div

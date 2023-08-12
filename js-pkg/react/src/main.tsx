@@ -35,9 +35,24 @@ type UsePresenceOptions = {
   includeSelf?: boolean
 }
 
-export function usePresence<T extends Record<string, any>>(
+export function usePresenceSetter<T extends Record<string, any>>(): (presence: T) => void {
+  const awareness = useAwareness()
+
+  const setLocalPresence = useCallback(
+    (localState: any) => {
+      if (awareness) {
+        awareness.setLocalState(localState)
+      }
+    },
+    [awareness],
+  )
+
+  return setLocalPresence
+}
+
+export function useGetPresence<T extends Record<string, any>>(
   options?: UsePresenceOptions,
-): [Map<number, T>, (presence: T) => void] {
+): Map<number, T> {
   const awareness = useAwareness()
   const [presence, setPresence] = useState<Map<number, T>>(new Map())
 
@@ -64,16 +79,15 @@ export function usePresence<T extends Record<string, any>>(
     }
   }, [awareness])
 
-  const setLocalPresence = useCallback(
-    (localState: any) => {
-      if (awareness) {
-        awareness.setLocalState(localState)
-      }
-    },
-    [awareness],
-  )
+  return presence
+}
 
-  return [presence, setLocalPresence]
+export function usePresence<T extends Record<string, any>>(): [Map<number, T>, (presence: T) => void] {
+  const awareness = useAwareness()
+  const presence = useGetPresence<T>()
+  const setPresence = usePresenceSetter<T>()
+
+  return [presence, setPresence]
 }
 
 type YDocProviderProps = {

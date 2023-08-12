@@ -2,10 +2,10 @@
 
 import { OrbitControls } from '@react-three/drei'
 import { Canvas, ThreeEvent, useFrame } from '@react-three/fiber'
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Compact } from '@uiw/react-color'
+import { useGetPresence, useMap, usePresenceSetter } from '@y-sweet/react'
+import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { Vector3, Vector3Tuple } from 'three'
-import { useMap, usePresence } from '@y-sweet/react'
-import { Circle, Compact, Sketch } from '@uiw/react-color'
 
 const DIM = 15
 const TRANSITION_RATE = 0.08
@@ -121,6 +121,26 @@ function VoxelSet(props: VoxelSetProps) {
   )
 }
 
+type PresenceVoxel = {
+  position: [number, number, number] | null
+  color: string
+}
+
+export function PresenceVoxels() {
+  const presence = useGetPresence<PresenceVoxel>()
+
+  return <>{Array.from(presence.entries()).map(([id, user]) => {
+    if (user.position === null) return null
+
+    return (
+      <MovingVoxel
+        key={id}
+        voxel={{ position: user.position, color: user.color, opacity: 0.5 }}
+      />
+    )
+  })}</>
+}
+
 export function VoxelEditor() {
   const [ghostPosition, setGhostPosition] = useState<[number, number, number] | null>(null)
   const voxels = useMap<Voxel>('voxels')
@@ -134,21 +154,17 @@ export function VoxelEditor() {
     }
   }
 
-  const [presence, updatePresence] = usePresence<{
-    position: [number, number, number] | null
-    color: string
-  }>()
-
-  useMemo(() => {
-    updatePresence({
-      position: ghostPosition,
-      color: color,
-    })
-  }, [color, ghostPosition, updatePresence])
+  const updatePresence = usePresenceSetter<PresenceVoxel>()
 
   const pointerMove = useCallback(
     (event: ThreeEvent<PointerEvent>) => {
-      setGhostPosition(getPosition(event))
+      const position = getPosition(event)
+      setGhostPosition(position)
+
+      updatePresence({
+        position: position,
+        color: color,
+      })
     },
     [setGhostPosition],
   )
@@ -195,16 +211,7 @@ export function VoxelEditor() {
             <Voxel voxel={{ position: ghostPosition, color: 0x000000, opacity: 0.5 }} />
           ) : null}
 
-          {Array.from(presence.entries()).map(([id, user]) => {
-            if (user.position === null) return null
-
-            return (
-              <MovingVoxel
-                key={id}
-                voxel={{ position: user.position, color: user.color, opacity: 0.5 }}
-              />
-            )
-          })}
+          <PresenceVoxels />
 
           <gridHelper args={[DIM, DIM]} position={[0, 0.001, 0]} />
 
