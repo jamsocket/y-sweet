@@ -105,15 +105,15 @@ export function YDocProvider(props: YDocProviderProps) {
       provider.destroy()
       doc.destroy()
     }
-  }, [auth.token, auth.url, auth.doc])
+  }, [auth.token, auth.base_url, auth.doc_id])
 
   useEffect(() => {
     if (props.setQueryParam) {
       const url = new URL(window.location.href)
-      url.searchParams.set(props.setQueryParam, auth.doc)
+      url.searchParams.set(props.setQueryParam, auth.doc_id)
       window.history.replaceState({}, '', url.toString())
     }
-  }, [props.setQueryParam, auth.doc])
+  }, [props.setQueryParam, auth.doc_id])
 
   if (ctx === null) return null
 
