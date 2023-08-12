@@ -129,16 +129,20 @@ type PresenceVoxel = {
 export function PresenceVoxels() {
   const presence = useGetPresence<PresenceVoxel>()
 
-  return <>{Array.from(presence.entries()).map(([id, user]) => {
-    if (user.position === null) return null
+  return (
+    <>
+      {Array.from(presence.entries()).map(([id, user]) => {
+        if (user.position === null) return null
 
-    return (
-      <MovingVoxel
-        key={id}
-        voxel={{ position: user.position, color: user.color, opacity: 0.5 }}
-      />
-    )
-  })}</>
+        return (
+          <MovingVoxel
+            key={id}
+            voxel={{ position: user.position, color: user.color, opacity: 0.5 }}
+          />
+        )
+      })}
+    </>
+  )
 }
 
 export function VoxelEditor() {

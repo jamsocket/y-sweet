@@ -9,13 +9,16 @@ export function Presence() {
   const myColor = useRef(COLORS[Math.floor(Math.random() * COLORS.length)])
   const [presence, setPresence] = usePresence<{ x: number; y: number; color: string }>()
 
-  const updatePresence = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    setPresence({
-      x: e.clientX - e.currentTarget.offsetLeft,
-      y: e.clientY - e.currentTarget.offsetTop,
-      color: myColor.current,
-    })
-  }, [setPresence])
+  const updatePresence = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      setPresence({
+        x: e.clientX - e.currentTarget.offsetLeft,
+        y: e.clientY - e.currentTarget.offsetTop,
+        color: myColor.current,
+      })
+    },
+    [setPresence],
+  )
 
   return (
     <div
