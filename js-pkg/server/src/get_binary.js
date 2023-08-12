@@ -14,7 +14,7 @@ function getSuffix(os_type, os_arch) {
 function binaryUrl(version, os_type, os_arch) {
   const suffix = getSuffix(os_type, os_arch)
 
-  const url = `https://github.com/drifting-in-space/y-sweet/releases/download/v${version}/y-sweet-${suffix}`
+  const url = `https://github.com/drifting-in-space/y-sweet/releases/download/v${version}/y-sweet-server-${suffix}`
   return url
 }
 
