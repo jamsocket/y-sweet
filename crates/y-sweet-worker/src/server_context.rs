@@ -1,4 +1,4 @@
-use crate::{config::Configuration, error::Error, r2_store::R2Store};
+use crate::{config::Configuration, error::Error, r2_store::R2Store, s3_store::S3Store};
 use std::sync::Arc;
 use worker::{Env, Request};
 use y_sweet_core::{auth::Authenticator, store::Store};
@@ -16,8 +16,18 @@ pub struct ServerContext {
 impl ServerContext {
     pub fn new(config: Configuration, env: &Env) -> Self {
         let bucket = env.bucket(&config.bucket).unwrap();
-        let store = R2Store::new(bucket, config.bucket_prefix.clone());
-        let store: Arc<Box<dyn Store>> = Arc::new(Box::new(store));
+        let store: Box<dyn Store> = if let Some(ref s3) = config.s3 {
+            Box::new(S3Store::new(
+                s3.region.clone(),
+                s3.bucket.clone(),
+                s3.bucket_prefix.clone(),
+                s3.key.clone(),
+                s3.secret.clone(),
+            ))
+        } else {
+            Box::new(R2Store::new(bucket, config.bucket_prefix.clone()))
+        };
+        let store: Arc<Box<dyn Store>> = Arc::new(store);
 
         Self {
             config,

@@ -7,12 +7,14 @@ const AUTH_KEY: &str = "AUTH_KEY";
 const CHECKPOINT_FREQ_SECONDS: &str = "CHECKPOINT_FREQ_SECONDS";
 const S3_ACCESS_KEY_ID: &str = "AWS_ACCESS_KEY_ID";
 const S3_SECRET_ACCESS_KEY: &str = "AWS_SECRET_ACCESS_KEY";
+const S3_REGION: &str = "AWS_REGION";
 
 #[derive(Serialize, Deserialize)]
 pub struct S3Config {
     pub key: String,
     pub secret: String,
     pub bucket: String,
+    pub region: String,
     pub bucket_prefix: Option<String>,
 }
 
@@ -39,11 +41,14 @@ impl From<&Env> for Configuration {
                 .unwrap_or(45),
         );
 
-        let s3_config = if let (Ok(aws_access_key_id), Ok(aws_secret_access_key)) =
-            (env.var(S3_ACCESS_KEY_ID), env.var(S3_SECRET_ACCESS_KEY))
-        {
+        let s3_config = if let (Ok(aws_access_key_id), Ok(aws_secret_access_key), Ok(aws_region)) = (
+            env.var(S3_ACCESS_KEY_ID),
+            env.var(S3_SECRET_ACCESS_KEY),
+            env.var(S3_REGION),
+        ) {
             Some(S3Config {
                 key: aws_access_key_id.to_string(),
+                region: aws_region.to_string(),
                 secret: aws_secret_access_key.to_string(),
                 bucket: BUCKET.to_string(),
                 bucket_prefix: None,

@@ -18,8 +18,10 @@ impl S3Store {
         region: String,
         bucket_name: String,
         prefix: Option<String>,
-        credentials: Credentials,
-    ) -> Result<Self, anyhow::Error> {
+        aws_access_key_id: String,
+        aws_secret: String,
+    ) -> Self {
+        let credentials = Credentials::new(aws_access_key_id, aws_secret);
         let endpoint = format!("https://s3.dualstack.{}.amazonaws.com", region)
             .parse()
             .expect("endpoint is a valid Url");
@@ -27,12 +29,12 @@ impl S3Store {
         let bucket = Bucket::new(endpoint, path_style, bucket_name, region)
             .expect("Url has a valid scheme and host");
 
-        Ok(S3Store {
+        S3Store {
             bucket,
             credentials,
             prefix,
             presigned_url_duration: Duration::from_secs(PRESIGNED_URL_DURATION_SECONDS),
-        })
+        }
     }
 
     fn prefixed_key(&self, key: &str) -> String {
@@ -47,7 +49,7 @@ impl S3Store {
 #[async_trait(?Send)]
 impl Store for S3Store {
     async fn get(&self, key: &str) -> Result<Option<Vec<u8>>> {
-		let prefixed_key = self.prefixed_key(key);
+        let prefixed_key = self.prefixed_key(key);
         let object_get = self
             .bucket
             .get_object(Some(&self.credentials), &prefixed_key);
@@ -58,7 +60,7 @@ impl Store for S3Store {
     }
 
     async fn set(&self, key: &str, value: Vec<u8>) -> Result<()> {
-		let prefixed_key = self.prefixed_key(key);
+        let prefixed_key = self.prefixed_key(key);
         let action = self
             .bucket
             .put_object(Some(&self.credentials), &prefixed_key);
@@ -69,7 +71,7 @@ impl Store for S3Store {
     }
 
     async fn remove(&self, key: &str) -> Result<()> {
-		let prefixed_key = self.prefixed_key(key);
+        let prefixed_key = self.prefixed_key(key);
         let action = self
             .bucket
             .delete_object(Some(&self.credentials), &prefixed_key);
@@ -80,7 +82,7 @@ impl Store for S3Store {
     }
 
     async fn exists(&self, key: &str) -> Result<bool> {
-		let prefixed_key = self.prefixed_key(key);
+        let prefixed_key = self.prefixed_key(key);
         let action = self
             .bucket
             .head_object(Some(&self.credentials), &prefixed_key);
