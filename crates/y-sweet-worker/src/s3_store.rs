@@ -47,9 +47,10 @@ impl S3Store {
 #[async_trait(?Send)]
 impl Store for S3Store {
     async fn get(&self, key: &str) -> Result<Option<Vec<u8>>> {
+		let prefixed_key = self.prefixed_key(key);
         let object_get = self
             .bucket
-            .get_object(Some(&self.credentials), &self.prefixed_key(key));
+            .get_object(Some(&self.credentials), &prefixed_key);
         let presigned_url = object_get.sign(self.presigned_url_duration);
         let client = Client::new();
         let response = client.get(presigned_url).send().await?;
@@ -57,19 +58,21 @@ impl Store for S3Store {
     }
 
     async fn set(&self, key: &str, value: Vec<u8>) -> Result<()> {
+		let prefixed_key = self.prefixed_key(key);
         let action = self
             .bucket
-            .put_object(Some(&self.credentials), &self.prefixed_key(key));
+            .put_object(Some(&self.credentials), &prefixed_key);
         let presigned_url = action.sign(self.presigned_url_duration);
         let client = Client::new();
-        let response = client.put(presigned_url).body(value).send().await?;
+        let _response = client.put(presigned_url).body(value).send().await?;
         Ok(())
     }
 
     async fn remove(&self, key: &str) -> Result<()> {
+		let prefixed_key = self.prefixed_key(key);
         let action = self
             .bucket
-            .delete_object(Some(&self.credentials), &self.prefixed_key(key));
+            .delete_object(Some(&self.credentials), &prefixed_key);
         let presigned_url = action.sign(self.presigned_url_duration);
         let client = Client::new();
         client.delete(presigned_url).send().await?;
@@ -77,11 +80,13 @@ impl Store for S3Store {
     }
 
     async fn exists(&self, key: &str) -> Result<bool> {
+		let prefixed_key = self.prefixed_key(key);
         let action = self
             .bucket
-            .head_object(Some(&self.credentials), &self.prefixed_key(key));
+            .head_object(Some(&self.credentials), &prefixed_key);
         let presigned_url = action.sign(self.presigned_url_duration);
         let client = Client::new();
+		//this should only return false if 404? I think?
         Ok(client.head(presigned_url).send().await?.status() == StatusCode::OK)
     }
 }
