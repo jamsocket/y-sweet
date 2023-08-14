@@ -1,11 +1,11 @@
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use rusty_s3::{Credentials, Bucket, S3Action};
-use std::{time::Duration, intrinsics::ptr_offset_from_unsigned};
+use std::time::Duration;
 use reqwest::{Client, StatusCode};
 use y_sweet_core::store::Store;
 
-const PRESIGNED_URL_DURATION_SECONDS = 60 * 60;
+const PRESIGNED_URL_DURATION_SECONDS: u64 = 60 * 60;
 pub struct S3Store {
 	bucket: Bucket,
 	credentials: Credentials,
