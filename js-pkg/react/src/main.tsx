@@ -82,7 +82,10 @@ export function useGetPresence<T extends Record<string, any>>(
   return presence
 }
 
-export function usePresence<T extends Record<string, any>>(): [Map<number, T>, (presence: T) => void] {
+export function usePresence<T extends Record<string, any>>(): [
+  Map<number, T>,
+  (presence: T) => void,
+] {
   const awareness = useAwareness()
   const presence = useGetPresence<T>()
   const setPresence = usePresenceSetter<T>()
