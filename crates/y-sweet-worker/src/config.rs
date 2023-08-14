@@ -5,11 +5,22 @@ use worker::Env;
 const BUCKET: &str = "Y_SWEET_DATA";
 const AUTH_KEY: &str = "AUTH_KEY";
 const CHECKPOINT_FREQ_SECONDS: &str = "CHECKPOINT_FREQ_SECONDS";
+const S3_ACCESS_KEY_ID: &str = "AWS_ACCESS_KEY_ID";
+const S3_SECRET_ACCESS_KEY: &str = "AWS_SECRET_ACCESS_KEY";
+
+#[derive(Serialize, Deserialize)]
+pub struct S3Config {
+    pub key: String,
+    pub secret: String,
+    pub bucket: String,
+    pub bucket_prefix: Option<String>,
+}
 
 #[derive(Serialize, Deserialize)]
 pub struct Configuration {
     pub auth_key: Option<String>,
     pub bucket: String,
+    pub s3: Option<S3Config>,
     pub bucket_prefix: Option<String>,
     pub url_prefix: Option<String>,
     pub timeout_interval: Duration,
@@ -27,9 +38,23 @@ impl From<&Env> for Configuration {
                 })
                 .unwrap_or(45),
         );
+
+        let s3_config = if let (Ok(aws_access_key_id), Ok(aws_secret_access_key)) =
+            (env.var(S3_ACCESS_KEY_ID), env.var(S3_SECRET_ACCESS_KEY))
+        {
+            Some(S3Config {
+                key: aws_access_key_id.to_string(),
+                secret: aws_secret_access_key.to_string(),
+                bucket: BUCKET.to_string(),
+                bucket_prefix: None,
+            })
+        } else {
+            None
+        };
         Self {
             auth_key,
             bucket: BUCKET.to_string(),
+            s3: s3_config,
             bucket_prefix: None,
             url_prefix: None,
             timeout_interval,
