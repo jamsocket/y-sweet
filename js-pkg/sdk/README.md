@@ -1,8 +1,12 @@
+<img src="https://raw.githubusercontent.com/drifting-in-space/y-sweet/main/logo.svg" />
+
 # @y-sweet/sdk
 
-JavaScript/TypeScript backend SDK for building collaboration features with y-sweet.
+[![GitHub Repo stars](https://img.shields.io/github/stars/drifting-in-space/y-sweet?style=social)](https://github.com/drifting-in-space/y-sweet)
+[![Chat on Discord](https://img.shields.io/static/v1?label=chat&message=discord&color=404eed)](https://discord.gg/N5sEpsuhh9)
+[![npm](https://img.shields.io/npm/v/@y-sweet/sdk)](https://www.npmjs.com/package/@y-sweet/sdk)
 
-[![Version](https://img.shields.io/npm/v/@y-sweet/sdk)](https://npmjs.org/package/@y-sweet/sdk)
+JavaScript/TypeScript backend SDK for building collaboration features with y-sweet.
 
 ## Installation
 ```
@@ -41,15 +45,10 @@ type HomeProps = {
 }
 
 export default async function Home({ searchParams }: HomeProps) {
-    // In production, you can put the entire `apiToken` JSON string into a secret
-    // store and pass it directly to getOrCreateDoc, as in:
-    //     getOrCreateDoc(myDocId, process.env.Y_SWEET_CONFIG)
-    const apiToken = {
-        "endpoint": "https://y-sweet.net/project/EMwBNR17f4cn1SN1uFERi/",
-        "token": "AAAgBQcOc66DXGOCecN17S4VciBCb9eR/GGsFH4H8M9hhY4="
-    }
+    // Point to a local or production y-sweet server.
+    const apiEndpoint = "http://localhost:8080"
 
-    const clientToken = await getOrCreateDoc(searchParams.doc, apiToken)
+    const clientToken = await getOrCreateDoc(searchParams.doc, apiEndpoint)
 
     return (
         <YDocProvider clientToken={clientToken} setQueryParam="doc">
