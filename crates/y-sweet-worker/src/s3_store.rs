@@ -86,7 +86,7 @@ impl Store for S3Store {
             .head_object(Some(&self.credentials), &prefixed_key);
         let presigned_url = action.sign(self.presigned_url_duration);
         let client = Client::new();
-		//this should only return false if 404? I think?
+        //this should only return false if 404? I think?
         Ok(client.head(presigned_url).send().await?.status() == StatusCode::OK)
     }
 }
