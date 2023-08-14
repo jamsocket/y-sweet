@@ -1,4 +1,9 @@
+<img src="https://raw.githubusercontent.com/drifting-in-space/y-sweet/main/logo.svg" />
+
 # @y-sweet/react
+
+[![GitHub Repo stars](https://img.shields.io/github/stars/drifting-in-space/y-sweet?style=social)](https://github.com/drifting-in-space/y-sweet)
+[![Chat on Discord](https://img.shields.io/static/v1?label=chat&message=discord&color=404eed)](https://discord.gg/N5sEpsuhh9)
 
 React library for building collaboration features with y-sweet.
 
@@ -119,7 +124,3 @@ setPresence({
     ))}
 </div>
 ```
-
-## Community
-- Discord
-- Twitter
