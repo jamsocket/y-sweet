@@ -13,6 +13,24 @@ export type ServerToken = {
   token?: string
 }
 
+export type YSweetErrorPayload =
+  | { code: 'ServerRefused'; address: string; port: number }
+  | { code: 'ServerError'; status: number; message: string }
+  | { code: 'NoAuthProvided' }
+  | { code: 'InvalidAuthProvided' }
+  | { code: 'Unknown'; message: string }
+
+export class YSweetError extends Error {
+  constructor(public cause: YSweetErrorPayload) {
+    super(YSweetError.getMessage(cause))
+    this.name = 'YSweetError'
+  }
+
+  static getMessage(payload: YSweetErrorPayload): string {
+    return 'Unknown error'
+  }
+}
+
 export class DocumentManager {
   baseUrl: string
   token?: string
@@ -55,14 +73,36 @@ export class DocumentManager {
       method = 'POST'
     }
 
-    const result = await fetch(`${this.baseUrl}/${url}`, {
-      method,
-      body,
-      cache: 'no-store',
-      headers,
-    })
+    let result: Response
+    try {
+      result = await fetch(`${this.baseUrl}/${url}`, {
+        method,
+        body,
+        cache: 'no-store',
+        headers,
+      })
+    } catch (error: any) {
+      if (error.cause?.code === 'ECONNREFUSED') {
+        let { address, port } = error.cause
+        throw new YSweetError({ code: 'ServerRefused', address, port })
+      } else if (error.toString().includes('401 Unauthorized')) {
+        if (this.token) {
+          throw new YSweetError({ code: 'InvalidAuthProvided' })
+        } else {
+          throw new YSweetError({ code: 'NoAuthProvided' })
+        }
+      } else {
+        console.log('failed to fetch', error.toString()) // todo: status
+        throw new YSweetError({ code: 'ServerError', status: 0, message: error.toString() })
+      }
+    }
+
     if (!result.ok) {
-      throw new Error(`Failed to fetch ${url}: ${result.status} ${result.statusText}`)
+      throw new YSweetError({
+        code: 'ServerError',
+        status: result.status,
+        message: result.statusText,
+      })
     }
 
     return result

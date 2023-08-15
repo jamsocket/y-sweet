@@ -1,50 +1,45 @@
 import { Y_SWEET_CONFIG } from '@/lib/config'
 import { YDocProvider } from '@y-sweet/react'
-import { createDoc, getClientToken } from '@y-sweet/sdk'
+import { createDoc, getClientToken, YSweetError } from '@y-sweet/sdk'
 
 type WrappedDocProviderProps = {
   children: React.ReactNode
   searchParams: Record<string, string>
 }
 
-function Error(props: { error: any }) {
-  let { error } = props
+function Samp(props: { children: React.ReactNode }) {
+  return <samp className="bg-red-100 p-1 rounded-md font-bold">{props.children}</samp>
+}
 
-  if (error.cause?.code === 'ECONNREFUSED') {
-    let { address, port } = error.cause
-    return address === '127.0.0.1' ? ( // todo: IPV6 support
-      <p>
-        It looks like you are trying to connect to a local server, but one isn’t running. Run{' '}
-        <samp>npx y-sweet serve{port !== 8080 ? ` --port ${port}` : null}</samp> to run a local
-        server.
-      </p>
-    ) : (
-      <p>
-        Try{' '}
-        <samp>
-          curl {address}:{port}
-        </samp>{' '}
-        to verify the server is running.
-      </p>
-    )
-  } else if (error.toString().includes('401 Unauthorized')) {
-    let containsAuthHeader = false
-    if (Y_SWEET_CONFIG) {
-      let url = new URL(Y_SWEET_CONFIG)
-      containsAuthHeader = url.username !== ''
-    }
+function Error(props: { error: YSweetError }) {
+  let { cause } = props.error
 
-    return containsAuthHeader ? (
-      <p>The server token provided was not accepted by the y-sweet server.</p>
-    ) : (
-      <p>The server expects an authorization header, but the request does not include one.</p>
-    )
-  } else if (error.toString().includes('Failed to fetch')) {
+  if (cause.code === 'ServerRefused' && cause.address === '127.0.0.1') {
+    let portArg = cause.port ? `--port ${cause.port}` : ''
     return (
       <p>
-        The server responds, but returns a non-200 status code. Make sure the server is a y-sweet
-        server, and not something else.
+        It looks like you are trying to connect to a local server, but one isn’t running. Run{' '}
+        <Samp>npx y-sweet serve {portArg}</Samp> to start a local server.
       </p>
+    )
+  } else if (cause.code === 'ServerRefused') {
+    return <p>Couldn’t connect to the y-sweet server.</p>
+  } else if (cause.code === 'InvalidAuthProvided') {
+    return <p>The server token provided was not accepted by the y-sweet server.</p>
+  } else if (cause.code === 'NoAuthProvided') {
+    return <p>The server expects an authorization header, but the request does not include one.</p>
+  } else if (cause.code === 'ServerError') {
+    return (
+      <>
+        <p>
+          The server responds, but returned the status code{' '}
+          <Samp>
+            {cause.status}: {cause.message}
+          </Samp>
+          .
+        </p>
+        <p>Make sure this is really a y-sweet server.</p>
+      </>
     )
   } else {
     return <p>Check the console for more information.</p>
@@ -77,7 +72,7 @@ export async function WrappedDocProvider(props: WrappedDocProviderProps) {
               <h3 className="text-sm font-medium text-red-800">
                 Error connecting to y-sweet server
               </h3>
-              <div className="mt-2 text-sm text-red-700">
+              <div className="mt-2 text-sm text-red-700 space-y-2">
                 <Error error={error} />
               </div>
             </div>
