@@ -102,8 +102,7 @@ export class DocumentManager {
           throw new YSweetError({ code: 'NoAuthProvided' })
         }
       } else {
-        console.log('failed to fetch', error.toString()) // todo: status
-        throw new YSweetError({ code: 'ServerError', status: 0, message: error.toString() })
+        throw new YSweetError({ code: 'Unknown', message: error.toString() })
       }
     }
 
