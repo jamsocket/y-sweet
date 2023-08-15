@@ -1,6 +1,6 @@
 use base64::{
     alphabet::{STANDARD, URL_SAFE},
-    engine::{general_purpose, DecodePaddingMode, GeneralPurpose, GeneralPurposeConfig},
+    engine::{DecodePaddingMode, GeneralPurpose, GeneralPurposeConfig},
     Engine,
 };
 use bincode::Options;
@@ -59,8 +59,10 @@ fn bincode_decode<'a, T: Deserialize<'a>>(bytes: &'a [u8]) -> Result<T, bincode:
 }
 
 fn b64_encode(bytes: &[u8]) -> String {
+    let config = GeneralPurposeConfig::new().with_encode_padding(false);
+    let engine = GeneralPurpose::new(&URL_SAFE, config);
     let mut buf = String::new();
-    general_purpose::STANDARD.encode_string(bytes, &mut buf);
+    engine.encode_string(bytes, &mut buf);
     buf
 }
 
@@ -254,6 +256,13 @@ mod tests {
 
         assert_eq!(b64_decode("A_ID-Abcdg==").unwrap(), expect);
         assert_eq!(b64_decode("A_ID-Abcdg").unwrap(), expect);
+    }
+
+    #[test]
+    fn test_b64_encode_options() {
+        let data = [3, 242, 3, 248, 6, 220, 118];
+
+        assert_eq!(b64_encode(&data), "A_ID-Abcdg");
     }
 
     #[test]
