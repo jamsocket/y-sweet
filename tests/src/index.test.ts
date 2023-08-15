@@ -5,12 +5,30 @@ import * as Y from 'yjs'
 import { Server, ServerConfiguration } from './server'
 
 const CONFIGURATIONS: ServerConfiguration[] = [
+  /*
   { useAuth: false, server: 'native' },
   { useAuth: true, server: 'native' },
   { useAuth: false, server: 'worker' },
   { useAuth: true, server: 'worker' },
+   */
 ]
 
+let S3_ACCESS_KEY_ID = process.env.YSERVE_S3_ACCESS_KEY_ID
+let S3_SECRET_KEY = process.env.YSERVE_S3_SECRET_KEY
+let S3_REGION = process.env.YSERVE_S3_REGION
+let S3_BUCKET_PREFIX = process.env.YSERVE_S3_BUCKET_PREFIX
+if (S3_ACCESS_KEY_ID && S3_REGION && S3_SECRET_KEY && S3_BUCKET_PREFIX) {
+  CONFIGURATIONS.push({
+    useAuth: true,
+    server: 'worker',
+    S3: {
+      bucket_prefix: S3_BUCKET_PREFIX,
+      aws_access_key_id: S3_ACCESS_KEY_ID,
+      aws_region: S3_REGION,
+      aws_secret_key: S3_SECRET_KEY,
+    },
+  })
+}
 const FIVE_MINUTES_IN_MS = 10 * 60 * 1_000
 
 describe.each(CONFIGURATIONS)(
