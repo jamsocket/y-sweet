@@ -1,21 +1,27 @@
 'use client'
 
-import { usePresence } from '@y-sweet/react'
+import { usePresence, usePresenceSetter } from '@y-sweet/react'
 import { useCallback, useRef } from 'react'
 
 const COLORS = ['bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-pink-500']
 
+type Presence = { x: number; y: number; color: string }
+
 export function Presence() {
   const myColor = useRef(COLORS[Math.floor(Math.random() * COLORS.length)])
-  const [presence, setPresence] = usePresence<{ x: number; y: number; color: string }>()
+  const presence = usePresence<Presence>()
+  const setPresence = usePresenceSetter<Presence>()
 
-  const updatePresence = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    setPresence({
-      x: e.clientX - e.currentTarget.offsetLeft,
-      y: e.clientY - e.currentTarget.offsetTop,
-      color: myColor.current,
-    })
-  }, [])
+  const updatePresence = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      setPresence({
+        x: e.clientX - e.currentTarget.offsetLeft,
+        y: e.clientY - e.currentTarget.offsetTop,
+        color: myColor.current,
+      })
+    },
+    [setPresence],
+  )
 
   return (
     <div
