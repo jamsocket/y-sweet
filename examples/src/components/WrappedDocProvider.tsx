@@ -15,11 +15,11 @@ function Error(props: { error: YSweetError }) {
   let { cause } = props.error
 
   if (cause.code === 'ServerRefused' && cause.address === '127.0.0.1') {
-    let portArg = cause.port ? `--port ${cause.port}` : ''
+    let portArg = cause.port ? ` --port ${cause.port}` : ''
     return (
       <p>
         It looks like you are trying to connect to a local server, but one isn’t running. Run{' '}
-        <Samp>npx y-sweet serve {portArg}</Samp> to start a local server.
+        <Samp>npx y-sweet serve{portArg}</Samp> to start a local server.
       </p>
     )
   } else if (cause.code === 'ServerRefused') {
