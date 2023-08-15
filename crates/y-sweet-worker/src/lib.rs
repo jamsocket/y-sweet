@@ -126,15 +126,21 @@ async fn auth_doc(
         .map(|auth| auth.gen_doc_token(&doc_id, get_time_millis_since_epoch()));
 
     let url = if let Some(url_prefix) = &ctx.data.config.url_prefix {
-        let mut parsed = Url::parse(url_prefix).map_err(|_| Error::ConfigurationError)?;
+        let mut parsed = Url::parse(url_prefix).map_err(|_| Error::ConfigurationError {
+            field: "url_prefix".to_string(),
+            value: url_prefix.to_string(),
+        })?;
         match parsed.scheme() {
             "http" => parsed.set_scheme("ws").map_err(|_| Error::InternalError)?,
             "https" => parsed.set_scheme("wss").map_err(|_| Error::InternalError)?,
-            _ => return Err(Error::ConfigurationError),
+            _ => {
+                return Err(Error::ConfigurationError {
+                    field: "url_prefix".to_string(),
+                    value: url_prefix.to_string(),
+                })
+            }
         };
-        let result = parsed.join("/doc/ws").unwrap();
-
-        result.to_string()
+        format!("{parsed}/doc/ws")
     } else {
         let host = req
             .headers()
