@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use async_trait::async_trait;
 use reqwest::{Client, StatusCode};
 use rusty_s3::{Bucket, Credentials, S3Action};
@@ -89,6 +89,13 @@ impl Store for S3Store {
         let presigned_url = action.sign(self.presigned_url_duration);
         let client = Client::new();
         //this should only return false if 404? I think?
-        Ok(client.head(presigned_url).send().await?.status() == StatusCode::OK)
+        let res_status = client.head(presigned_url).send().await?.status();
+        match res_status {
+            StatusCode::OK => Ok(true),
+            StatusCode::NOT_FOUND => Ok(false),
+            _ => Err(anyhow::anyhow!(format!(
+                "Existence check for bucket failed with HTTP Error Code: {res_status}"
+            ))),
+        }
     }
 }
