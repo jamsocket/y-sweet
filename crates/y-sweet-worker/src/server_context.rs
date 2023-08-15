@@ -35,10 +35,13 @@ impl ServerContext {
                 auth_key.to_owned()
             };
 
-            self.auth = Some(Authenticator::new(&auth_key).map_err(|_| Error::ConfigurationError {
-                field: "auth_key".to_string(),
-                value: auth_key,
-            })?);
+            self.auth =
+                Some(
+                    Authenticator::new(&auth_key).map_err(|_| Error::ConfigurationError {
+                        field: "auth_key".to_string(),
+                        value: auth_key,
+                    })?,
+                );
         }
 
         Ok(Some(self.auth.as_ref().unwrap()))

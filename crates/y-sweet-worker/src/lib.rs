@@ -130,10 +130,12 @@ async fn auth_doc(
         match parsed.scheme() {
             "http" => parsed.set_scheme("ws").map_err(|_| Error::InternalError)?,
             "https" => parsed.set_scheme("wss").map_err(|_| Error::InternalError)?,
-            _ => return Err(Error::ConfigurationError {
-                field: "url_prefix".to_string(),
-                value: url_prefix.to_string(),
-            }),
+            _ => {
+                return Err(Error::ConfigurationError {
+                    field: "url_prefix".to_string(),
+                    value: url_prefix.to_string(),
+                })
+            }
         };
         format!("{parsed}/doc/ws")
     } else {

@@ -14,10 +14,7 @@ pub enum Error {
     #[error("Client auth header provided but not valid.")]
     BadClientAuthHeader,
     #[error("Configuration error parsing field '{field}' with value '{value}'.")]
-    ConfigurationError {
-        field: String,
-        value: String,
-    },
+    ConfigurationError { field: String, value: String },
     #[error("Missing 'host' header.")]
     MissingHostHeader,
     #[error("No such document.")]
@@ -33,7 +30,7 @@ impl Error {
         match self {
             Self::ExpectedAuthHeader => 401,
             Self::BadAuthHeader => 403,
-            Self::ConfigurationError {..} => 500,
+            Self::ConfigurationError { .. } => 500,
             Self::MissingHostHeader => 400,
             Self::NoSuchDocument => 404,
             Self::UpstreamConnectionError => 500,
@@ -65,7 +62,7 @@ impl<T: Serialize> IntoResponse<T> for Result<T, Error> {
             Err(err) => {
                 console_error!("Error: {:?}", err);
                 err.into()
-            },
+            }
         }
     }
 }
