@@ -3,7 +3,7 @@
 import { OrbitControls } from '@react-three/drei'
 import { Canvas, ThreeEvent, useFrame } from '@react-three/fiber'
 import { Compact } from '@uiw/react-color'
-import { useGetPresence, useMap, usePresenceSetter } from '@y-sweet/react'
+import { usePresence, useMap, usePresenceSetter } from '@y-sweet/react'
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { Vector3, Vector3Tuple } from 'three'
 
@@ -127,7 +127,7 @@ type PresenceVoxel = {
 }
 
 export function PresenceVoxels() {
-  const presence = useGetPresence<PresenceVoxel>()
+  const presence = usePresence<PresenceVoxel>()
 
   return (
     <>

@@ -50,7 +50,7 @@ export function usePresenceSetter<T extends Record<string, any>>(): (presence: T
   return setLocalPresence
 }
 
-export function useGetPresence<T extends Record<string, any>>(
+export function usePresence<T extends Record<string, any>>(
   options?: UsePresenceOptions,
 ): Map<number, T> {
   const awareness = useAwareness()
@@ -80,17 +80,6 @@ export function useGetPresence<T extends Record<string, any>>(
   }, [awareness])
 
   return presence
-}
-
-export function usePresence<T extends Record<string, any>>(): [
-  Map<number, T>,
-  (presence: T) => void,
-] {
-  const awareness = useAwareness()
-  const presence = useGetPresence<T>()
-  const setPresence = usePresenceSetter<T>()
-
-  return [presence, setPresence]
 }
 
 type YDocProviderProps = {
