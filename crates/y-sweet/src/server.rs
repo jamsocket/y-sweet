@@ -152,7 +152,9 @@ impl Server {
     ) -> Result<(), StatusCode> {
         if let Some(auth) = &self.authenticator {
             if let Some(TypedHeader(headers::Authorization(bearer))) = header {
-                if bearer.token() == auth.server_token() {
+                if let Ok(()) =
+                    auth.verify_server_token(&bearer.token(), current_time_epoch_millis())
+                {
                     return Ok(());
                 }
             }
