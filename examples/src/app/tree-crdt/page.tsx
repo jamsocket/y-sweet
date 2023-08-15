@@ -1,6 +1,4 @@
-import { ENV_CONFIG } from '@/lib/config'
-import { YDocProvider } from '@y-sweet/react'
-import { getOrCreateDoc } from '@y-sweet/sdk'
+import { WrappedDocProvider } from '@/components/WrappedDocProvider'
 import { TreeView } from './TreeView'
 
 type HomeProps = {
@@ -8,11 +6,7 @@ type HomeProps = {
 }
 
 export default async function Home({ searchParams }: HomeProps) {
-  const clientToken = await getOrCreateDoc(searchParams.doc, ENV_CONFIG)
-
-  return (
-    <YDocProvider clientToken={clientToken} setQueryParam="doc">
-      <TreeView />
-    </YDocProvider>
-  )
+  return <WrappedDocProvider searchParams={searchParams}>
+    <TreeView />
+  </WrappedDocProvider>
 }

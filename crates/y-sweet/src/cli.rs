@@ -43,7 +43,7 @@ pub fn print_auth_message(auth: &Authenticator) {
     println!();
     println!(
         "   {} {} {}",
-        "y-sweeet serve".bright_black(),
+        "y-sweet serve".bright_black(),
         "--auth".bright_white().bold(),
         auth.private_key().bright_blue().bold()
     );

@@ -4,9 +4,9 @@
 // variable, the stringified version is accepted everywhere the
 // DocumentManagerOptions type is.
 
-export const ENV_CONFIG: string | undefined = process.env.Y_SWEET_CONFIG
+export const Y_SWEET_CONFIG: string | undefined = process.env.Y_SWEET_CONFIG
 
-if (ENV_CONFIG) {
+if (Y_SWEET_CONFIG) {
   console.log('Using config from environment variable Y_SWEET_CONFIG')
 } else {
   console.log('Using default config')
