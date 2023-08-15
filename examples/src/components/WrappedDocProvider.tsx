@@ -42,7 +42,7 @@ function Error(props: { error: YSweetError }) {
       </>
     )
   } else {
-    return <p>Check the console for more information.</p>
+    return <p>Check the server console for more information.</p>
   }
 }
 

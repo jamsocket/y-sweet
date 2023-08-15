@@ -27,7 +27,17 @@ export class YSweetError extends Error {
   }
 
   static getMessage(payload: YSweetErrorPayload): string {
-    return 'Unknown error'
+    if (payload.code === 'ServerRefused') {
+      return `Server at ${payload.address}:${payload.port} refused connection`
+    } else if (payload.code === 'ServerError') {
+      return `Server responded with ${payload.status} ${payload.message}`
+    } else if (payload.code === 'NoAuthProvided') {
+      return 'No auth provided'
+    } else if (payload.code === 'InvalidAuthProvided') {
+      return 'Invalid auth provided'
+    } else {
+      return payload.message
+    }
   }
 }
 
