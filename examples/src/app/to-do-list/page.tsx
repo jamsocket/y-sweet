@@ -6,7 +6,9 @@ type HomeProps = {
 }
 
 export default async function Home({ searchParams }: HomeProps) {
-  return <WrappedDocProvider searchParams={searchParams}>
-    <ToDoList />
-  </WrappedDocProvider>
+  return (
+    <WrappedDocProvider searchParams={searchParams}>
+      <ToDoList />
+    </WrappedDocProvider>
+  )
 }
