@@ -1,4 +1,8 @@
-use base64::{engine::general_purpose, Engine};
+use base64::{
+    alphabet::{STANDARD, URL_SAFE},
+    engine::{general_purpose, DecodePaddingMode, GeneralPurpose, GeneralPurposeConfig},
+    Engine,
+};
 use bincode::Options;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
@@ -61,9 +65,18 @@ fn b64_encode(bytes: &[u8]) -> String {
 }
 
 fn b64_decode(str: &str) -> Result<Vec<u8>, AuthError> {
-    general_purpose::STANDARD
-        .decode(str)
-        .map_err(|_| AuthError::InvalidToken)
+    let config =
+        GeneralPurposeConfig::new().with_decode_padding_mode(DecodePaddingMode::Indifferent);
+    let engine = GeneralPurpose::new(&STANDARD, config);
+
+    if let Ok(result) = engine.decode(str) {
+        return Ok(result);
+    }
+
+    // If we failed with STANDARD, try with URL_SAFE.
+    let engine = GeneralPurpose::new(&URL_SAFE, config);
+
+    engine.decode(str).map_err(|_| AuthError::InvalidToken)
 }
 
 mod b64 {
@@ -162,6 +175,21 @@ impl Authenticator {
         &self.server_token
     }
 
+    pub fn verify_server_token(
+        &self,
+        token: &str,
+        current_time_epoch_millis: u64,
+    ) -> Result<(), AuthError> {
+        let payload = Payload::verify(token, &self.private_key, current_time_epoch_millis)?;
+        match payload {
+            Payload {
+                payload: Permission::Server,
+                ..
+            } => Ok(()),
+            _ => Err(AuthError::InvalidResource),
+        }
+    }
+
     pub fn private_key(&self) -> String {
         b64_encode(&self.private_key)
     }
@@ -205,7 +233,7 @@ impl Authenticator {
     }
 
     pub fn gen_key() -> Result<Authenticator, AuthError> {
-        let key = rand::thread_rng().gen::<[u8; 32]>();
+        let key = rand::thread_rng().gen::<[u8; 30]>();
         let key = b64_encode(&key);
 
         let authenticator = Authenticator::new(&key)?;
@@ -216,6 +244,17 @@ impl Authenticator {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_flex_b64() {
+        let expect = [3, 242, 3, 248, 6, 220, 118];
+
+        assert_eq!(b64_decode("A/ID+Abcdg==").unwrap(), expect);
+        assert_eq!(b64_decode("A/ID+Abcdg").unwrap(), expect);
+
+        assert_eq!(b64_decode("A_ID-Abcdg==").unwrap(), expect);
+        assert_eq!(b64_decode("A_ID-Abcdg").unwrap(), expect);
+    }
 
     #[test]
     fn test_simple_auth() {
