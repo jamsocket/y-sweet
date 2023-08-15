@@ -207,7 +207,7 @@ export function TreeView() {
     return () => {
       tree.setOnChange(undefined)
     }
-  }, [])
+  }, [treeMap])
 
   return (
     <div className="p-4 sm:p-8 space-y-3">
