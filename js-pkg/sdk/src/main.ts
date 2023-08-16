@@ -27,17 +27,19 @@ export class YSweetError extends Error {
   }
 
   static getMessage(payload: YSweetErrorPayload): string {
+    let message
     if (payload.code === 'ServerRefused') {
-      return `Server at ${payload.address}:${payload.port} refused connection`
+      message = `Server at ${payload.address}:${payload.port} refused connection`
     } else if (payload.code === 'ServerError') {
-      return `Server responded with ${payload.status} ${payload.message}`
+      message = `Server responded with ${payload.status} ${payload.message}`
     } else if (payload.code === 'NoAuthProvided') {
-      return 'No auth provided'
+      message = 'No auth provided'
     } else if (payload.code === 'InvalidAuthProvided') {
-      return 'Invalid auth provided'
+      message = 'Invalid auth provided'
     } else {
-      return payload.message
+      message = payload.message
     }
+    return `${payload.code}: ${message}`
   }
 }
 
