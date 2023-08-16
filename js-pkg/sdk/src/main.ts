@@ -78,7 +78,7 @@ export class YSweetError extends Error {
       return new YSweetError({ code })
     }
 
-    return new YSweetError({ code: 'Unknown', message: messageString })
+    return new YSweetError({ code: 'Unknown', message })
   }
 }
 
