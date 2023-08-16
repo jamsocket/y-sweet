@@ -41,6 +41,45 @@ export class YSweetError extends Error {
     }
     return `${payload.code}: ${message}`
   }
+
+  static fromMessage(messageString: string): YSweetError {
+    let match = messageString.match(/^(.*?): (.*)$/)
+    if (!match) {
+      return new YSweetError({ code: 'Unknown', message: messageString })
+    }
+
+    let [, code, message] = match
+
+    if (code === 'ServerRefused') {
+      match = message.match(/^Server at (.*?):(\d+) refused connection$/)
+      if (!match) {
+        return new YSweetError({ code: 'Unknown', message: messageString })
+      }
+
+      let [, address, port] = match
+      return new YSweetError({ code, address, port: parseInt(port) })
+    }
+
+    if (code === 'ServerError') {
+      match = message.match(/^Server responded with (\d+) (.*)$/)
+      if (!match) {
+        return new YSweetError({ code: 'Unknown', message: messageString })
+      }
+
+      let [, status, statusText] = match
+      return new YSweetError({ code, status: parseInt(status), message: statusText })
+    }
+
+    if (code === 'NoAuthProvided') {
+      return new YSweetError({ code })
+    }
+
+    if (code === 'InvalidAuthProvided') {
+      return new YSweetError({ code })
+    }
+
+    return new YSweetError({ code: 'Unknown', message: messageString })
+  }
 }
 
 export class DocumentManager {
@@ -97,18 +136,20 @@ export class DocumentManager {
       if (error.cause?.code === 'ECONNREFUSED') {
         let { address, port } = error.cause
         throw new YSweetError({ code: 'ServerRefused', address, port })
-      } else if (error.toString().includes('401 Unauthorized')) {
-        if (this.token) {
-          throw new YSweetError({ code: 'InvalidAuthProvided' })
-        } else {
-          throw new YSweetError({ code: 'NoAuthProvided' })
-        }
       } else {
         throw new YSweetError({ code: 'Unknown', message: error.toString() })
       }
     }
 
     if (!result.ok) {
+      if (result.status === 401) {
+        if (this.token) {
+          throw new YSweetError({ code: 'InvalidAuthProvided' })
+        } else {
+          throw new YSweetError({ code: 'NoAuthProvided' })
+        }
+      }
+
       throw new YSweetError({
         code: 'ServerError',
         status: result.status,
