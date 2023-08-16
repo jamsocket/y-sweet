@@ -155,6 +155,7 @@ function Tree(props: { root: YTreeNode }) {
 
       {nodes.map((node) => (
         <g
+          className="select-none"
           key={node.treeNode.id()}
           style={{
             transform: `translate(${xScale(node.x)}px, ${yScale(node.y)}px)`,
