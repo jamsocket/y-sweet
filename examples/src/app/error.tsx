@@ -1,6 +1,6 @@
 'use client'
 
-import { YSweetError } from "@y-sweet/sdk"
+import { YSweetError } from '@y-sweet/sdk'
 
 function Samp(props: { children: React.ReactNode }) {
   return <samp className="bg-red-100 p-1 rounded-md font-bold">{props.children}</samp>
