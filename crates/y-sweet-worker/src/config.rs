@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
-use std::time::Duration;
+use std::{str::FromStr, time::Duration};
 use worker::Env;
 
 const BUCKET: &str = "Y_SWEET_DATA";
+const BUCKET_KIND: &str = "BUCKET_KINDS";
 const AUTH_KEY: &str = "AUTH_KEY";
 const CHECKPOINT_FREQ_SECONDS: &str = "CHECKPOINT_FREQ_SECONDS";
 const S3_ACCESS_KEY_ID: &str = "AWS_ACCESS_KEY_ID";
@@ -10,6 +11,24 @@ const S3_SECRET_ACCESS_KEY: &str = "AWS_SECRET_ACCESS_KEY";
 const S3_REGION: &str = "AWS_REGION";
 const S3_BUCKET_PREFIX: &str = "S3_BUCKET_PREFIX";
 const S3_BUCKET_NAME: &str = "S3_BUCKET_NAME";
+
+#[derive(Serialize, Deserialize)]
+pub enum BucketKinds {
+    R2,
+    S3,
+}
+
+impl FromStr for BucketKinds {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            s if s == "R2" => Ok(Self::R2),
+            s if s == "S3" => Ok(Self::S3),
+            _ => Err(anyhow::anyhow!("invalid bucket kind")),
+        }
+    }
+}
 
 #[derive(Serialize, Deserialize)]
 pub struct S3Config {
@@ -30,6 +49,28 @@ pub struct Configuration {
     pub timeout_interval: Duration,
 }
 
+fn parse_s3_config(env: &Env) -> anyhow::Result<S3Config> {
+    Ok(S3Config {
+        key: env
+            .var(S3_ACCESS_KEY_ID)
+            .map_err(|_| anyhow::anyhow!("ok"))?
+            .to_string(),
+        region: env
+            .var(S3_REGION)
+            .map_err(|_| anyhow::anyhow!("ok"))?
+            .to_string(),
+        secret: env
+            .var(S3_SECRET_ACCESS_KEY)
+            .map_err(|_| anyhow::anyhow!("ok!"))?
+            .to_string(),
+        bucket: env
+            .var(S3_BUCKET_NAME)
+            .map_err(|_| anyhow::anyhow!("no"))?
+            .to_string(),
+        bucket_prefix: env.var(S3_BUCKET_PREFIX).ok().map(|t| t.to_string()),
+    })
+}
+
 impl From<&Env> for Configuration {
     fn from(env: &Env) -> Self {
         let auth_key = env.var(AUTH_KEY).map(|s| s.to_string()).ok();
@@ -43,29 +84,19 @@ impl From<&Env> for Configuration {
                 .unwrap_or(45),
         );
 
-        let s3_config = if let (
-            Ok(aws_access_key_id),
-            Ok(aws_secret_access_key),
-            Ok(aws_region),
-            Ok(bucket_prefix),
-            Ok(bucket_name),
-        ) = (
-            env.var(S3_ACCESS_KEY_ID),
-            env.var(S3_SECRET_ACCESS_KEY),
-            env.var(S3_REGION),
-            env.var(S3_BUCKET_PREFIX),
-            env.var(S3_BUCKET_NAME),
-        ) {
-            Some(S3Config {
-                key: aws_access_key_id.to_string(),
-                region: aws_region.to_string(),
-                secret: aws_secret_access_key.to_string(),
-                bucket: bucket_name.to_string(),
-                bucket_prefix: Some(bucket_prefix.to_string()),
-            })
+        let bucket_kind = env
+            .var(BUCKET_KIND)
+            .map_or_else(
+                |_| Ok(BucketKinds::R2),
+                |b| BucketKinds::from_str(&b.to_string()),
+            )
+            .unwrap();
+        let s3_config = if let BucketKinds::S3 = bucket_kind {
+            Some(parse_s3_config(&env).unwrap())
         } else {
             None
         };
+
         Self {
             auth_key,
             bucket: BUCKET.to_string(),
