@@ -20,7 +20,7 @@ export default function CopyLink() {
   }
 
   return (
-    <div className="pt-6 flex text-left items-center text-neutral-500">
+    <div className="pt-6 flex text-left items-center text-neutral-500 select-none">
       <span className="pr-2">Share this document</span>
       <button
         className="flex text-sm items-center gap-1 px-2 py-1 rounded-lg bg-neutral-50 border-white border transition-all hover:bg-white"
