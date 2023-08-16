@@ -24,7 +24,7 @@ pub struct S3Config {
 pub struct Configuration {
     pub auth_key: Option<String>,
     pub bucket: String,
-    pub s3: Option<S3Config>,
+    pub s3_store_config: Option<S3Config>,
     pub bucket_prefix: Option<String>,
     pub url_prefix: Option<String>,
     pub timeout_interval: Duration,
@@ -69,7 +69,7 @@ impl From<&Env> for Configuration {
         Self {
             auth_key,
             bucket: BUCKET.to_string(),
-            s3: s3_config,
+            s3_store_config: s3_config,
             bucket_prefix: None,
             url_prefix: None,
             timeout_interval,
