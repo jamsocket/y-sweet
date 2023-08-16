@@ -29,7 +29,8 @@ if (S3_ACCESS_KEY_ID && S3_REGION && S3_SECRET_KEY && S3_BUCKET_PREFIX && S3_BUC
     },
   })
 }
-const FIVE_MINUTES_IN_MS = 10 * 60 * 1_000
+
+const FIVE_MINUTES_IN_MS = 10 * 60 * 1_000 //why is this ten minutes?
 
 describe.each(CONFIGURATIONS)(
   'Test $server (auth: $useAuth)',
