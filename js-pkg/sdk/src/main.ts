@@ -42,6 +42,9 @@ export class YSweetError extends Error {
     return `${payload.code}: ${message}`
   }
 
+  // In development, next.js passes error objects to the client but strips out everything but the
+  // `message` field. This method allows us to reconstruct the original error object.
+  // https://nextjs.org/docs/app/api-reference/file-conventions/error#errormessage
   static fromMessage(messageString: string): YSweetError {
     let match = messageString.match(/^(.*?): (.*)$/)
     if (!match) {
