@@ -3,13 +3,13 @@ use std::time::Duration;
 use worker::Env;
 
 const BUCKET: &str = "Y_SWEET_DATA";
-const BUCKET_S3: &str = "y-sweet-data"; //s3 naming rules
 const AUTH_KEY: &str = "AUTH_KEY";
 const CHECKPOINT_FREQ_SECONDS: &str = "CHECKPOINT_FREQ_SECONDS";
 const S3_ACCESS_KEY_ID: &str = "AWS_ACCESS_KEY_ID";
 const S3_SECRET_ACCESS_KEY: &str = "AWS_SECRET_ACCESS_KEY";
 const S3_REGION: &str = "AWS_REGION";
 const S3_BUCKET_PREFIX: &str = "S3_BUCKET_PREFIX";
+const S3_BUCKET_NAME: &str = "S3_BUCKET_NAME";
 
 #[derive(Serialize, Deserialize)]
 pub struct S3Config {
@@ -43,17 +43,24 @@ impl From<&Env> for Configuration {
                 .unwrap_or(45),
         );
 
-        let s3_config = if let (Ok(aws_access_key_id), Ok(aws_secret_access_key), Ok(aws_region), Ok(bucket_prefix)) = (
+        let s3_config = if let (
+            Ok(aws_access_key_id),
+            Ok(aws_secret_access_key),
+            Ok(aws_region),
+            Ok(bucket_prefix),
+            Ok(bucket_name),
+        ) = (
             env.var(S3_ACCESS_KEY_ID),
             env.var(S3_SECRET_ACCESS_KEY),
             env.var(S3_REGION),
-			env.var(S3_BUCKET_PREFIX)
+            env.var(S3_BUCKET_PREFIX),
+            env.var(S3_BUCKET_NAME),
         ) {
             Some(S3Config {
                 key: aws_access_key_id.to_string(),
                 region: aws_region.to_string(),
                 secret: aws_secret_access_key.to_string(),
-                bucket: BUCKET_S3.to_string(),
+                bucket: bucket_name.to_string(),
                 bucket_prefix: Some(bucket_prefix.to_string()),
             })
         } else {

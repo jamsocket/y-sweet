@@ -9,6 +9,7 @@ type S3Config = {
   aws_access_key_id: string
   aws_secret_key: string
   aws_region: string
+  bucket_name: string
   bucket_prefix: string
 }
 
