@@ -13,6 +13,78 @@ export type ServerToken = {
   token?: string
 }
 
+export type YSweetErrorPayload =
+  | { code: 'ServerRefused'; address: string; port: number }
+  | { code: 'ServerError'; status: number; message: string }
+  | { code: 'NoAuthProvided' }
+  | { code: 'InvalidAuthProvided' }
+  | { code: 'Unknown'; message: string }
+
+export class YSweetError extends Error {
+  constructor(public cause: YSweetErrorPayload) {
+    super(YSweetError.getMessage(cause))
+    this.name = 'YSweetError'
+  }
+
+  static getMessage(payload: YSweetErrorPayload): string {
+    let message
+    if (payload.code === 'ServerRefused') {
+      message = `Server at ${payload.address}:${payload.port} refused connection`
+    } else if (payload.code === 'ServerError') {
+      message = `Server responded with ${payload.status} ${payload.message}`
+    } else if (payload.code === 'NoAuthProvided') {
+      message = 'No auth provided'
+    } else if (payload.code === 'InvalidAuthProvided') {
+      message = 'Invalid auth provided'
+    } else {
+      message = payload.message
+    }
+    return `${payload.code}: ${message}`
+  }
+
+  // In development, next.js passes error objects to the client but strips out everything but the
+  // `message` field. This method allows us to reconstruct the original error object.
+  // https://nextjs.org/docs/app/api-reference/file-conventions/error#errormessage
+  static fromMessage(messageString: string): YSweetError {
+    let match = messageString.match(/^(.*?): (.*)$/)
+    if (!match) {
+      return new YSweetError({ code: 'Unknown', message: messageString })
+    }
+
+    let [, code, message] = match
+
+    if (code === 'ServerRefused') {
+      match = message.match(/^Server at (.*?):(\d+) refused connection$/)
+      if (!match) {
+        return new YSweetError({ code: 'Unknown', message: messageString })
+      }
+
+      let [, address, port] = match
+      return new YSweetError({ code, address, port: parseInt(port) })
+    }
+
+    if (code === 'ServerError') {
+      match = message.match(/^Server responded with (\d+) (.*)$/)
+      if (!match) {
+        return new YSweetError({ code: 'Unknown', message: messageString })
+      }
+
+      let [, status, statusText] = match
+      return new YSweetError({ code, status: parseInt(status), message: statusText })
+    }
+
+    if (code === 'NoAuthProvided') {
+      return new YSweetError({ code })
+    }
+
+    if (code === 'InvalidAuthProvided') {
+      return new YSweetError({ code })
+    }
+
+    return new YSweetError({ code: 'Unknown', message })
+  }
+}
+
 export class DocumentManager {
   baseUrl: string
   token?: string
@@ -55,14 +127,37 @@ export class DocumentManager {
       method = 'POST'
     }
 
-    const result = await fetch(`${this.baseUrl}/${url}`, {
-      method,
-      body,
-      cache: 'no-store',
-      headers,
-    })
+    let result: Response
+    try {
+      result = await fetch(`${this.baseUrl}/${url}`, {
+        method,
+        body,
+        cache: 'no-store',
+        headers,
+      })
+    } catch (error: any) {
+      if (error.cause?.code === 'ECONNREFUSED') {
+        let { address, port } = error.cause
+        throw new YSweetError({ code: 'ServerRefused', address, port })
+      } else {
+        throw new YSweetError({ code: 'Unknown', message: error.toString() })
+      }
+    }
+
     if (!result.ok) {
-      throw new Error(`Failed to fetch ${url}: ${result.status} ${result.statusText}`)
+      if (result.status === 401) {
+        if (this.token) {
+          throw new YSweetError({ code: 'InvalidAuthProvided' })
+        } else {
+          throw new YSweetError({ code: 'NoAuthProvided' })
+        }
+      }
+
+      throw new YSweetError({
+        code: 'ServerError',
+        status: result.status,
+        message: result.statusText,
+      })
     }
 
     return result
