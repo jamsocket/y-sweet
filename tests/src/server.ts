@@ -72,7 +72,8 @@ export class Server {
           ` --var AWS_ACCESS_KEY_ID:${configuration.S3.aws_access_key_id}` +
           ` AWS_SECRET_ACCESS_KEY:${configuration.S3.aws_secret_key}` +
           ` AWS_REGION:${configuration.S3.aws_region}` +
-          ` S3_BUCKET_PREFIX:${configuration.S3.bucket_prefix}`
+          ` S3_BUCKET_PREFIX:${configuration.S3.bucket_prefix}` +
+          ` S3_BUCKET_NAME:${configuration.S3.bucket_name}`
       }
 
       this.process = spawn(command, { cwd: workerBase, stdio: 'inherit', shell: true })
