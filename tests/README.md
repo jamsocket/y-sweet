@@ -21,4 +21,3 @@ with S3 as the storage backend will also be run.
 - YSERVE_S3_REGION
 - YSERVE_S3_BUCKET_PREFIX
 - YSERVE_S3_BUCKET_NAME
-
