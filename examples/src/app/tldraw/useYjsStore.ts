@@ -30,16 +30,7 @@ export function useYjsStore() {
 
   const doc = useYDoc()
   const room = useYjsProvider()
-  const yRecords = useMap('tl_room')
-
-  // const { doc, room, yRecords } = useMemo(() => {
-  // 	const doc = new Y.Doc({ gc: true })
-  // 	return {
-  // 		doc,
-  // 		room: new WebsocketProvider(hostUrl, roomId, doc, { connect: true }),
-  // 		yRecords: doc.getMap<TLRecord>(`tl_${roomId}`),
-  // 	}
-  // }, [hostUrl, roomId])
+  const yRecords = useMap<any>('tl_room')
 
   useEffect(() => {
     const unsubs: (() => void)[] = []
