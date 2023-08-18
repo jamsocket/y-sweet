@@ -3,7 +3,7 @@ use std::{str::FromStr, time::Duration};
 use worker::Env;
 
 const BUCKET: &str = "Y_SWEET_DATA";
-const BUCKET_KIND: &str = "BUCKET_KINDS";
+const BUCKET_KIND: &str = "BUCKET_KIND";
 const AUTH_KEY: &str = "AUTH_KEY";
 const CHECKPOINT_FREQ_SECONDS: &str = "CHECKPOINT_FREQ_SECONDS";
 const S3_ACCESS_KEY_ID: &str = "AWS_ACCESS_KEY_ID";
@@ -53,26 +53,28 @@ fn parse_s3_config(env: &Env) -> anyhow::Result<S3Config> {
     Ok(S3Config {
         key: env
             .var(S3_ACCESS_KEY_ID)
-            .map_err(|_| anyhow::anyhow!("ok"))?
+            .map_err(|_| anyhow::anyhow!(format!("${S3_ACCESS_KEY_ID} env var not supplied")))?
             .to_string(),
         region: env
             .var(S3_REGION)
-            .map_err(|_| anyhow::anyhow!("ok"))?
+            .map_err(|_| anyhow::anyhow!(format!("${S3_REGION} env var not supplied")))?
             .to_string(),
         secret: env
             .var(S3_SECRET_ACCESS_KEY)
-            .map_err(|_| anyhow::anyhow!("ok!"))?
+            .map_err(|_| anyhow::anyhow!(format!("${S3_SECRET_ACCESS_KEY} env var not supplied")))?
             .to_string(),
         bucket: env
             .var(S3_BUCKET_NAME)
-            .map_err(|_| anyhow::anyhow!("no"))?
+            .map_err(|_| anyhow::anyhow!(format!("${S3_BUCKET_NAME} env var not supplied")))?
             .to_string(),
         bucket_prefix: env.var(S3_BUCKET_PREFIX).ok().map(|t| t.to_string()),
     })
 }
 
-impl From<&Env> for Configuration {
-    fn from(env: &Env) -> Self {
+impl TryFrom<&Env> for Configuration {
+	type Error = anyhow::Error;
+
+    fn try_from(env: &Env) -> Result<Self, Self::Error> {
         let auth_key = env.var(AUTH_KEY).map(|s| s.to_string()).ok();
         let timeout_interval = Duration::from_secs(
             env.var(CHECKPOINT_FREQ_SECONDS)
@@ -89,21 +91,20 @@ impl From<&Env> for Configuration {
             .map_or_else(
                 |_| Ok(BucketKinds::R2),
                 |b| BucketKinds::from_str(&b.to_string()),
-            )
-            .unwrap();
+            )?;
         let s3_config = if let BucketKinds::S3 = bucket_kind {
             Some(parse_s3_config(&env).unwrap())
         } else {
             None
         };
 
-        Self {
+        Ok(Self {
             auth_key,
             bucket: BUCKET.to_string(),
             s3_store_config: s3_config,
             bucket_prefix: None,
             url_prefix: None,
             timeout_interval,
-        }
+        })
     }
 }

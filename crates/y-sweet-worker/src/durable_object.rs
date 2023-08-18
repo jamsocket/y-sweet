@@ -26,7 +26,7 @@ impl YServe {
 
             let store = Some(context.store());
             let storage = Threadless(storage);
-            let config = Configuration::from(&self.env);
+            let config = Configuration::try_from(&self.env).map_err(|e| e.to_string())?;
             let timeout_interval_ms: i64 = config
                 .timeout_interval
                 .as_millis()
