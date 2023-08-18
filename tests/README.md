@@ -16,8 +16,8 @@ The test currently builds and tests three versions of the server:
 If _ALL FIVE_ of the following env vars are set, tests
 with S3 as the storage backend will also be run.
 
-- YSERVE_S3_ACCESS_KEY_ID
-- YSERVE_S3_SECRET_KEY
-- YSERVE_S3_REGION
-- YSERVE_S3_BUCKET_PREFIX
-- YSERVE_S3_BUCKET_NAME
+- Y_SWEET_S3_ACCESS_KEY_ID
+- Y_SWEET_S3_SECRET_KEY
+- Y_SWEET_S3_REGION
+- Y_SWEET_S3_BUCKET_PREFIX
+- Y_SWEET_S3_BUCKET_NAME

@@ -11,11 +11,11 @@ const CONFIGURATIONS: ServerConfiguration[] = [
   { useAuth: true, server: 'worker' },
 ]
 
-let S3_ACCESS_KEY_ID = process.env.YSERVE_S3_ACCESS_KEY_ID
-let S3_SECRET_KEY = process.env.YSERVE_S3_SECRET_KEY
-let S3_REGION = process.env.YSERVE_S3_REGION
-let S3_BUCKET_PREFIX = process.env.YSERVE_S3_BUCKET_PREFIX
-let S3_BUCKET_NAME = process.env.YSERVE_S3_BUCKET_NAME
+let S3_ACCESS_KEY_ID = process.env.Y_SWEET_S3_ACCESS_KEY_ID
+let S3_SECRET_KEY = process.env.Y_SWEET_S3_SECRET_KEY
+let S3_REGION = process.env.Y_SWEET_S3_REGION
+let S3_BUCKET_PREFIX = process.env.Y_SWEET_S3_BUCKET_PREFIX
+let S3_BUCKET_NAME = process.env.Y_SWEET_S3_BUCKET_NAME
 if (S3_ACCESS_KEY_ID && S3_REGION && S3_SECRET_KEY && S3_BUCKET_PREFIX && S3_BUCKET_NAME) {
   CONFIGURATIONS.push({
     useAuth: true,
