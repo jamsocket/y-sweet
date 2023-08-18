@@ -13,18 +13,18 @@ const S3_BUCKET_PREFIX: &str = "S3_BUCKET_PREFIX";
 const S3_BUCKET_NAME: &str = "S3_BUCKET_NAME";
 
 #[derive(Serialize, Deserialize)]
-pub enum BucketKinds {
-    R2,
-    S3,
+pub enum BucketKind {
+    NativeR2,
+    S3Compatible,
 }
 
-impl FromStr for BucketKinds {
+impl FromStr for BucketKind {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            s if s == "R2" => Ok(Self::R2),
-            s if s == "S3" => Ok(Self::S3),
+            s if s == "R2" => Ok(Self::NativeR2),
+            s if s == "S3" => Ok(Self::S3Compatible),
             _ => Err(anyhow::anyhow!("invalid bucket kind")),
         }
     }
@@ -53,19 +53,19 @@ fn parse_s3_config(env: &Env) -> anyhow::Result<S3Config> {
     Ok(S3Config {
         key: env
             .var(S3_ACCESS_KEY_ID)
-            .map_err(|_| anyhow::anyhow!(format!("${S3_ACCESS_KEY_ID} env var not supplied")))?
+            .map_err(|_| anyhow::anyhow!("AWS_ACCESS_KEY_ID env var not supplied"))?
             .to_string(),
         region: env
             .var(S3_REGION)
-            .map_err(|_| anyhow::anyhow!(format!("${S3_REGION} env var not supplied")))?
+            .map_err(|_| anyhow::anyhow!("AWS_REGION env var not supplied"))?
             .to_string(),
         secret: env
             .var(S3_SECRET_ACCESS_KEY)
-            .map_err(|_| anyhow::anyhow!(format!("${S3_SECRET_ACCESS_KEY} env var not supplied")))?
+            .map_err(|_| anyhow::anyhow!("AWS_SECRET_ACCESS_KEY env var not supplied"))?
             .to_string(),
         bucket: env
             .var(S3_BUCKET_NAME)
-            .map_err(|_| anyhow::anyhow!(format!("${S3_BUCKET_NAME} env var not supplied")))?
+            .map_err(|_| anyhow::anyhow!("S3_BUCKET_NAME env var not supplied"))?
             .to_string(),
         bucket_prefix: env.var(S3_BUCKET_PREFIX).ok().map(|t| t.to_string()),
     })
@@ -87,10 +87,10 @@ impl TryFrom<&Env> for Configuration {
         );
 
         let bucket_kind = env.var(BUCKET_KIND).map_or_else(
-            |_| Ok(BucketKinds::R2),
-            |b| BucketKinds::from_str(&b.to_string()),
+            |_| Ok(BucketKind::NativeR2),
+            |b| BucketKind::from_str(&b.to_string()),
         )?;
-        let s3_config = if let BucketKinds::S3 = bucket_kind {
+        let s3_config = if let BucketKind::S3Compatible = bucket_kind {
             Some(parse_s3_config(&env).unwrap())
         } else {
             None
