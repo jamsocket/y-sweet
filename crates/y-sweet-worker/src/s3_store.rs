@@ -56,7 +56,7 @@ impl S3Store {
                     self._bucket_inited.replace(true);
                 }
                 StatusCode::NOT_FOUND => {
-                    return Err(anyhow::anyhow!(head()
+                    return Err(anyhow::anyhow!(
                         "No such bucket {} exists!",
                         self.bucket.name()
                     ))
