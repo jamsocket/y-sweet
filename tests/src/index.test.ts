@@ -20,7 +20,7 @@ if (S3_ACCESS_KEY_ID && S3_REGION && S3_SECRET_KEY && S3_BUCKET_PREFIX && S3_BUC
   CONFIGURATIONS.push({
     useAuth: true,
     server: 'worker',
-    S3: {
+    s3: {
       bucket_name: S3_BUCKET_NAME,
       bucket_prefix: S3_BUCKET_PREFIX,
       aws_access_key_id: S3_ACCESS_KEY_ID,

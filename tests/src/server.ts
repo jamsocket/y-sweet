@@ -16,7 +16,7 @@ type S3Config = {
 export type ServerConfiguration = {
   useAuth: boolean
   server: ServerType
-  S3?: S3Config
+  s3?: S3Config
 }
 
 export class Server {
@@ -67,13 +67,13 @@ export class Server {
         command += ` --env test`
       }
 
-      if (configuration.S3) {
+      if (configuration.s3) {
         command +=
-          ` --var AWS_ACCESS_KEY_ID:${configuration.S3.aws_access_key_id}` +
-          ` AWS_SECRET_ACCESS_KEY:${configuration.S3.aws_secret_key}` +
-          ` AWS_REGION:${configuration.S3.aws_region}` +
-          ` S3_BUCKET_PREFIX:${configuration.S3.bucket_prefix}` +
-          ` S3_BUCKET_NAME:${configuration.S3.bucket_name}` +
+          ` --var AWS_ACCESS_KEY_ID:${configuration.s3.aws_access_key_id}` +
+          ` AWS_SECRET_ACCESS_KEY:${configuration.s3.aws_secret_key}` +
+          ` AWS_REGION:${configuration.s3.aws_region}` +
+          ` S3_BUCKET_PREFIX:${configuration.s3.bucket_prefix}` +
+          ` S3_BUCKET_NAME:${configuration.s3.bucket_name}` +
           ` BUCKET_KIND:S3`
       }
 
