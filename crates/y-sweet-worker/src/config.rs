@@ -72,7 +72,7 @@ fn parse_s3_config(env: &Env) -> anyhow::Result<S3Config> {
 }
 
 impl TryFrom<&Env> for Configuration {
-	type Error = anyhow::Error;
+    type Error = anyhow::Error;
 
     fn try_from(env: &Env) -> Result<Self, Self::Error> {
         let auth_key = env.var(AUTH_KEY).map(|s| s.to_string()).ok();
@@ -86,12 +86,10 @@ impl TryFrom<&Env> for Configuration {
                 .unwrap_or(45),
         );
 
-        let bucket_kind = env
-            .var(BUCKET_KIND)
-            .map_or_else(
-                |_| Ok(BucketKinds::R2),
-                |b| BucketKinds::from_str(&b.to_string()),
-            )?;
+        let bucket_kind = env.var(BUCKET_KIND).map_or_else(
+            |_| Ok(BucketKinds::R2),
+            |b| BucketKinds::from_str(&b.to_string()),
+        )?;
         let s3_config = if let BucketKinds::S3 = bucket_kind {
             Some(parse_s3_config(&env).unwrap())
         } else {
