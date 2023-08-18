@@ -2,14 +2,15 @@ use anyhow::Result;
 use async_trait::async_trait;
 use reqwest::{Client, StatusCode};
 use rusty_s3::{Bucket, Credentials, S3Action};
-use std::{cell::OnceCell, time::Duration};
+use std::{cell::RefCell, time::Duration};
 use time::OffsetDateTime;
 use y_sweet_core::store::Store;
 
 const PRESIGNED_URL_DURATION_SECONDS: u64 = 60 * 60;
 pub struct S3Store {
     bucket: Bucket,
-    init_bucket: OnceCell<()>,
+    _bucket_inited: RefCell<bool>,
+    client: Client,
     credentials: Credentials,
     prefix: Option<String>,
     presigned_url_duration: Duration,
@@ -30,39 +31,45 @@ impl S3Store {
         let path_style = rusty_s3::UrlStyle::VirtualHost;
         let bucket = Bucket::new(endpoint, path_style, bucket_name, region)
             .expect("Url has a valid scheme and host");
+        let client = Client::new();
 
         let presigned_url_duration = Duration::from_secs(PRESIGNED_URL_DURATION_SECONDS);
         S3Store {
             bucket,
-            init_bucket: OnceCell::new(),
+            _bucket_inited: RefCell::new(false),
+            client,
             credentials,
             prefix,
             presigned_url_duration,
         }
     }
 
-    async fn init_bucket(&self) -> Result<()> {
-        if self.init_bucket.get().is_none() {
-            let action = self.bucket.create_bucket(&self.credentials);
+    //lazily checks bucket exists on first use
+    async fn inited_bucket(&self) -> Result<&Bucket> {
+        if !*self._bucket_inited.borrow() {
+            let action = self.bucket.head_bucket(Some(&self.credentials));
             let presigned_url =
                 action.sign_with_time(self.presigned_url_duration, &OffsetDateTime::now_utc());
-            let client = Client::new();
-            let _response = client.put(presigned_url).send().await?;
-            self.init_bucket.set(()).map_err(|_| {
-                anyhow::anyhow!("failed to set init_bucket, this should be impossible")
-            })?;
+            let response = self.client.head(presigned_url).send().await?;
+            match response.status() {
+                StatusCode::OK => {
+                    self._bucket_inited.replace(true);
+                }
+                StatusCode::NOT_FOUND => {
+                    return Err(anyhow::anyhow!(head()
+                        "No such bucket {} exists!",
+                        self.bucket.name()
+                    ))
+                }
+                _ => {
+                    return Err(anyhow::anyhow!(
+                        "Other AWS Error: Code {} Err {}",
+                        response.status(),
+                        response.text().await?
+                    ))
+                }
+            }
         }
-
-        self.init_bucket
-            .get()
-            .ok_or(anyhow::anyhow!(
-                "init_bucket should always be set before get()"
-            ))
-            .map(|_| ())
-    }
-
-    async fn get_inited_bucket(&self) -> Result<&Bucket> {
-        self.init_bucket().await?;
         Ok(&self.bucket)
     }
 
@@ -78,56 +85,56 @@ impl S3Store {
 #[async_trait(?Send)]
 impl Store for S3Store {
     async fn get(&self, key: &str) -> Result<Option<Vec<u8>>> {
-        let bucket = self.get_inited_bucket().await?;
+        let bucket = self.inited_bucket().await?;
         let prefixed_key = self.prefixed_key(key);
         let object_get = bucket.get_object(Some(&self.credentials), &prefixed_key);
         let presigned_url =
             object_get.sign_with_time(self.presigned_url_duration, &OffsetDateTime::now_utc());
-        let client = Client::new();
-        let response = client.get(presigned_url).send().await?;
+        let response = self.client.get(presigned_url).send().await?;
         match response.status() {
             StatusCode::NOT_FOUND => Ok(None),
             StatusCode::OK => Ok(Some(response.bytes().await?.to_vec())),
-            _ => Err(anyhow::anyhow!("Not Ok")),
+            _ => Err(anyhow::anyhow!(
+                "Other AWS Error: Code {} Err {}",
+                response.status(),
+                response.text().await?
+            )),
         }
     }
 
     async fn set(&self, key: &str, value: Vec<u8>) -> Result<()> {
-        let bucket = self.get_inited_bucket().await?;
+        let bucket = self.inited_bucket().await?;
         let prefixed_key = self.prefixed_key(key);
         let action = bucket.put_object(Some(&self.credentials), &prefixed_key);
         let presigned_url =
             action.sign_with_time(self.presigned_url_duration, &OffsetDateTime::now_utc());
-        let client = Client::new();
-        let _response = client.put(presigned_url).body(value).send().await?;
+        let _response = self.client.put(presigned_url).body(value).send().await?;
         Ok(())
     }
 
     async fn remove(&self, key: &str) -> Result<()> {
-        let bucket = self.get_inited_bucket().await?;
+        let bucket = self.inited_bucket().await?;
         let prefixed_key = self.prefixed_key(key);
         let action = bucket.delete_object(Some(&self.credentials), &prefixed_key);
         let presigned_url =
             action.sign_with_time(self.presigned_url_duration, &OffsetDateTime::now_utc());
-        let client = Client::new();
-        client.delete(presigned_url).send().await?;
+        self.client.delete(presigned_url).send().await?;
         Ok(())
     }
 
     async fn exists(&self, key: &str) -> Result<bool> {
-        let bucket = self.get_inited_bucket().await?;
+        let bucket = self.inited_bucket().await?;
         let prefixed_key = self.prefixed_key(key);
         let action = bucket.head_object(Some(&self.credentials), &prefixed_key);
         let presigned_url =
             action.sign_with_time(self.presigned_url_duration, &OffsetDateTime::now_utc());
-        let client = Client::new();
-        let res_status = client.head(presigned_url).send().await?.status();
+        let res_status = self.client.head(presigned_url).send().await?.status();
         match res_status {
             StatusCode::OK => Ok(true),
             StatusCode::NOT_FOUND => Ok(false),
-            _ => Err(anyhow::anyhow!(format!(
+            _ => Err(anyhow::anyhow!(
                 "Existence check for bucket failed with HTTP Error Code: {res_status}"
-            ))),
+            )),
         }
     }
 }
