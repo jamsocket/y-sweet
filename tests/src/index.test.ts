@@ -11,7 +11,27 @@ const CONFIGURATIONS: ServerConfiguration[] = [
   { useAuth: true, server: 'worker' },
 ]
 
-const FIVE_MINUTES_IN_MS = 10 * 60 * 1_000
+let S3_ACCESS_KEY_ID = process.env.Y_SWEET_S3_ACCESS_KEY_ID
+let S3_SECRET_KEY = process.env.Y_SWEET_S3_SECRET_KEY
+let S3_REGION = process.env.Y_SWEET_S3_REGION
+let S3_BUCKET_PREFIX = process.env.Y_SWEET_S3_BUCKET_PREFIX
+let S3_BUCKET_NAME = process.env.Y_SWEET_S3_BUCKET_NAME
+//run s3 tests if env vars set
+if (S3_ACCESS_KEY_ID && S3_REGION && S3_SECRET_KEY && S3_BUCKET_PREFIX && S3_BUCKET_NAME) {
+  CONFIGURATIONS.push({
+    useAuth: true,
+    server: 'worker',
+    s3: {
+      bucket_name: S3_BUCKET_NAME,
+      bucket_prefix: S3_BUCKET_PREFIX,
+      aws_access_key_id: S3_ACCESS_KEY_ID,
+      aws_region: S3_REGION,
+      aws_secret_key: S3_SECRET_KEY,
+    },
+  })
+}
+
+const TEN_MINUTES_IN_MS = 10 * 60 * 1_000
 
 describe.each(CONFIGURATIONS)(
   'Test $server (auth: $useAuth)',
@@ -27,7 +47,7 @@ describe.each(CONFIGURATIONS)(
       })
 
       await SERVER.waitForReady()
-    }, FIVE_MINUTES_IN_MS)
+    }, TEN_MINUTES_IN_MS)
 
     afterAll(() => {
       SERVER.cleanup()

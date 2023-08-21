@@ -16,6 +16,7 @@ pub mod config;
 pub mod durable_object;
 pub mod error;
 pub mod r2_store;
+pub mod s3_store;
 pub mod server_context;
 pub mod threadless;
 
@@ -41,7 +42,7 @@ pub fn router(
 pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
     console_error_panic_hook::set_once();
 
-    let configuration = Configuration::from(&env);
+    let configuration = Configuration::try_from(&env).map_err(|e| e.to_string())?;
     let context = ServerContext::new(configuration, &env);
 
     let router = router(context);

@@ -5,9 +5,18 @@ import { dirname, join } from 'path'
 
 export type ServerType = 'native' | 'worker'
 
+type S3Config = {
+  aws_access_key_id: string
+  aws_secret_key: string
+  aws_region: string
+  bucket_name: string
+  bucket_prefix: string
+}
+
 export type ServerConfiguration = {
   useAuth: boolean
   server: ServerType
+  s3?: S3Config
 }
 
 export class Server {
@@ -56,6 +65,16 @@ export class Server {
         this.serverToken = 'AAAgKZEAjp3ZqT6jUQCKO48OC9zYvFCWInQSj6sXbvaUeU8='
       } else {
         command += ` --env test`
+      }
+
+      if (configuration.s3) {
+        command +=
+          ` --var AWS_ACCESS_KEY_ID:${configuration.s3.aws_access_key_id}` +
+          ` AWS_SECRET_ACCESS_KEY:${configuration.s3.aws_secret_key}` +
+          ` AWS_REGION:${configuration.s3.aws_region}` +
+          ` S3_BUCKET_PREFIX:${configuration.s3.bucket_prefix}` +
+          ` S3_BUCKET_NAME:${configuration.s3.bucket_name}` +
+          ` BUCKET_KIND:S3`
       }
 
       this.process = spawn(command, { cwd: workerBase, stdio: 'inherit', shell: true })
