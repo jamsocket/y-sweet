@@ -40,5 +40,6 @@ jobs:
         Y_SWEET_S3_ACCESS_KEY_ID: ${{ secrets.Y_SWEET_S3_ACCESS_KEY_ID }}
         Y_SWEET_S3_SECRET_KEY: ${{ secrets.Y_SWEET_S3_SECRET_KEY }}
         Y_SWEET_S3_REGION: us-east-1
+        Y_SWEET_S3_BUCKET_PREFIX: testing
         Y_SWEET_S3_BUCKET_NAME: ysweet-testing-y-sweet-data
       working-directory: tests
