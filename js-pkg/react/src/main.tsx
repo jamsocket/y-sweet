@@ -23,6 +23,14 @@ export function useYDoc(): Y.Doc {
   return yjsCtx.doc
 }
 
+export function useYjsProvider(): WebsocketProvider {
+  const yjsCtx = useContext(YjsContext)
+  if (!yjsCtx) {
+    throw new Error('Yjs hooks must be used within a YDocProvider')
+  }
+  return yjsCtx.provider
+}
+
 export function useAwareness(): Awareness {
   const yjsCtx = useContext(YjsContext)
   if (!yjsCtx) {

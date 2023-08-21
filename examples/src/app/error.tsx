@@ -9,6 +9,10 @@ function Samp(props: { children: React.ReactNode }) {
 function ErrorMessage(props: { error: YSweetError }) {
   let { cause } = props.error
 
+  if (!(props.error instanceof YSweetError)) {
+    throw props.error
+  }
+
   if (cause.code === 'ServerRefused' && cause.address === '127.0.0.1') {
     let portArg = cause.port === 8080 ? '' : ` --port ${cause.port}`
     return (
