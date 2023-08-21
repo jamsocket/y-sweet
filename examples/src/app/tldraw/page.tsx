@@ -2,7 +2,6 @@ import { Y_SWEET_CONFIG } from '@/lib/config'
 import Tldraw from './Tldraw'
 import { YDocProvider } from '@y-sweet/react'
 import { getOrCreateDoc } from '@y-sweet/sdk'
-import '@tldraw/tldraw/tldraw.css'
 
 type HomeProps = {
   searchParams: Record<string, string>

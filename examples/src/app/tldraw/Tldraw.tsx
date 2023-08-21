@@ -1,7 +1,7 @@
 'use client'
 
 import { Tldraw, track, useEditor } from '@tldraw/tldraw'
-// import '@tldraw/tldraw/tldraw.css'
+import '@tldraw/tldraw/tldraw.css'
 import { useYjsStore } from './useYjsStore'
 
 export default function TldrawExample() {
