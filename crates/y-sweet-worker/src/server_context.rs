@@ -16,7 +16,7 @@ pub struct ServerContext {
 impl ServerContext {
     pub fn new(config: Configuration, env: &Env) -> Self {
         let bucket = env.bucket(&config.bucket).unwrap();
-        let store: Box<dyn Store> = if let Some(ref s3) = config.s3_store_config {
+        let store: Box<dyn Store> = if let Some(ref s3) = config.s3_store_config.as_ref() {
             Box::new(S3Store::new(
                 s3.region.clone(),
                 s3.bucket.clone(),
