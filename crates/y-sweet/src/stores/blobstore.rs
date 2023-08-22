@@ -1,11 +1,10 @@
 use anyhow::Result;
 use async_trait::async_trait;
-use std::{cell::RefCell, sync::{Arc, RwLock}, time::Duration};
-use reqwest::{Client, StatusCode, Response};
+use reqwest::{Client, Response, StatusCode};
 use rusty_s3::{Bucket, Credentials, S3Action};
+use std::{sync::Arc, time::Duration};
 use tokio::sync::Mutex;
 use y_sweet_core::store::Store;
-
 
 const PRESIGNED_URL_DURATION_SECONDS: u64 = 60 * 60;
 pub struct S3Store {
@@ -45,22 +44,21 @@ impl S3Store {
         }
     }
 
-	async fn head_bucket(&self) -> Result<Response> {
-		let action = self.bucket.head_bucket(Some(&self.credentials));
-		let presigned_url =
-			action.sign(self.presigned_url_duration);
-		let response = self.client.head(presigned_url).send().await?;
-		Ok(response)
-	}
+    async fn head_bucket(&self) -> Result<Response> {
+        let action = self.bucket.head_bucket(Some(&self.credentials));
+        let presigned_url = action.sign(self.presigned_url_duration);
+        let response = self.client.head(presigned_url).send().await?;
+        Ok(response)
+    }
 
-	//lazily checks bucket exists on first use
+    //lazily checks bucket exists on first use
     async fn inited_bucket(&self) -> Result<&Bucket> {
-		let mut bucket_inited = self._bucket_inited.lock().await;
+        let mut bucket_inited = self._bucket_inited.lock().await;
         if !*bucket_inited {
-			let response = self.head_bucket().await?;
+            let response = self.head_bucket().await?;
             match response.status() {
                 StatusCode::OK => {
-					*bucket_inited = true;
+                    *bucket_inited = true;
                 }
                 StatusCode::NOT_FOUND => {
                     return Err(anyhow::anyhow!(
@@ -71,8 +69,8 @@ impl S3Store {
                 _ => {
                     return Err(anyhow::anyhow!(
                         "Other AWS Error: Code {} Err {}",
-						response.status(),
-						response.text().await?
+                        response.status(),
+                        response.text().await?
                     ))
                 }
             }
@@ -95,8 +93,7 @@ impl Store for S3Store {
         let bucket = self.inited_bucket().await?;
         let prefixed_key = self.prefixed_key(key);
         let object_get = bucket.get_object(Some(&self.credentials), &prefixed_key);
-        let presigned_url =
-            object_get.sign(self.presigned_url_duration);
+        let presigned_url = object_get.sign(self.presigned_url_duration);
         let response = self.client.get(presigned_url).send().await?;
         match response.status() {
             StatusCode::NOT_FOUND => Ok(None),
@@ -110,22 +107,35 @@ impl Store for S3Store {
     }
 
     async fn set(&self, key: &str, value: Vec<u8>) -> Result<()> {
-        let _code = self.bucket.put_object(&self.make_key(key), &value).await?;
+        let bucket = self.inited_bucket().await?;
+        let prefixed_key = self.prefixed_key(key);
+        let action = bucket.put_object(Some(&self.credentials), &prefixed_key);
+        let presigned_url = action.sign(self.presigned_url_duration);
+        let _response = self.client.put(presigned_url).body(value).send().await?;
         Ok(())
     }
 
     async fn remove(&self, key: &str) -> Result<()> {
-        let _code = self.bucket.delete_object(&self.make_key(key)).await?;
+        let bucket = self.inited_bucket().await?;
+        let prefixed_key = self.prefixed_key(key);
+        let action = bucket.delete_object(Some(&self.credentials), &prefixed_key);
+        let presigned_url = action.sign(self.presigned_url_duration);
+        self.client.delete(presigned_url).send().await?;
         Ok(())
     }
 
     async fn exists(&self, key: &str) -> Result<bool> {
-        let response = self.bucket.head_object(&self.make_key(key)).await;
-
-        match response {
-            Ok(_) => Ok(true),
-            Err(S3Error::Http(404, _)) => Ok(false),
-            Err(e) => Err(e.into()),
+        let bucket = self.inited_bucket().await?;
+        let prefixed_key = self.prefixed_key(key);
+        let action = bucket.head_object(Some(&self.credentials), &prefixed_key);
+        let presigned_url = action.sign(self.presigned_url_duration);
+        let res_status = self.client.head(presigned_url).send().await?.status();
+        match res_status {
+            StatusCode::OK => Ok(true),
+            StatusCode::NOT_FOUND => Ok(false),
+            _ => Err(anyhow::anyhow!(
+                "Existence check for bucket failed with HTTP Error Code: {res_status}"
+            )),
         }
     }
 }

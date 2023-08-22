@@ -1,10 +1,11 @@
 #![doc = include_str!("../README.md")]
 
+use crate::config::S3Config;
 use crate::stores::filesystem::FileSystemStore;
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use cli::{print_auth_message, print_server_url};
-use s3::Region;
+use config::parse_s3_config;
 use serde_json::json;
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
@@ -17,10 +18,9 @@ use url::Url;
 use y_sweet_core::{auth::Authenticator, store::Store};
 
 mod cli;
+mod config;
 mod server;
 mod stores;
-
-const DEFAULT_S3_REGION: Region = Region::UsEast1;
 
 #[derive(Parser)]
 struct Opts {
@@ -58,29 +58,14 @@ enum ServSubcommand {
 
 fn get_store_from_opts(store_path: &str) -> Result<Box<dyn Store>> {
     if store_path.starts_with("s3://") {
-        let region = match Region::from_default_env() {
-            Ok(region) => {
-                tracing::info!(region=?region, "Using region from environment.");
-                region
-            }
-            Err(e) => {
-                tracing::warn!(
-                    error=?e,
-                    "Failed to get region from environment, using default ({}).",
-                    DEFAULT_S3_REGION
-                );
-                DEFAULT_S3_REGION
-            }
-        };
-        let url = url::Url::parse(store_path)?;
-
-        let bucket = url
-            .host_str()
-            .ok_or_else(|| anyhow::anyhow!("Invalid S3 URL"))?
-            .to_owned();
-        let prefix = url.path().trim_start_matches('/').to_owned();
-
-        let store = S3Store::new(region, bucket, prefix)?;
+        let S3Config {
+            key,
+            bucket,
+            region,
+            bucket_prefix,
+            secret,
+        } = parse_s3_config(&mut std::env::vars(), store_path)?;
+        let store = S3Store::new(region, bucket, bucket_prefix, key, secret);
         Ok(Box::new(store))
     } else {
         Ok(Box::new(FileSystemStore::new(PathBuf::from(store_path))?))
