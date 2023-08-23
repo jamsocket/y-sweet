@@ -122,7 +122,7 @@ async fn main() -> Result<()> {
             );
 
             let store = if let Some(store) = store {
-                Some(get_store_from_opts(&store)?)
+                Some(get_store_from_opts(store)?)
             } else {
                 tracing::warn!("No store set. Documents will be stored in memory only.");
                 None
