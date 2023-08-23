@@ -29,7 +29,7 @@ export function randomColor() {
 
 export function Presence() {
   const [myColor, _] = useState(randomColor)
-  const presence = usePresence<Presence>()
+  const presence = usePresence<Presence>({includeSelf: true})
   const setPresence = usePresenceSetter<Presence>()
 
   let lastRotation = 0
@@ -67,7 +67,7 @@ export function Presence() {
   )
 
   return (
-    <svg className="relative overflow-hidden w-full h-full" onMouseMove={updatePresence}>
+    <svg className="relative overflow-hidden w-full h-full cursor-none" onMouseMove={updatePresence}>
       {Array.from(presence.entries()).map(([key, value]) => (
         <Cursor key={key} presence={value} />
       ))}
