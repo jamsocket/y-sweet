@@ -126,6 +126,42 @@ fn hash(bytes: &[u8]) -> Vec<u8> {
     result.to_vec()
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub struct KeyId(String);
+
+#[derive(Error, Debug, PartialEq, Eq)]
+pub enum KeyIdError {
+    #[error("The key ID cannot be an empty string")]
+    EmptyString,
+    #[error("The key ID contains an invalid character: {ch}")]
+    InvalidCharacter { ch: char },
+}
+
+impl KeyId {
+    pub fn new(key_id: String) -> Result<Self, KeyIdError> {
+        if key_id.is_empty() {
+            return Err(KeyIdError::EmptyString);
+        }
+
+        let valid_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+        for ch in key_id.chars() {
+            if !valid_chars.contains(ch) {
+                return Err(KeyIdError::InvalidCharacter { ch });
+            }
+        }
+
+        Ok(Self(key_id))
+    }
+}
+
+impl TryFrom<&str> for KeyId {
+    type Error = KeyIdError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Self::new(value.to_string())
+    }
+}
+
 impl Authenticator {
     pub fn new(private_key: &str) -> Result<Self, AuthError> {
         let private_key = b64_decode(private_key)?;
@@ -170,11 +206,11 @@ impl Authenticator {
                 return Err(AuthError::KeyMismatch);
             }
 
-            &token
+            token
         };
 
         let auth_req: AuthenticatedRequest =
-            bincode_decode(&b64_decode(token)?).map_err(|_| AuthError::InvalidToken)?;
+            bincode_decode(&b64_decode(token)?).or(Err(AuthError::InvalidToken))?;
 
         let mut payload =
             bincode_encode(&auth_req.payload).expect("Bincode serialization should not fail.");
@@ -191,9 +227,9 @@ impl Authenticator {
         }
     }
 
-    pub fn with_key_id(self, key_id: String) -> Self {
+    pub fn with_key_id(self, key_id: KeyId) -> Self {
         Self {
-            key_id: Some(key_id),
+            key_id: Some(key_id.0),
             ..self
         }
     }
@@ -305,7 +341,7 @@ mod tests {
     fn test_key_id() {
         let authenticator = Authenticator::gen_key()
             .unwrap()
-            .with_key_id("myKeyId".to_string());
+            .with_key_id("myKeyId".try_into().unwrap());
         let token = authenticator.gen_doc_token("doc123", 0);
         assert!(
             token.starts_with("myKeyId."),
@@ -324,10 +360,23 @@ mod tests {
     }
 
     #[test]
+    fn test_construct_key_id() {
+        assert_eq!(KeyId::new("".to_string()), Err(KeyIdError::EmptyString));
+        assert_eq!(
+            KeyId::new("*".to_string()),
+            Err(KeyIdError::InvalidCharacter { ch: '*' })
+        );
+        assert_eq!(
+            KeyId::new("myKeyId".to_string()),
+            Ok(KeyId("myKeyId".to_string()))
+        );
+    }
+
+    #[test]
     fn test_key_id_mismatch() {
         let authenticator = Authenticator::gen_key()
             .unwrap()
-            .with_key_id("myKeyId".to_string());
+            .with_key_id("myKeyId".try_into().unwrap());
         let token = authenticator.gen_doc_token("doc123", 0);
         let token = token.replace("myKeyId.", "aDifferentKeyId.");
         assert!(token.starts_with("aDifferentKeyId."));
@@ -341,7 +390,7 @@ mod tests {
     fn test_missing_key_id() {
         let authenticator = Authenticator::gen_key()
             .unwrap()
-            .with_key_id("myKeyId".to_string());
+            .with_key_id("myKeyId".try_into().unwrap());
         let token = authenticator.gen_doc_token("doc123", 0);
         let token = token.replace("myKeyId.", "");
         assert_eq!(
