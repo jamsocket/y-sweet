@@ -11,7 +11,7 @@ pub fn print_server_url(auth: Option<&Authenticator>, url_prefix: Option<&Url>, 
     };
 
     if let Some(auth) = auth {
-        url.set_username(auth.server_token()).unwrap();
+        url.set_username(&auth.server_token()).unwrap();
     }
 
     let token = url.to_string();

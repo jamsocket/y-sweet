@@ -21,13 +21,15 @@ pub enum AuthError {
     InvalidResource,
     #[error("The token signature is invalid")]
     InvalidSignature,
+    #[error("The key ID did not match")]
+    KeyMismatch,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, PartialOrd, Debug)]
 pub struct Authenticator {
     #[serde(with = "b64")]
     private_key: Vec<u8>,
-    server_token: String,
+    key_id: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -102,21 +104,6 @@ mod b64 {
 }
 
 impl Payload {
-    pub fn sign(self, private_key: &[u8]) -> String {
-        let mut payload = bincode_encode(&self).expect("Bincode serialization should not fail.");
-        payload.extend_from_slice(private_key);
-
-        let token = hash(&payload);
-
-        let auth_req = AuthenticatedRequest {
-            payload: self,
-            token,
-        };
-
-        let auth_enc = bincode_encode(&auth_req).expect("Bincode serialization should not fail.");
-        b64_encode(&auth_enc)
-    }
-
     pub fn new(payload: Permission) -> Self {
         Self {
             payload,
@@ -128,29 +115,6 @@ impl Payload {
         Self {
             payload,
             expiration_millis: Some(expiration_millis),
-        }
-    }
-
-    pub fn verify(
-        token: &str,
-        private_key: &[u8],
-        current_time: u64,
-    ) -> Result<Payload, AuthError> {
-        let auth_req: AuthenticatedRequest =
-            bincode_decode(&b64_decode(token)?).map_err(|_| AuthError::InvalidToken)?;
-
-        let mut payload =
-            bincode_encode(&auth_req.payload).expect("Bincode serialization should not fail.");
-        payload.extend_from_slice(private_key);
-
-        let expected_token = hash(&payload);
-
-        if expected_token != auth_req.token {
-            Err(AuthError::InvalidSignature)
-        } else if auth_req.payload.expiration_millis.unwrap_or(u64::MAX) < current_time {
-            Err(AuthError::Expired)
-        } else {
-            Ok(auth_req.payload)
         }
     }
 }
@@ -165,16 +129,73 @@ fn hash(bytes: &[u8]) -> Vec<u8> {
 impl Authenticator {
     pub fn new(private_key: &str) -> Result<Self, AuthError> {
         let private_key = b64_decode(private_key)?;
-        let server_token = Payload::new(Permission::Server).sign(&private_key);
 
         Ok(Self {
             private_key,
-            server_token,
+            key_id: None,
         })
     }
 
-    pub fn server_token(&self) -> &str {
-        &self.server_token
+    pub fn server_token(&self) -> String {
+        self.sign(Payload::new(Permission::Server))
+    }
+
+    fn sign(&self, payload: Payload) -> String {
+        let mut hash_payload =
+            bincode_encode(&payload).expect("Bincode serialization should not fail.");
+        hash_payload.extend_from_slice(&self.private_key);
+
+        let token = hash(&hash_payload);
+
+        let auth_req = AuthenticatedRequest { payload, token };
+
+        let auth_enc = bincode_encode(&auth_req).expect("Bincode serialization should not fail.");
+        let result = b64_encode(&auth_enc);
+        if let Some(key_id) = &self.key_id {
+            format!("{}.{}", key_id, result)
+        } else {
+            result
+        }
+    }
+
+    fn verify(&self, token: &str, current_time: u64) -> Result<Payload, AuthError> {
+        let token = if let Some((prefix, token)) = token.split_once('.') {
+            if Some(prefix) != self.key_id.as_deref() {
+                return Err(AuthError::KeyMismatch);
+            }
+
+            token
+        } else {
+            if self.key_id.is_some() {
+                return Err(AuthError::KeyMismatch);
+            }
+
+            &token
+        };
+
+        let auth_req: AuthenticatedRequest =
+            bincode_decode(&b64_decode(token)?).map_err(|_| AuthError::InvalidToken)?;
+
+        let mut payload =
+            bincode_encode(&auth_req.payload).expect("Bincode serialization should not fail.");
+        payload.extend_from_slice(&self.private_key);
+
+        let expected_token = hash(&payload);
+
+        if expected_token != auth_req.token {
+            Err(AuthError::InvalidSignature)
+        } else if auth_req.payload.expiration_millis.unwrap_or(u64::MAX) < current_time {
+            Err(AuthError::Expired)
+        } else {
+            Ok(auth_req.payload)
+        }
+    }
+
+    pub fn with_key_id(self, key_id: String) -> Self {
+        Self {
+            key_id: Some(key_id),
+            ..self
+        }
     }
 
     pub fn verify_server_token(
@@ -182,7 +203,7 @@ impl Authenticator {
         token: &str,
         current_time_epoch_millis: u64,
     ) -> Result<(), AuthError> {
-        let payload = Payload::verify(token, &self.private_key, current_time_epoch_millis)?;
+        let payload = self.verify(token, current_time_epoch_millis)?;
         match payload {
             Payload {
                 payload: Permission::Server,
@@ -202,7 +223,7 @@ impl Authenticator {
             Permission::Doc(doc_id.to_string()),
             expiration_time_epoch_millis,
         );
-        payload.sign(&self.private_key)
+        self.sign(payload)
     }
 
     fn verify_token(
@@ -210,7 +231,7 @@ impl Authenticator {
         token: &str,
         current_time_epoch_millis: u64,
     ) -> Result<Permission, AuthError> {
-        let payload = Payload::verify(token, &self.private_key, current_time_epoch_millis)?;
+        let payload = self.verify(token, current_time_epoch_millis)?;
         Ok(payload.payload)
     }
 
@@ -277,6 +298,66 @@ mod tests {
         assert_eq!(
             authenticator.verify_doc_token(&token, "doc456", 0),
             Err(AuthError::InvalidResource)
+        );
+    }
+
+    #[test]
+    fn test_key_id() {
+        let authenticator = Authenticator::gen_key()
+            .unwrap()
+            .with_key_id("myKeyId".to_string());
+        let token = authenticator.gen_doc_token("doc123", 0);
+        assert!(
+            token.starts_with("myKeyId."),
+            "Token {} does not start with myKeyId.",
+            token
+        );
+        assert_eq!(authenticator.verify_doc_token(&token, "doc123", 0), Ok(()));
+
+        let token = authenticator.server_token();
+        assert!(
+            token.starts_with("myKeyId."),
+            "Token {} does not start with myKeyId.",
+            token
+        );
+        assert_eq!(authenticator.verify_server_token(&token, 0), Ok(()));
+    }
+
+    #[test]
+    fn test_key_id_mismatch() {
+        let authenticator = Authenticator::gen_key()
+            .unwrap()
+            .with_key_id("myKeyId".to_string());
+        let token = authenticator.gen_doc_token("doc123", 0);
+        let token = token.replace("myKeyId.", "aDifferentKeyId.");
+        assert!(token.starts_with("aDifferentKeyId."));
+        assert_eq!(
+            authenticator.verify_doc_token(&token, "doc123", 0),
+            Err(AuthError::KeyMismatch)
+        );
+    }
+
+    #[test]
+    fn test_missing_key_id() {
+        let authenticator = Authenticator::gen_key()
+            .unwrap()
+            .with_key_id("myKeyId".to_string());
+        let token = authenticator.gen_doc_token("doc123", 0);
+        let token = token.replace("myKeyId.", "");
+        assert_eq!(
+            authenticator.verify_doc_token(&token, "doc123", 0),
+            Err(AuthError::KeyMismatch)
+        );
+    }
+
+    #[test]
+    fn test_unexpected_key_id() {
+        let authenticator = Authenticator::gen_key().unwrap();
+        let token = authenticator.gen_doc_token("doc123", 0);
+        let token = format!("unexpectedKeyId.{}", token);
+        assert_eq!(
+            authenticator.verify_doc_token(&token, "doc123", 0),
+            Err(AuthError::KeyMismatch)
         );
     }
 
