@@ -29,7 +29,7 @@ export function useYjsStore() {
 
   const doc = useYDoc()
   const room = useYjsProvider()
-  const yRecords = useMap<any>('tl_room', {observe: 'none'})
+  const yRecords = useMap<any>('tl_room', { observe: 'none' })
 
   useEffect(() => {
     const unsubs: (() => void)[] = []
