@@ -160,6 +160,61 @@ function MapView(props: MapViewProps) {
   )
 }
 
+type ObjectViewProps = {
+  map: Record<string, any>
+}
+
+function ObjectView(props: ObjectViewProps) {
+  return (
+    <div className="font-mono text-gray-400">
+      <span>{'{'}</span>
+      <div className="pl-10">
+        {
+          Object.entries(props.map)
+            .filter(([key, value]) => !(value instanceof Y.ContentDeleted))
+            .sort(([key1], [key2]) => key1.localeCompare(key2))
+            .map(([key, value]) => {
+              return (
+                <div key={key}>
+                  <PrettyKeyString value={key} />
+                  <span>: </span>
+                  <PrettyValue value={value} />
+                </div>
+              )
+            })
+        }
+      </div>
+      <span>{'}'}</span>
+    </div>
+  )
+}
+
+type ArrayViewProps = {
+  array: any[]
+}
+
+function ArrayView(props: ArrayViewProps) {
+  return (
+    <div className="font-mono text-gray-400">
+      <span>[</span>
+      <div className="pl-10">
+        {
+          props.array
+            .filter((v) => !(v instanceof Y.ContentDeleted))
+            .map((v, i) => {
+              return (
+                <div key={i}>
+                  <PrettyValue value={v} />
+                </div>
+              )
+            })
+        }
+      </div>
+      <span>]</span>
+    </div>
+  )
+}
+
 type ItemViewProps = {
   item: Y.Item
 }
@@ -204,6 +259,13 @@ function PrettyValue(props: { value: any }) {
     }
   } else if (typeof props.value === 'number') {
     return <span className="text-yellow-600">{props.value}</span>
+  } else if (typeof props.value === 'object') {
+    if (Array.isArray(props.value)) {
+      return <ArrayView array={props.value} />
+    } else {
+      return <ObjectView map={props.value} />
+    }
+    
   } else {
     console.log('unimplemented value type', typeof props.value)
     return <span>unknown type</span>
