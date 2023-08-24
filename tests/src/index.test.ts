@@ -98,6 +98,23 @@ describe.each(CONFIGURATIONS)(
       expect(key.url).toBeDefined()
     })
 
+    test('Test for ys:// connection string', async () => {
+      // NB: when the server returns ys[s]:// URLs, this test will start failing and can be removed.
+
+      let baseUrl = new URL(DOCUMENT_MANANGER.baseUrl).host
+      let username = encodeURIComponent(DOCUMENT_MANANGER.token ?? '')
+
+      let url = `ys://${username}@${baseUrl}`
+
+      const docManager = new DocumentManager(url.toString())
+
+      const docResult = await docManager.createDoc()
+      expect(docResult.doc).toBeDefined()
+
+      const key = await docManager.getClientToken(docResult, {})
+      expect(key.url).toBeDefined()
+    })
+
     if (configuration.useAuth) {
       test('Attempting to connect to a document without auth should fail', async () => {
         const docResult = await DOCUMENT_MANANGER.createDoc()
