@@ -94,14 +94,25 @@ export class DocumentManager {
       serverToken = {}
     } else if (typeof serverToken === 'string') {
       const parsedUrl = new URL(serverToken)
+
       let token
       if (parsedUrl.username) {
         // Decode the token from the URL.
         token = decodeURIComponent(parsedUrl.username)
       }
-      parsedUrl.username = ''
 
-      const url = parsedUrl.toString()
+      let protocol = parsedUrl.protocol
+      if (protocol === 'ys:') {
+        protocol = 'http:'
+      } else if (protocol === 'yss:') {
+        protocol = 'https:'
+      }
+
+      // NB: we manually construct the string here because node's URL implementation does
+      //     not handle changing the protocol of a URL well.
+      //     see: https://nodejs.org/api/url.html#urlprotocol
+      const url = `${protocol}//${parsedUrl.host}${parsedUrl.pathname}${parsedUrl.search}`
+
       serverToken = {
         url,
         token,
@@ -110,7 +121,6 @@ export class DocumentManager {
 
     this.baseUrl = (serverToken.url ?? 'http://127.0.0.1:8080').replace(/\/$/, '')
     this.token = serverToken.token
-    console.log(`Using server URL ${this.baseUrl}`)
   }
 
   async doFetch(url: string, body?: any): Promise<Response> {
