@@ -18,8 +18,7 @@ import {
 import { useYjsProvider } from '@y-sweet/react'
 import { useMap } from '@y-sweet/react'
 import { useYDoc } from '@y-sweet/react'
-import { useEffect, useMemo, useState } from 'react'
-import { WebsocketProvider } from 'y-websocket'
+import { useEffect, useState } from 'react'
 import * as Y from 'yjs'
 
 export function useYjsStore() {
@@ -30,7 +29,7 @@ export function useYjsStore() {
 
   const doc = useYDoc()
   const room = useYjsProvider()
-  const yRecords = useMap<any>('tl_room')
+  const yRecords = useMap<any>('tl_room', {observe: 'none'})
 
   useEffect(() => {
     const unsubs: (() => void)[] = []
