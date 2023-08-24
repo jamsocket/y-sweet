@@ -40,7 +40,7 @@ impl ServerContext {
         if self.auth.is_none() {
             let auth_key = {
                 let Some(auth_key) = &self.config.auth_key else {
-                    return Ok(None)
+                    return Ok(None);
                 };
                 auth_key.to_owned()
             };
