@@ -169,20 +169,18 @@ function ObjectView(props: ObjectViewProps) {
     <div className="font-mono text-gray-400">
       <span>{'{'}</span>
       <div className="pl-10">
-        {
-          Object.entries(props.map)
-            .filter(([key, value]) => !(value instanceof Y.ContentDeleted))
-            .sort(([key1], [key2]) => key1.localeCompare(key2))
-            .map(([key, value]) => {
-              return (
-                <div key={key}>
-                  <PrettyKeyString value={key} />
-                  <span>: </span>
-                  <PrettyValue value={value} />
-                </div>
-              )
-            })
-        }
+        {Object.entries(props.map)
+          .filter(([key, value]) => !(value instanceof Y.ContentDeleted))
+          .sort(([key1], [key2]) => key1.localeCompare(key2))
+          .map(([key, value]) => {
+            return (
+              <div key={key}>
+                <PrettyKeyString value={key} />
+                <span>: </span>
+                <PrettyValue value={value} />
+              </div>
+            )
+          })}
       </div>
       <span>{'}'}</span>
     </div>
@@ -198,17 +196,15 @@ function ArrayView(props: ArrayViewProps) {
     <div className="font-mono text-gray-400">
       <span>[</span>
       <div className="pl-10">
-        {
-          props.array
-            .filter((v) => !(v instanceof Y.ContentDeleted))
-            .map((v, i) => {
-              return (
-                <div key={i}>
-                  <PrettyValue value={v} />
-                </div>
-              )
-            })
-        }
+        {props.array
+          .filter((v) => !(v instanceof Y.ContentDeleted))
+          .map((v, i) => {
+            return (
+              <div key={i}>
+                <PrettyValue value={v} />
+              </div>
+            )
+          })}
       </div>
       <span>]</span>
     </div>
@@ -265,7 +261,6 @@ function PrettyValue(props: { value: any }) {
     } else {
       return <ObjectView map={props.value} />
     }
-    
   } else {
     console.log('unimplemented value type', typeof props.value)
     return <span>unknown type</span>
