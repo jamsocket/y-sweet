@@ -9,7 +9,8 @@ function Cursor(props: { presence: Presence }) {
   const { presence } = props
 
   return (
-    <g transform={`translate(${presence.x} ${presence.y}) scale(1.7) rotate(${presence.rotation})`}>
+    <g transform={`translate(${presence.x} ${presence.y}) scale(1.7) rotate(${presence.rotation})`} style={{transition: 'transform 0.05s'}}
+    >
       <path
         d="M 0 0 L -12 6 L -10 0 L -12 -6 Z"
         fill={presence.color}
@@ -44,16 +45,11 @@ export function Presence() {
       }
 
       let movementRotation = Math.atan2(deltaY, deltaX) * (180 / Math.PI)
+      let difference = (movementRotation - lastRotation + 180) % 360 - 180
+      if (difference < -180) difference += 360
+      movementRotation = lastRotation + difference
 
-      if (movementRotation - lastRotation > 180) {
-        lastRotation += 360
-      }
-
-      if (movementRotation - lastRotation < -180) {
-        lastRotation -= 360
-      }
-
-      const rotation = (0.9 * lastRotation + 0.1 * movementRotation) % 360
+      const rotation = 0.9 * lastRotation + 0.1 * movementRotation
       lastRotation = rotation
 
       setPresence({
