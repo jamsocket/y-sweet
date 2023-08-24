@@ -120,8 +120,6 @@ export class DocumentManager {
       }
     }
 
-
-
     this.baseUrl = (serverToken.url ?? 'http://127.0.0.1:8080').replace(/\/$/, '')
     this.token = serverToken.token
   }
