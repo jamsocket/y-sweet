@@ -9,7 +9,7 @@ import CopyLink from '@/components/CopyLink'
 import 'quill/dist/quill.snow.css'
 
 export function TextEditor() {
-  const yText = useText('text')
+  const yText = useText('text', {observe: 'none'})
   const awareness = useAwareness()
   const editorRef = useRef<HTMLDivElement | null>(null)
   const bindingRef = useRef<QuillBinding | null>(null)
