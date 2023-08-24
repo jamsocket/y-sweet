@@ -139,44 +139,50 @@ function useRedraw() {
   return useCallback(() => setRedraw((x) => x + 1), [setRedraw])
 }
 
-export function useMap<T>(name: string): Y.Map<T> {
+export type ObserverKind = 'deep' | 'shallow' | 'none'
+
+export type ObjectOptions = {
+  observe?: ObserverKind
+}
+
+export function useMap<T>(name: string, objectOptions?: ObjectOptions): Y.Map<T> {
   const doc = useYDoc()
   const map = useMemo(() => doc.getMap<T>(name), [doc, name])
-  useObserve(map)
+  useObserve(map, objectOptions?.observe || 'deep')
 
   return map
 }
 
-export function useArray<T>(name: string): Y.Array<T> {
+export function useArray<T>(name: string, objectOptions?: ObjectOptions): Y.Array<T> {
   const doc = useYDoc()
   const array = useMemo(() => doc.getArray<T>(name), [doc, name])
-  useObserve(array)
+  useObserve(array, objectOptions?.observe || 'deep')
 
   return array
 }
 
-export function useText(name: string): Y.Text {
+export function useText(name: string, observerKind?: ObjectOptions): Y.Text {
   const doc = useYDoc()
   const text = useMemo(() => doc.getText(name), [doc, name])
-  useObserve(text)
+  useObserve(text, observerKind?.observe || 'deep')
 
   return text
 }
 
-function useObserve(object: Y.AbstractType<any>, deep = true) {
+function useObserve(object: Y.AbstractType<any>, kind: ObserverKind) {
   const redraw = useRedraw()
 
   useEffect(() => {
-    if (deep) {
+    if (kind === 'deep') {
       object.observeDeep(redraw)
-    } else {
+    } else if (kind === 'shallow') {
       object.observe(redraw)
     }
 
     return () => {
-      if (deep) {
+      if (kind === 'deep') {
         object.unobserveDeep(redraw)
-      } else {
+      } else if (kind === 'shallow') {
         object.unobserve(redraw)
       }
     }

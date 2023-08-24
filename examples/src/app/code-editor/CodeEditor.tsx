@@ -16,7 +16,7 @@ if (typeof navigator !== 'undefined') {
 import './caret.css'
 
 export function CodeEditor() {
-  const yText = useText('text')
+  const yText = useText('text', { observe: 'none' })
   const awareness = useAwareness()
   const editorRef = useRef<EditorFromTextArea | null>(null)
   const bindingRef = useRef<CodemirrorBinding | null>(null)
