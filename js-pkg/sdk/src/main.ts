@@ -100,7 +100,6 @@ export class DocumentManager {
         // Decode the token from the URL.
         token = decodeURIComponent(parsedUrl.username)
       }
-      parsedUrl.username = ''
 
       let protocol = parsedUrl.protocol
       if (protocol === 'ys:') {
