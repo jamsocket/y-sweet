@@ -1,40 +1,77 @@
 'use client'
 
 import { usePresence, usePresenceSetter } from '@y-sweet/react'
-import { useCallback, useRef } from 'react'
+import { useCallback, useState } from 'react'
 
-const COLORS = ['bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-pink-500']
+type Presence = { x: number; y: number; color: string; rotation: number }
 
-type Presence = { x: number; y: number; color: string }
+function Cursor(props: { presence: Presence }) {
+  const { presence } = props
+
+  return (
+    <g
+      transform={`translate(${presence.x} ${presence.y}) scale(1.7) rotate(${presence.rotation})`}
+      style={{ transition: 'transform 0.05s' }}
+    >
+      <path
+        d="M 0 0 L -12 6 L -10 0 L -12 -6 Z"
+        fill={presence.color}
+        stroke="#777"
+        strokeWidth={2}
+        strokeLinejoin="round"
+      />
+    </g>
+  )
+}
+
+export function randomColor() {
+  const hue = Math.random() * 360
+  const value = Math.random() * 0.5 + 0.25
+  return `hsl(${hue}, 75%, ${value * 100}%)`
+}
 
 export function Presence() {
-  const myColor = useRef(COLORS[Math.floor(Math.random() * COLORS.length)])
-  const presence = usePresence<Presence>()
+  const [myColor, _] = useState(randomColor)
+  const presence = usePresence<Presence>({ includeSelf: true })
   const setPresence = usePresenceSetter<Presence>()
 
+  let lastRotation = 0
   const updatePresence = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
+    (e: React.MouseEvent<SVGSVGElement>) => {
+      let rect = e.currentTarget.getBoundingClientRect()
+      let deltaX = e.movementX
+      let deltaY = e.movementY
+
+      if (deltaX === 0 && deltaY === 0) {
+        return
+      }
+
+      let movementRotation = Math.atan2(deltaY, deltaX) * (180 / Math.PI)
+      let difference = ((movementRotation - lastRotation + 180) % 360) - 180
+      if (difference < -180) difference += 360
+      movementRotation = lastRotation + difference
+
+      const rotation = 0.9 * lastRotation + 0.1 * movementRotation
+      lastRotation = rotation
+
       setPresence({
-        x: e.clientX - e.currentTarget.offsetLeft,
-        y: e.clientY - e.currentTarget.offsetTop,
-        color: myColor.current,
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+        color: myColor,
+        rotation,
       })
     },
     [setPresence],
   )
 
   return (
-    <div
-      className="border-blue-400 border relative overflow-hidden w-[500px] h-[500px]"
+    <svg
+      className="relative overflow-hidden w-full h-full cursor-none"
       onMouseMove={updatePresence}
     >
       {Array.from(presence.entries()).map(([key, value]) => (
-        <div
-          key={key}
-          className={`absolute rounded-full ${value.color}`}
-          style={{ left: value.x - 6, top: value.y - 8, width: 10, height: 10 }}
-        />
+        <Cursor key={key} presence={value} />
       ))}
-    </div>
+    </svg>
   )
 }

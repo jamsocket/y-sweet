@@ -10,7 +10,7 @@ async function runBinary() {
     binpath = await installBinary()
   }
 
-  spawnSync(binpath, process.argv.slice(2), { stdio: 'inherit' })
+  spawnSync(binpath, process.argv.slice(2), { stdio: 'inherit', stderr: 'inherit' })
 }
 
 runBinary()
