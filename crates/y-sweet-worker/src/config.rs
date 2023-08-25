@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use y_sweet_core::auth::KeyId;
 use std::{str::FromStr, time::Duration};
 use worker::Env;
 
@@ -42,6 +43,7 @@ pub struct S3Config {
 #[derive(Serialize, Deserialize)]
 pub struct Configuration {
     pub auth_key: Option<String>,
+    pub auth_key_id: Option<KeyId>,
     pub bucket: String,
     pub s3_store_config: Option<S3Config>,
     pub bucket_prefix: Option<String>,
@@ -98,6 +100,7 @@ impl TryFrom<&Env> for Configuration {
 
         Ok(Self {
             auth_key,
+            auth_key_id: None,
             bucket: BUCKET.to_string(),
             s3_store_config: s3_config,
             bucket_prefix: None,
