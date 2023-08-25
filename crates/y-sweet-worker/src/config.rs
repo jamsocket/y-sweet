@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
-use y_sweet_core::auth::KeyId;
 use std::{str::FromStr, time::Duration};
 use worker::Env;
+use y_sweet_core::auth::KeyId;
 
 const BUCKET: &str = "Y_SWEET_DATA";
 const BUCKET_KIND: &str = "BUCKET_KIND";
