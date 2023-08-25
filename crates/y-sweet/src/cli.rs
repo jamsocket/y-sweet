@@ -22,11 +22,11 @@ pub fn print_server_url(auth: Option<&Authenticator>, url_prefix: Option<&Url>, 
 
     let token = url.to_string();
 
-    println!("Use the following server token to connect to y-sweet:");
+    println!("Use the following connection string to connect to y-sweet:");
     println!();
     println!("   {}", token.bright_purple());
     println!();
-    println!("For example, the y-sweet examples expect this parameter as an environment variable:");
+    println!("For example, the y-sweet examples expect this connection string as an environment variable:");
     println!();
     println!("    cd examples/");
     println!("    Y_SWEET_CONFIG={} npm run dev", token.bright_purple());
