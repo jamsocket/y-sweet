@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use base64::{
     alphabet::{STANDARD, URL_SAFE},
     engine::{DecodePaddingMode, GeneralPurpose, GeneralPurposeConfig},
@@ -126,7 +128,7 @@ fn hash(bytes: &[u8]) -> Vec<u8> {
     result.to_vec()
 }
 
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub struct KeyId(String);
 
 #[derive(Error, Debug, PartialEq, Eq)]
@@ -151,6 +153,12 @@ impl KeyId {
         }
 
         Ok(Self(key_id))
+    }
+}
+
+impl Display for KeyId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
     }
 }
 

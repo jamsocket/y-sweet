@@ -45,13 +45,17 @@ impl ServerContext {
                 auth_key.to_owned()
             };
 
-            self.auth =
-                Some(
-                    Authenticator::new(&auth_key).map_err(|_| Error::ConfigurationError {
-                        field: "auth_key".to_string(),
-                        value: auth_key,
-                    })?,
-                );
+            let mut auth =
+                Authenticator::new(&auth_key).map_err(|_| Error::ConfigurationError {
+                    field: "auth_key".to_string(),
+                    value: auth_key,
+                })?;
+
+            if let Some(auth_key_id) = &self.config.auth_key_id {
+                auth = auth.with_key_id(auth_key_id.clone());
+            }
+
+            self.auth = Some(auth);
         }
 
         Ok(Some(self.auth.as_ref().unwrap()))
