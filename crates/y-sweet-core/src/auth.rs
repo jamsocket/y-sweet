@@ -126,7 +126,7 @@ fn hash(bytes: &[u8]) -> Vec<u8> {
     result.to_vec()
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct KeyId(String);
 
 #[derive(Error, Debug, PartialEq, Eq)]
