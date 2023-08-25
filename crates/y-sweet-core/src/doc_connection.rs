@@ -3,8 +3,9 @@ use crate::sync::{
     awareness::{Awareness, Event},
     DefaultProtocol, Message, Protocol, SyncMessage,
 };
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, OnceLock, RwLock};
 use yrs::{
+    block::ClientID,
     updates::{decoder::Decode, encoder::Encode},
     Subscription, Update, UpdateSubscription,
 };
@@ -27,6 +28,10 @@ pub struct DocConnection {
     #[allow(unused)] // acts as RAII guard
     awareness_subscription: AwarenessSubscription,
     callback: Callback,
+
+    /// If the client sends an awareness state, this will be set to its client ID.
+    /// It is used to clear the awareness state when a client disconnects.
+    client_id: OnceLock<ClientID>,
 }
 
 impl DocConnection {
@@ -87,12 +92,13 @@ impl DocConnection {
             doc_subscription,
             awareness_subscription,
             callback,
+            client_id: OnceLock::new(),
         }
     }
 
     pub async fn send(&self, update: &[u8]) -> Result<(), anyhow::Error> {
         let msg = Message::decode_v1(update)?;
-        let result = handle_msg(&DefaultProtocol, &self.awareness, msg)?;
+        let result = self.handle_msg(&DefaultProtocol, msg)?;
 
         if let Some(result) = result {
             let msg = result.encode_v1();
@@ -101,45 +107,62 @@ impl DocConnection {
 
         Ok(())
     }
+
+    // Adapted from:
+    // https://github.com/y-crdt/y-sync/blob/56958e83acfd1f3c09f5dd67cf23c9c72f000707/src/net/conn.rs#L184C1-L222C1
+    pub fn handle_msg<P: Protocol>(
+        &self,
+        protocol: &P,
+        msg: Message,
+    ) -> Result<Option<Message>, sync::Error> {
+        let a = &self.awareness;
+        match msg {
+            Message::Sync(msg) => match msg {
+                SyncMessage::SyncStep1(sv) => {
+                    let awareness = a.read().unwrap();
+                    protocol.handle_sync_step1(&awareness, sv)
+                }
+                SyncMessage::SyncStep2(update) => {
+                    let mut awareness = a.write().unwrap();
+                    protocol.handle_sync_step2(&mut awareness, Update::decode_v1(&update)?)
+                }
+                SyncMessage::Update(update) => {
+                    let mut awareness = a.write().unwrap();
+                    protocol.handle_update(&mut awareness, Update::decode_v1(&update)?)
+                }
+            },
+            Message::Auth(reason) => {
+                let awareness = a.read().unwrap();
+                protocol.handle_auth(&awareness, reason)
+            }
+            Message::AwarenessQuery => {
+                let awareness = a.read().unwrap();
+                protocol.handle_awareness_query(&awareness)
+            }
+            Message::Awareness(update) => {
+                if update.clients.len() == 1 {
+                    let client_id = update.clients.keys().next().unwrap();
+                    self.client_id.get_or_init(|| *client_id);
+                } else {
+                    tracing::warn!("Received awareness update with more than one client");
+                }
+                let mut awareness = a.write().unwrap();
+                protocol.handle_awareness_update(&mut awareness, update)
+            }
+            Message::Custom(tag, data) => {
+                let mut awareness = a.write().unwrap();
+                protocol.missing_handle(&mut awareness, tag, data)
+            }
+        }
+    }
 }
 
-// Adapted from:
-// https://github.com/y-crdt/y-sync/blob/56958e83acfd1f3c09f5dd67cf23c9c72f000707/src/net/conn.rs#L184C1-L222C1
-fn handle_msg<P: Protocol>(
-    protocol: &P,
-    a: &Arc<RwLock<Awareness>>,
-    msg: Message,
-) -> Result<Option<Message>, sync::Error> {
-    match msg {
-        Message::Sync(msg) => match msg {
-            SyncMessage::SyncStep1(sv) => {
-                let awareness = a.read().unwrap();
-                protocol.handle_sync_step1(&awareness, sv)
-            }
-            SyncMessage::SyncStep2(update) => {
-                let mut awareness = a.write().unwrap();
-                protocol.handle_sync_step2(&mut awareness, Update::decode_v1(&update)?)
-            }
-            SyncMessage::Update(update) => {
-                let mut awareness = a.write().unwrap();
-                protocol.handle_update(&mut awareness, Update::decode_v1(&update)?)
-            }
-        },
-        Message::Auth(reason) => {
-            let awareness = a.read().unwrap();
-            protocol.handle_auth(&awareness, reason)
-        }
-        Message::AwarenessQuery => {
-            let awareness = a.read().unwrap();
-            protocol.handle_awareness_query(&awareness)
-        }
-        Message::Awareness(update) => {
-            let mut awareness = a.write().unwrap();
-            protocol.handle_awareness_update(&mut awareness, update)
-        }
-        Message::Custom(tag, data) => {
-            let mut awareness = a.write().unwrap();
-            protocol.missing_handle(&mut awareness, tag, data)
+impl Drop for DocConnection {
+    fn drop(&mut self) {
+        // If this client had an awareness state, remove it.
+        if let Some(client_id) = self.client_id.get() {
+            let mut awareness = self.awareness.write().unwrap();
+            awareness.remove_state(*client_id);
         }
     }
 }
