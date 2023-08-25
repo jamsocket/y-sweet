@@ -140,8 +140,7 @@ async fn main() -> Result<()> {
             )
             .await?;
 
-            let address = format!("http://{}:{}", addr.ip(), addr.port());
-            tracing::info!(%address, "Listening");
+            tracing::info!(%addr, "Listening");
 
             server.serve(&addr).await?;
         }

@@ -7,8 +7,14 @@ pub fn print_server_url(auth: Option<&Authenticator>, url_prefix: Option<&Url>, 
     let mut url = if let Some(url_prefix) = url_prefix {
         url_prefix.clone()
     } else {
-        Url::parse(&format!("http://{}", addr)).unwrap()
+        Url::parse(&format!("ys://{}", addr)).unwrap()
     };
+
+    if url.scheme() == "http" {
+        url.set_scheme("ys").unwrap();
+    } else if url.scheme() == "https" {
+        url.set_scheme("yss").unwrap();
+    }
 
     if let Some(auth) = auth {
         url.set_username(&auth.server_token()).unwrap();
