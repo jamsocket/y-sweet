@@ -1,0 +1,14 @@
+{
+  "name": "y-sweet-scripts",
+  "version": "1.0.0",
+  "description": "",
+  "private": true,
+  "scripts": {
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,md}\""
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "prettier": "^3.0.2"
+  }
+}
