@@ -43,28 +43,23 @@ export class Server {
     let auth
     if (configuration.useAuth) {
       auth = Server.generateAuth(yServeBase)
+      this.serverToken = auth.server_token
     }
 
     if (configuration.server === 'native') {
       let command = `cargo run -- serve --port ${this.port} ${this.dataDir}`
-      if (configuration.useAuth) {
-        let auth = Server.generateAuth(yServeBase)
-        command += ` --auth ${auth.private_key}`
-        this.serverToken = auth.server_token
-      }
 
+      if (configuration.useAuth) {
+        command += ` --auth ${auth.private_key}`
+      }
+      
       this.process = spawn(command, { cwd: yServeBase, stdio: 'inherit', shell: true })
     } else if (configuration.server === 'worker') {
       const workerBase = join(yServeBase, 'y-sweet-worker')
-      let command = `npx wrangler dev --persist-to ${this.dataDir} --port ${this.port}`
+      let command = `npx wrangler dev --persist-to ${this.dataDir} --port ${this.port} --env test`
 
       if (configuration.useAuth) {
-        command += ` --env auth-test`
-        // derived from the private key in the auth-test environment, hard-coded in wrangler.toml.
-        // the value of the private key is "quThwCWto1e3ybRQKA1pz98fANzm+/j5+zXygEIEIBQ="
-        this.serverToken = 'AAAgKZEAjp3ZqT6jUQCKO48OC9zYvFCWInQSj6sXbvaUeU8='
-      } else {
-        command += ` --env test`
+        command += ` --var AUTH_KEY:${auth.private_key}`
       }
 
       if (configuration.s3) {
