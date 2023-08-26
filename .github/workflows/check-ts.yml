@@ -9,7 +9,7 @@ on:
       - "js-pkg/**"
 
 jobs:
-  prettier-check:
+  check-ts-format:
     runs-on: ubuntu-latest
     steps:
     - name: Check out code

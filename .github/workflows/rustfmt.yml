@@ -7,7 +7,7 @@ on:
       - "crates/**"
 
 jobs:
-  check_format:
+  check-rust-format:
     runs-on: ubuntu-latest
     defaults:
       run:

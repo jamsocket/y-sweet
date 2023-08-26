@@ -6,7 +6,7 @@ on:
 
 name: Clippy check
 jobs:
-  clippy_check:
+  check-rust-clippy:
     runs-on: ubuntu-latest
     defaults:
       run:

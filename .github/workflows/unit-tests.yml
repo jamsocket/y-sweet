@@ -10,7 +10,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  unit-test:
     runs-on: ubuntu-latest-16-cores
     defaults:
       run:
