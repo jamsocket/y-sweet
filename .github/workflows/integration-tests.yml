@@ -1,10 +1,12 @@
 name: Integration Tests
 
 on:
-  push:
-    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+    paths:
+      - "tests/**"
+      - "crates/**"
+      - "js-pkg/**"
 
 env:
   CARGO_TERM_COLOR: always
