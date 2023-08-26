@@ -3,6 +3,8 @@ name: Rustfmt
 on:
   pull_request:
     branches: [ "*" ]
+    paths:
+      - "crates/**"
 
 jobs:
   check_format:

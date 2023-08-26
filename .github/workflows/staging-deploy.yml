@@ -3,13 +3,15 @@ name: Staging Deploy
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - "crates/**"
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-16-cores
     defaults:
       run:
         working-directory: ./crates/y-sweet-worker
