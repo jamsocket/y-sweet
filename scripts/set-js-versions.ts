@@ -54,6 +54,11 @@ function main() {
         process.exit(1);
     } else if (args.length === 1) {
         versionToSet = args[0];
+
+        if (!versionToSet.match(/^\d+\.\d+\.\d+$/)) {
+            console.error('Invalid version format');
+            process.exit(1);
+        }
     } else {
         console.info('No argument passed; only checking.');
     }
