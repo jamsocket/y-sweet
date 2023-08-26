@@ -52,7 +52,7 @@ export class Server {
       if (configuration.useAuth) {
         command += ` --auth ${auth.private_key}`
       }
-      
+
       this.process = spawn(command, { cwd: yServeBase, stdio: 'inherit', shell: true })
     } else if (configuration.server === 'worker') {
       const workerBase = join(yServeBase, 'y-sweet-worker')
