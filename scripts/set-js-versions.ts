@@ -2,6 +2,7 @@
 
 import fs from 'fs'
 import path from 'path'
+import { spawnSync } from 'child_process'
 
 interface IncorrectDependency {
   packageFile: string
@@ -63,6 +64,7 @@ function main() {
     console.info('No argument passed; only checking.')
   }
 
+  process.chdir(path.join(__dirname, '..'))
   const rootPackageJsonPath = 'package.json'
   const rootPackageJson = JSON.parse(fs.readFileSync(rootPackageJsonPath, 'utf-8'))
 
@@ -104,9 +106,14 @@ function main() {
         }
       })
 
-      fs.writeFileSync(packageData.packageFile, JSON.stringify(packageJson, null, 4))
+      fs.writeFileSync(packageData.packageFile, JSON.stringify(packageJson, null, 4) + '\n')
 
       console.log(`Updated ${packageData.packageFile} to version ${newVersion}`)
+
+      // Update the package-lock.json
+      spawnSync('npm', ['install'], {
+        stdio: 'inherit',
+      })
     })
 
     console.log(`Version set to ${versionToSet}`)
