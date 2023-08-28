@@ -47,17 +47,3 @@ bindings = [
 binding = "Y_SWEET_DATA"
 bucket_name = "y-sweet-data-staging"
 preview_bucket_name = "y-sweet-data-dev"
-
-[env.auth-test]
-vars.WORKERS_RS_VERSION = "0.0.11"
-vars.AUTH_KEY = "quThwCWto1e3ybRQKA1pz98fANzm+/j5+zXygEIEIBQ="
-
-[env.auth-test.durable_objects]
-bindings = [
-  { name = "Y_SWEET", class_name = "YServe" }
-]
-
-[[env.auth-test.r2_buckets]]
-binding = "Y_SWEET_DATA"
-bucket_name = "y-sweet-data-staging"
-preview_bucket_name = "y-sweet-data-dev"

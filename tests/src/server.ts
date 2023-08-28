@@ -43,38 +43,40 @@ export class Server {
     let auth
     if (configuration.useAuth) {
       auth = Server.generateAuth(yServeBase)
+      this.serverToken = auth.server_token
     }
 
     if (configuration.server === 'native') {
       let command = `cargo run -- serve --port ${this.port} ${this.dataDir} --prod`
       if (configuration.useAuth) {
-        let auth = Server.generateAuth(yServeBase)
         command += ` --auth ${auth.private_key}`
-        this.serverToken = auth.server_token
       }
 
       this.process = spawn(command, { cwd: yServeBase, stdio: 'inherit', shell: true })
     } else if (configuration.server === 'worker') {
       const workerBase = join(yServeBase, 'y-sweet-worker')
-      let command = `npx wrangler dev --persist-to ${this.dataDir} --port ${this.port}`
+      const vars: Record<string, string> = {}
 
       if (configuration.useAuth) {
-        command += ` --env auth-test`
-        // derived from the private key in the auth-test environment, hard-coded in wrangler.toml.
-        // the value of the private key is "quThwCWto1e3ybRQKA1pz98fANzm+/j5+zXygEIEIBQ="
-        this.serverToken = 'AAAgKZEAjp3ZqT6jUQCKO48OC9zYvFCWInQSj6sXbvaUeU8='
-      } else {
-        command += ` --env test`
+        vars['AUTH_KEY'] = auth.private_key
       }
 
       if (configuration.s3) {
-        command +=
-          ` --var AWS_ACCESS_KEY_ID:${configuration.s3.aws_access_key_id}` +
-          ` AWS_SECRET_ACCESS_KEY:${configuration.s3.aws_secret_key}` +
-          ` AWS_REGION:${configuration.s3.aws_region}` +
-          ` S3_BUCKET_PREFIX:${configuration.s3.bucket_prefix}` +
-          ` S3_BUCKET_NAME:${configuration.s3.bucket_name}` +
-          ` BUCKET_KIND:S3`
+        vars['S3_BUCKET_NAME'] = configuration.s3.bucket_name
+        vars['S3_BUCKET_PREFIX'] = configuration.s3.bucket_prefix
+        vars['AWS_ACCESS_KEY_ID'] = configuration.s3.aws_access_key_id
+        vars['AWS_SECRET_ACCESS_KEY'] = configuration.s3.aws_secret_key
+        vars['AWS_REGION'] = configuration.s3.aws_region
+        vars['BUCKET_KIND'] = 'S3'
+      }
+
+      let command = `npx wrangler dev --persist-to ${this.dataDir} --port ${this.port} --env test`
+
+      if (Object.entries(vars).length > 0) {
+        command += ' --var'
+        for (const [key, value] of Object.entries(vars)) {
+          command += ` ${key}:${value}`
+        }
       }
 
       this.process = spawn(command, { cwd: workerBase, stdio: 'inherit', shell: true })
