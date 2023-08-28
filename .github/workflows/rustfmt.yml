@@ -3,9 +3,11 @@ name: Rustfmt
 on:
   pull_request:
     branches: [ "*" ]
+    paths:
+      - "crates/**"
 
 jobs:
-  check_format:
+  check-rust-format:
     runs-on: ubuntu-latest
     defaults:
       run:
