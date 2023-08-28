@@ -46,7 +46,7 @@ export class Server {
     }
 
     if (configuration.server === 'native') {
-      let command = `cargo run -- serve --port ${this.port} ${this.dataDir}`
+      let command = `cargo run -- serve --port ${this.port} ${this.dataDir} --prod`
       if (configuration.useAuth) {
         let auth = Server.generateAuth(yServeBase)
         command += ` --auth ${auth.private_key}`
