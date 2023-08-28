@@ -23,3 +23,13 @@ The y-sweet server can be used by any Yjs app, or you can use our opinionated st
 The goal of the y-sweet stack is to give developers the end-to-end developer ergonomics they would expect from a proprietary state-sync platform, **without the lock-in**.
 
 y-sweet is MIT-licensed, and was created by [Drifting in Space](https://driftingin.space).
+
+## Packages
+
+| Package Manager | Name | Version | Path |
+| --- | ---- | ---- | ---- |
+| npm | `y-sweet` | [![npm](https://img.shields.io/npm/v/y-sweet)](https://www.npmjs.com/package/y-sweet) | `js-pkg/server`
+| npm | `@y-sweet/sdk` | [![npm](https://img.shields.io/npm/v/@y-sweet/sdk)](https://www.npmjs.com/package/@y-sweet/sdk) | `js-pkg/sdk` |
+| npm | `@y-sweet/react` | [![npm](https://img.shields.io/npm/v/@y-sweet/react)](https://www.npmjs.com/package/@y-sweet/react) | `js-pkg/react` |
+| crates.io | `y-sweet` | [![crates.io](https://img.shields.io/crates/v/y-sweet.svg)](https://crates.io/crates/y-sweet) | `crates/y-sweet` |
+| crates.io | `y-sweet-core` | [![crates.io](https://img.shields.io/crates/v/y-sweet-core.svg)](https://crates.io/crates/y-sweet-core) | `crates/y-sweet-core` |
