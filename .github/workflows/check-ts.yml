@@ -1,13 +1,15 @@
 name: Check TypeScript code
 
 on:
-  push:
-    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+    paths:
+      - "examples/**"
+      - "tests/**"
+      - "js-pkg/**"
 
 jobs:
-  prettier-check:
+  check-ts-format:
     runs-on: ubuntu-latest
     steps:
     - name: Check out code
