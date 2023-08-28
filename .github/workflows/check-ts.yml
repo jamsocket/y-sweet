@@ -36,5 +36,10 @@ jobs:
       run: npx prettier --check "src/**/*.{ts,tsx}"
       working-directory: js-pkg/sdk/
 
+    - name: Check Formatting of scripts
+      run: npx prettier --check "**/*.{ts,tsx}"
+      working-directory: scripts/
+
     - name: Check that workspace package versions match
-      run: npx ts-node .github/workflows/check.ts
+      run: npx ts-node scripts/set-js-versions.ts
+      
