@@ -18,21 +18,20 @@ pub struct S3Store {
 
 impl S3Store {
     pub fn new(
-        region: String,
+		endpoint: String,
+		region: String,
         bucket_name: String,
         prefix: Option<String>,
         aws_access_key_id: String,
         aws_secret: String,
     ) -> Self {
         let credentials = Credentials::new(aws_access_key_id, aws_secret);
-        let endpoint = format!("https://s3.dualstack.{}.amazonaws.com", region)
-            .parse()
-            .expect("endpoint is a valid Url");
-        let path_style = rusty_s3::UrlStyle::VirtualHost;
+        let endpoint = endpoint.parse().expect("endpoint is a valid url");
+		let path_style = rusty_s3::UrlStyle::VirtualHost;
         let bucket = Bucket::new(endpoint, path_style, bucket_name, region)
             .expect("Url has a valid scheme and host");
         let client = Client::new();
-
+		
         let presigned_url_duration = Duration::from_secs(PRESIGNED_URL_DURATION_SECONDS);
         S3Store {
             bucket,

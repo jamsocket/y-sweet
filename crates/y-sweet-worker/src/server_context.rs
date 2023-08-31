@@ -18,6 +18,7 @@ impl ServerContext {
         let bucket = env.bucket(&config.bucket).unwrap();
         let store: Box<dyn Store> = if let Some(ref s3) = config.s3_store_config.as_ref() {
             Box::new(S3Store::new(
+				s3.endpoint.clone(),
                 s3.region.clone(),
                 s3.bucket.clone(),
                 s3.bucket_prefix.clone(),
