@@ -8,31 +8,60 @@ on:
         required: true
 
 jobs:
-  build-macos:
+  build-macos-arm64:
     runs-on: macos-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v1
-        
-      - name: Install latest rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: beta
-          target: x86_64-apple-darwin
-          default: true
-          override: true
+    - name: Checkout
+      uses: actions/checkout@v1
 
-      - name: Build for MacOS
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --release --manifest-path=crates/Cargo.toml
-          
-      - name: Upload artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: macos-binary
-          path: ./crates/target/release/y-sweet 
+    - name: Install latest rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: beta
+        target: aarch64-apple-darwin
+        default: true
+        override: true
+
+    - name: Build for MacOS
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
+        args: --manifest-path=crates/Cargo.toml --target aarch64-apple-darwin
+
+    - name: strip binary
+      run: strip ./crates/target/aarch64-apple-darwin/debug/y-sweet
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: macos-binary-arm64
+        path: ./crates/target/aarch64-apple-darwin/debug/y-sweet 
+
+  build-macos-x64:
+    runs-on: macos-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v1
+
+    - name: Install latest rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: beta
+        target: x86_64-apple-darwin
+        default: true
+        override: true
+
+    - name: Build for MacOS
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
+        args: --release --manifest-path=crates/Cargo.toml
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: macos-binary-x64
+        path: ./crates/target/release/y-sweet 
 
   build-linux:
     runs-on: ubuntu-latest
@@ -94,7 +123,7 @@ jobs:
         path: ./crates/target/x86_64-pc-windows-gnu/release/y-sweet.exe
 
   release:
-    needs: [build-linux, build-macos, build-windows]
+    needs: [build-linux, build-macos-arm64, build-macos-x64, build-windows]
     runs-on: ubuntu-latest
     steps:
     - name: Download artifacts
@@ -104,14 +133,16 @@ jobs:
         gzip -9 --keep --force 
         windows-binary/y-sweet.exe
         linux-binary/y-sweet
-        macos-binary/y-sweet
+        macos-binary-x64/y-sweet
+        macos-binary-arm64/y-sweet
     - name: ls
       run: ls -la
     - name: rename and move
       run: >
         mv windows-binary/y-sweet.exe.gz y-sweet-win-x64.exe.gz &&
         mv linux-binary/y-sweet.gz y-sweet-linux-x64.gz &&
-        mv macos-binary/y-sweet.gz y-sweet-macos-x64.gz
+        mv macos-binary-x64/y-sweet.gz y-sweet-macos-x64.gz &&
+        mv macos-binary-arm64/y-sweet.gz y-sweet-macos-arm64.gz
     - name: Release
       uses: softprops/action-gh-release@v1
       with:
@@ -121,3 +152,4 @@ jobs:
             y-sweet-win-x64.exe.gz
             y-sweet-linux-x64.gz
             y-sweet-macos-x64.gz
+            y-sweet-macos-arm64.gz
