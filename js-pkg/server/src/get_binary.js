@@ -5,8 +5,8 @@ const VERSION = require('../package.json').version
 function getSuffix(os_type, os_arch) {
   if (os_type === 'Windows_NT' && os_arch === 'x64') return 'win-x64.exe.gz'
   if (os_type === 'Linux' && os_arch === 'x64') return 'linux-x64.gz'
-  //we rely on rosetta to provide emulation on aarch64 for now
-  if (os_type === 'Darwin') return 'macos-x64.gz'
+  if (os_type === 'Darwin' && os_arch === 'x64') return 'macos-x64.gz'
+  if (os_type === 'Darwin' && os_arch === 'arm64') return 'macos-arm64.gz'
 
   throw new Error(`Unsupported platform: ${os_type} ${os_arch}`)
 }
