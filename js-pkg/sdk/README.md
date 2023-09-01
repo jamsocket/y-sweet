@@ -43,7 +43,7 @@ type HomeProps = {
 
 export default async function Home({ searchParams }: HomeProps) {
     // Point to a local or production y-sweet server.
-    const connectionString = "http://localhost:8080"
+    const connectionString = "ys://localhost:8080"
 
     const clientToken = await getOrCreateDoc(searchParams.doc, connectionString)
 
