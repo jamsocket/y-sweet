@@ -42,7 +42,10 @@ type HomeProps = {
 }
 
 export default async function Home({ searchParams }: HomeProps) {
-    const clientToken = await getOrCreateDoc(searchParams.doc, YOUR_CONNECTION_STRING)
+    // Point to a local or production y-sweet server.
+    const connectionString = "http://localhost:8080"
+
+    const clientToken = await getOrCreateDoc(searchParams.doc, connectionString)
 
     return (
         <YDocProvider clientToken={clientToken} setQueryParam="doc">
