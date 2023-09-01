@@ -30,10 +30,7 @@ Here’s how access control works in y-sweet:
 - Your client then connects to y-sweet using the client token.
 
 The client token contains all the information needed for the client to connect to a y-sweet document, so the client doesn’t need any configuration.
-But you _do_ need to tell your server how to talk to y-sweet, by passing a **server token**.
-
-A server token combines a URL and a secret key. It can be represented either as a JSON object with `url` and `token` as keys, or as a JSONified string
-of the same. This makes it easy to store the server token in a secret store, and pass it to your server code as an environment variable.
+But you _do_ need to tell your server how to talk to y-sweet, by passing a **connection string**.
 
 
 ``` tsx filename="Home.tsx"
@@ -45,10 +42,7 @@ type HomeProps = {
 }
 
 export default async function Home({ searchParams }: HomeProps) {
-    // Point to a local or production y-sweet server.
-    const apiEndpoint = "http://localhost:8080"
-
-    const clientToken = await getOrCreateDoc(searchParams.doc, apiEndpoint)
+    const clientToken = await getOrCreateDoc(searchParams.doc, YOUR_CONNECTION_STRING)
 
     return (
         <YDocProvider clientToken={clientToken} setQueryParam="doc">

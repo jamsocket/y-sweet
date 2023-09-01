@@ -23,7 +23,7 @@ pub fn print_server_url(auth: Option<&Authenticator>, url_prefix: Option<&Url>, 
     println!("For example, the y-sweet examples expect this parameter as an environment variable:");
     println!();
     println!("    cd examples/");
-    println!("    Y_SWEET_CONFIG={} npm run dev", token.bright_purple());
+    println!("    CONNECTION_STRING={} npm run dev", token.bright_purple());
     println!();
     if auth.is_some() {
         println!(
