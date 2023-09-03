@@ -11,4 +11,5 @@ export interface Debuggable {
   entries(): DebuggableEntry[]
   value(): any
   size(): number
+  listen(listener: () => void): () => void
 }

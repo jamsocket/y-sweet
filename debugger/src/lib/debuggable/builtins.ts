@@ -28,6 +28,10 @@ export class Scalar implements Debuggable {
   size(): number {
     return 0
   }
+
+  listen(): () => void {
+    return () => {}
+  }
 }
 
 export class JsList implements Debuggable {
@@ -45,6 +49,10 @@ export class JsList implements Debuggable {
 
   size(): number {
     return this._value.length
+  }
+
+  listen(): () => void {
+    return () => {}
   }
 }
 
@@ -65,5 +73,9 @@ export class JsObject implements Debuggable {
 
   size(): number {
     return Object.keys(this._value).length
+  }
+
+  listen(): () => void {
+    return () => {}
   }
 }

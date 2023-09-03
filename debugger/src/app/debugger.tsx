@@ -8,20 +8,6 @@ import { DebuggableYDoc } from '@/lib/debuggable/yjs'
 
 export function Debugger() {
   const doc: Y.Doc = useYDoc()
-  const [_, setVersion] = useState(0)
-
-  // TODO: move observers into items
-  useEffect(() => {
-    const callback = () => {
-      setVersion((version) => version + 1)
-    }
-
-    doc.on('update', callback)
-
-    return () => {
-      doc.off('update', callback)
-    }
-  }, [setVersion, doc])
 
   return <DocEntryView doc={doc} />
 }
@@ -32,7 +18,6 @@ type DocEntryViewProps = {
 
 function DocEntryView(props: DocEntryViewProps) {
   let debuggable = useMemo(() => new DebuggableYDoc(props.doc), [props.doc])
-
   const len = debuggable.entries().length
 
   if (len === 0) {
@@ -48,6 +33,16 @@ function DocEntryView(props: DocEntryViewProps) {
 
 function DebuggableItems(props: { debuggable: Debuggable }) {
   let { debuggable } = props
+
+  let [_, setRenderVersion] = useState(0)
+  
+  useEffect(() => {
+    const clear = debuggable.listen(() => {
+      setRenderVersion((v) => v + 1)
+    })
+
+    return clear
+  }, [debuggable])
 
   return (
     <div>

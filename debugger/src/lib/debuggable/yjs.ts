@@ -3,14 +3,17 @@ import { Scalar, debuggableJsValue } from './builtins'
 import { Debuggable, DebuggableEntry, EntityType } from '.'
 
 export class DebuggableYDoc implements Debuggable {
-  constructor(private readonly _doc: Y.Doc) {}
+  keys: string[]
+
+  constructor(private readonly _doc: Y.Doc) {
+    this.keys = Array.from(this._doc.share.keys())
+  }
 
   type: EntityType = 'object'
   typeName = 'Y.Doc'
 
   entries(): DebuggableEntry[] {
-    const keys = Array.from(this._doc.share.keys())
-    return keys.map((key) => {
+    return this.keys.map((key) => {
       let abstractItem = this._doc.get(key)
 
       if (abstractItem._start !== null) {
@@ -32,6 +35,28 @@ export class DebuggableYDoc implements Debuggable {
 
   size(): number {
     return this._doc.getMap().size
+  }
+
+  listen(listener: () => void): () => void {
+    // We can only listen for EVERY change to a document,
+    // but we only want to know when a top-level key has been
+    // added. So on every update, we make a list of the keys
+    // and check if it's changed.
+    let callback = () => {
+      let keys = Array.from(this._doc.share.keys())
+      // Since keys can only be added, we can simply compare the
+      // lengths to know if it has changed.
+      if (keys.length !== this.keys.length) {
+        this.keys = keys
+        listener()
+      }
+    }
+
+    this._doc.on('update', callback)
+
+    return () => {
+      this._doc.off('update', callback)
+    }
   }
 }
 
@@ -80,6 +105,14 @@ class DebuggableYjsMap implements Debuggable {
   size(): number {
     return this._item._map.size
   }
+
+  listen(listener: () => void): () => void {
+    this._item.observe(listener)
+
+    return () => {
+      this._item.unobserve(listener)
+    }
+  }
 }
 
 class DebuggableYjsArray implements Debuggable {
@@ -98,6 +131,14 @@ class DebuggableYjsArray implements Debuggable {
 
   size(): number {
     return 0
+  }
+
+  listen(listener: () => void): () => void {
+    this._array.observe(listener)
+
+    return () => {
+      this._array.unobserve(listener)
+    }
   }
 }
 
@@ -125,5 +166,13 @@ class DebuggableYjsText implements Debuggable {
 
   size(): number {
     return 0
+  }
+
+  listen(listener: () => void): () => void {
+    this._text.observe(listener)
+
+    return () => {
+      this._text.unobserve(listener)
+    }
   }
 }
