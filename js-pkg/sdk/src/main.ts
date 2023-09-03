@@ -241,17 +241,17 @@ export async function createDoc(serverToken?: ServerToken | string): Promise<Doc
 }
 
 export function encodeClientToken(token: ClientToken): string {
-  const jsonString = JSON.stringify(token);
-  let base64 = Buffer.from(jsonString).toString('base64');
-  base64 = base64.replace('+', '-').replace('/', '_').replace(/=+$/, '');
-  return base64;
+  const jsonString = JSON.stringify(token)
+  let base64 = Buffer.from(jsonString).toString('base64')
+  base64 = base64.replace('+', '-').replace('/', '_').replace(/=+$/, '')
+  return base64
 }
 
 export function decodeClientToken(token: string): ClientToken {
-  let base64 = token.replace('-', '+').replace('_', '/');
+  let base64 = token.replace('-', '+').replace('_', '/')
   while (base64.length % 4) {
-    base64 += '=';
+    base64 += '='
   }
-  const jsonString = Buffer.from(base64, 'base64').toString('utf8');
-  return JSON.parse(jsonString);
+  const jsonString = Buffer.from(base64, 'base64').toString('utf8')
+  return JSON.parse(jsonString)
 }
