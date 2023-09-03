@@ -241,27 +241,27 @@ export async function createDoc(serverToken?: ServerToken | string): Promise<Doc
 }
 
 function stringToBase64(input: string) {
-    if (typeof window !== 'undefined' && window.btoa) {
-        // Browser
-        return window.btoa(input);
-    } else if (typeof Buffer !== 'undefined') {
-        // Node.js
-        return Buffer.from(input).toString('base64');
-    } else {
-        throw new Error('Unable to encode to Base64');
-    }
+  if (typeof window !== 'undefined' && window.btoa) {
+    // Browser
+    return window.btoa(input)
+  } else if (typeof Buffer !== 'undefined') {
+    // Node.js
+    return Buffer.from(input).toString('base64')
+  } else {
+    throw new Error('Unable to encode to Base64')
+  }
 }
 
 function base64ToString(input: string) {
-    if (typeof window !== 'undefined' && window.atob) {
-        // Browser
-        return window.atob(input);
-    } else if (typeof Buffer !== 'undefined') {
-        // Node.js
-        return Buffer.from(input, 'base64').toString();
-    } else {
-        throw new Error('Unable to decode from Base64');
-    }
+  if (typeof window !== 'undefined' && window.atob) {
+    // Browser
+    return window.atob(input)
+  } else if (typeof Buffer !== 'undefined') {
+    // Node.js
+    return Buffer.from(input, 'base64').toString()
+  } else {
+    throw new Error('Unable to decode from Base64')
+  }
 }
 
 export function encodeClientToken(token: ClientToken): string {
