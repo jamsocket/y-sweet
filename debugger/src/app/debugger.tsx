@@ -35,7 +35,7 @@ function DebuggableItems(props: { debuggable: Debuggable }) {
   let { debuggable } = props
 
   let [_, setRenderVersion] = useState(0)
-  
+
   useEffect(() => {
     const clear = debuggable.listen(() => {
       setRenderVersion((v) => v + 1)
