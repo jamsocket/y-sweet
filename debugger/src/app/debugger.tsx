@@ -12,7 +12,7 @@ export function Debugger() {
   // TODO: move observers into items
   useEffect(() => {
     const callback = () => {
-      setVersion(version => version + 1)
+      setVersion((version) => version + 1)
     }
 
     doc.on('update', callback)
@@ -20,9 +20,7 @@ export function Debugger() {
     return () => {
       doc.off('update', callback)
     }
-  },
-    [setVersion]
-  )
+  }, [setVersion])
 
   return <DocEntryView doc={doc} />
 }
@@ -40,22 +38,26 @@ function DocEntryView(props: DocEntryViewProps) {
     return <div>No entries.</div>
   }
 
-  return <div className="cursor-default">
-    <DebuggableItems debuggable={debuggable} />
-  </div>
+  return (
+    <div className="cursor-default">
+      <DebuggableItems debuggable={debuggable} />
+    </div>
+  )
 }
 
 function DebuggableItems(props: { debuggable: Debuggable }) {
   let { debuggable } = props
 
-  return <div>
-    {
-      debuggable.entries().map(entry => <DebuggableItem entry={entry} key={entry.key} />)
-    }
-  </div>
+  return (
+    <div>
+      {debuggable.entries().map((entry) => (
+        <DebuggableItem entry={entry} key={entry.key} />
+      ))}
+    </div>
+  )
 }
 
-function TypePill(props: {type?: string}) {
+function TypePill(props: { type?: string }) {
   if (!props.type) {
     return null
   }
@@ -66,27 +68,41 @@ function TypePill(props: {type?: string}) {
 function DebuggableItem(props: { entry: DebuggableEntry }) {
   const { entry } = props
   const [expanded, setExpanded] = useState(true)
-  
+
   const toggleExpanded = useCallback((e: React.MouseEvent) => {
-    setExpanded(expanded => !expanded)
+    setExpanded((expanded) => !expanded)
   }, [])
 
   if (entry.value.type === 'scalar') {
-    return <div>
-      <samp className="text-gray-500"><PrettyKey k={entry.key} />: <PrettyValue value={entry.value.value()} /></samp>
-    </div>
-  } else if (expanded) {
-    return <div>
-      <samp onClickCapture={toggleExpanded} className="text-gray-500 select-none"><PrettyKey k={entry.key} />: <TypePill type={entry.value.typeName} /> {entry.value.type === 'list' ? '[' : '{'}</samp>
-      <div className="pl-5">
-        <DebuggableItems debuggable={entry.value} />
+    return (
+      <div>
+        <samp className="text-gray-500">
+          <PrettyKey k={entry.key} />: <PrettyValue value={entry.value.value()} />
+        </samp>
       </div>
-      <samp className="text-gray-500">{entry.value.type === 'list' ? ']' : '}'}</samp>
-    </div>
+    )
+  } else if (expanded) {
+    return (
+      <div>
+        <samp onClickCapture={toggleExpanded} className="text-gray-500 select-none">
+          <PrettyKey k={entry.key} />: <TypePill type={entry.value.typeName} />{' '}
+          {entry.value.type === 'list' ? '[' : '{'}
+        </samp>
+        <div className="pl-5">
+          <DebuggableItems debuggable={entry.value} />
+        </div>
+        <samp className="text-gray-500">{entry.value.type === 'list' ? ']' : '}'}</samp>
+      </div>
+    )
   } else {
-    return <div>
-      <samp className="text-gray-500 select-none" onClickCapture={toggleExpanded}><PrettyKey k={entry.key} />: <TypePill type={entry.value.typeName} /> {entry.value.type === 'list' ? '[...]' : '{...}'}</samp>
-    </div>
+    return (
+      <div>
+        <samp className="text-gray-500 select-none" onClickCapture={toggleExpanded}>
+          <PrettyKey k={entry.key} />: <TypePill type={entry.value.typeName} />{' '}
+          {entry.value.type === 'list' ? '[...]' : '{...}'}
+        </samp>
+      </div>
+    )
   }
 }
 
