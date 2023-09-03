@@ -133,7 +133,6 @@ class DebuggableYjsText implements Debuggable {
   }
 
   value(): any {
-    console.log('d', this._text.toDelta())
     return this._text.toDelta()
   }
 
