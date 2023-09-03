@@ -2,9 +2,13 @@
 
 import { useState } from 'react'
 import { LinkIcon } from '@heroicons/react/24/outline'
+import { useYSweetDebugUrl } from '@y-sweet/react'
 
 export default function CopyLink() {
   const [copied, setCopied] = useState(false)
+
+  const debugUrl = useYSweetDebugUrl()
+  console.log('debugUrl', debugUrl)
 
   const copyLinkToClipboard = () => {
     const currentPageURL = window.location.href
