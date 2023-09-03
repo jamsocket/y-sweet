@@ -1,246 +1,96 @@
 'use client'
 
 import { useYDoc } from '@y-sweet/react'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import * as Y from 'yjs'
+import { Debuggable, DebuggableEntry, DebuggableYDoc } from './debuggable'
 
 export function Console() {
-  const doc = useYDoc()
-  const [keys, setKeys] = useState<string[]>([])
+  const doc: Y.Doc = useYDoc()
+  const [_, setVersion] = useState(0)
 
+  // TODO: move observers into items
   useEffect(() => {
-    // TODO: the goal here is to avoid calling setKeys when the keys haven't changed.
-    // But if feels a bit gross, is there a better way?
-    let lastKeys: string[] = []
-
-    doc?.on('update', () => {
-      const keys = Array.from(doc!.share.keys() ?? [])
-
-      if (lastKeys.length !== keys.length || !lastKeys.every((key, i) => key === keys[i])) {
-        setKeys(keys)
-        lastKeys = keys
-      }
-    })
-  })
-
-  return (
-    <div className="space-y-10 m-10">
-      {keys.map((key) => {
-        const value = doc!.get(key)
-        return <DocEntryView key={key} name={key} value={value} />
-      })}
-    </div>
-  )
-}
-
-function collectLinkedList(node: Y.Item): Y.Item[] {
-  const result: Y.Item[] = []
-  let current: Y.Item | null = node
-  while (current !== null) {
-    if (!(current.content instanceof Y.ContentDeleted)) {
-      result.push(current)
+    const callback = () => {
+      setVersion(version => version + 1)
     }
-    current = current.right
-  }
-  return result
+
+    doc.on('update', callback)
+
+    return () => {
+      doc.off('update', callback)
+    }
+  },
+    [setVersion]
+  )
+
+  return <DocEntryView doc={doc} />
 }
 
 type DocEntryViewProps = {
-  name: string
-  value: Y.AbstractType<any>
+  doc: Y.Doc
 }
 
 function DocEntryView(props: DocEntryViewProps) {
-  return (
-    <div className="space-y-5">
-      <h2 className="font-mono text-xl font-bold">{props.name}</h2>
-      {props.value._map?.size ? <MapView map={props.value._map} /> : null}
-      {props.value._start ? <GeneralList list={props.value._start} /> : null}
-    </div>
-  )
+  let debuggable = useMemo(() => new DebuggableYDoc(props.doc), [props.doc])
+
+  return <div className="p-8">
+    <DebuggableItems debuggable={debuggable} />
+  </div>
 }
 
-function GeneralList(props: { list: Y.Item }) {
-  const items = collectLinkedList(props.list)
-  const [displayAsText, setDisplayAsText] = useState(false)
+function DebuggableItems(props: { debuggable: Debuggable }) {
+  let { debuggable } = props
 
-  let component
-  if (displayAsText) {
-    component = <TextView list={items} />
-  } else {
-    component = <ListView list={items} />
+  return <div>
+    {
+      debuggable.entries().map(entry => <DebuggableItem entry={entry} key={entry.key} />)
+    }
+  </div>
+}
+
+function TypePill(props: {type?: string}) {
+  if (!props.type) {
+    return null
   }
 
-  return (
-    <div>
-      <label>
-        <input
-          type="checkbox"
-          checked={displayAsText}
-          onChange={(e) => setDisplayAsText(e.target.checked)}
-        />
-        <span className="ml-2">Display as text</span>
-      </label>
+  return <span className="text-xs bg-white p-1 rounded-md">{props.type}</span>
+}
 
-      {component}
+function DebuggableItem(props: { entry: DebuggableEntry }) {
+  const { entry } = props
+  const [expanded, setExpanded] = useState(true)
+  
+  const toggleExpanded = useCallback(() => {
+    setExpanded(expanded => !expanded)
+  }, [])
+
+  if (entry.value.type === 'scalar') {
+    return <div>
+      <samp className="text-gray-500"><PrettyKey k={entry.key} />: <PrettyValue value={entry.value.value()} /></samp>
     </div>
-  )
-}
-
-type ListViewProps = {
-  list: Y.Item[]
-}
-
-function ListView(props: ListViewProps) {
-  return (
-    <div className="font-mono text-gray-400">
-      <span>[</span>
-      <div className="pl-10">
-        {props.list.map((item, i) => {
-          return (
-            <div key={i}>
-              <ItemView item={item} />
-            </div>
-          )
-        })}
+  } else if (expanded) {
+    return <div>
+      <samp onClick={toggleExpanded} className="text-gray-500"><PrettyKey k={entry.key} />: <TypePill type={entry.value.typeName} /> {entry.value.type === 'list' ? '[' : '{'}</samp>
+      <div className="pl-5">
+        <DebuggableItems debuggable={entry.value} />
       </div>
-      <span>]</span>
+      <samp className="text-gray-500">{entry.value.type === 'list' ? ']' : '}'}</samp>
     </div>
-  )
-}
-
-function TextView(props: ListViewProps) {
-  return (
-    <pre className="bg-gray-100 rounded-md p-5">
-      {props.list.map((item, i) => {
-        if (item.content instanceof Y.ContentDeleted) {
-          return 'deleted'
-        } else if (item.content instanceof Y.ContentString) {
-          return item.content.str
-        } else if (item.content instanceof Y.ContentFormat) {
-          let open = item.content.value === true
-          return (
-            <span className="text-red-600" key={i}>
-              [{open ? null : '/'}
-              {item.content.key}]
-            </span>
-          )
-        } else {
-          console.log('unimplemented item type', item)
-          return 'unknown'
-        }
-      })}
-    </pre>
-  )
-}
-
-type MapViewProps = {
-  map: Map<string, Y.Item>
-}
-
-function MapView(props: MapViewProps) {
-  return (
-    <div className="font-mono text-gray-400">
-      <span>{'{'}</span>
-      <div className="pl-10">
-        {Array.from(props.map.entries())
-          .filter((v) => !(v[1].content instanceof Y.ContentDeleted))
-          .map(([key, item]) => {
-            return (
-              <div key={key}>
-                <PrettyKeyString value={key} />
-                <span>: </span>
-                <ItemView item={item} />
-              </div>
-            )
-          })}
-      </div>
-      <span>{'}'}</span>
-    </div>
-  )
-}
-
-type ObjectViewProps = {
-  map: Record<string, any>
-}
-
-function ObjectView(props: ObjectViewProps) {
-  return (
-    <div className="font-mono text-gray-400">
-      <span>{'{'}</span>
-      <div className="pl-10">
-        {Object.entries(props.map)
-          .filter(([key, value]) => !(value instanceof Y.ContentDeleted))
-          .sort(([key1], [key2]) => key1.localeCompare(key2))
-          .map(([key, value]) => {
-            return (
-              <div key={key}>
-                <PrettyKeyString value={key} />
-                <span>: </span>
-                <PrettyValue value={value} />
-              </div>
-            )
-          })}
-      </div>
-      <span>{'}'}</span>
-    </div>
-  )
-}
-
-type ArrayViewProps = {
-  array: any[]
-}
-
-function ArrayView(props: ArrayViewProps) {
-  return (
-    <div className="font-mono text-gray-400">
-      <span>[</span>
-      <div className="pl-10">
-        {props.array
-          .filter((v) => !(v instanceof Y.ContentDeleted))
-          .map((v, i) => {
-            return (
-              <div key={i}>
-                <PrettyValue value={v} />
-              </div>
-            )
-          })}
-      </div>
-      <span>]</span>
-    </div>
-  )
-}
-
-type ItemViewProps = {
-  item: Y.Item
-}
-
-function ItemView(props: ItemViewProps) {
-  if (props.item.content instanceof Y.ContentDeleted) {
-    return <samp>deleted</samp>
-  } else if (props.item.content instanceof Y.ContentAny) {
-    return <PrettyValue value={props.item.content.arr[0]} />
-  } else if (props.item.content instanceof Y.ContentType) {
-    const content: Y.ContentType = props.item.content
-
-    if (content.type instanceof Y.Map) {
-      return <MapView map={content.type._map} />
-    }
-
-    return <span>unknown content type...</span>
-  } else if (props.item.content instanceof Y.ContentString) {
-    return <PrettyString value={props.item.content.str} />
-  } else if (props.item.content instanceof Y.ContentFormat) {
-    let open = props.item.content.value === true
-    return (
-      <span className="text-red-600">
-        [{open ? null : '/'}
-        {props.item.content.key}]
-      </span>
-    )
   } else {
-    console.log('unimplemented item type', props.item)
-    return <samp>unknown</samp>
+    return <div>
+      <samp className="text-gray-500" onClick={toggleExpanded}><PrettyKey k={entry.key} />: <TypePill type={entry.value.typeName} /> {entry.value.type === 'list' ? '[...]' : '{...}'}</samp>
+    </div>
+  }
+}
+
+function PrettyKey(props: { k: any }) {
+  const { k } = props
+
+  if (typeof k === 'string') {
+    return <span className="text-blue-500">{k}</span>
+  } else {
+    return <span className="text-pink-500">{k}</span>
   }
 }
 
@@ -255,12 +105,6 @@ function PrettyValue(props: { value: any }) {
     }
   } else if (typeof props.value === 'number') {
     return <span className="text-yellow-600">{props.value}</span>
-  } else if (typeof props.value === 'object') {
-    if (Array.isArray(props.value)) {
-      return <ArrayView array={props.value} />
-    } else {
-      return <ObjectView map={props.value} />
-    }
   } else {
     console.log('unimplemented value type', typeof props.value)
     return <span>unknown type</span>
@@ -274,17 +118,6 @@ function PrettyString(props: { value: string }) {
     <span className="text-blue-300">
       {'"'}
       <span className="text-blue-600">{valueEscaped}</span>
-      {'"'}
-    </span>
-  )
-}
-
-function PrettyKeyString(props: { value: string }) {
-  const valueEscaped = JSON.stringify(props.value).slice(1, props.value.length + 1)
-  return (
-    <span className="text-red-300">
-      {'"'}
-      <span className="text-red-600">{valueEscaped}</span>
       {'"'}
     </span>
   )
