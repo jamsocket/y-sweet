@@ -5,6 +5,7 @@ on:
     branches: [ "main" ]
     paths:
       - "examples/**"
+      - "debugger/**"
       - "tests/**"
       - "js-pkg/**"
 
@@ -23,6 +24,10 @@ jobs:
     - name: Check Formatting of Examples
       run: npx prettier --check "src/**/*.{ts,tsx}"
       working-directory: examples/
+
+    - name: Check Formatting of Debugger
+      run: npx prettier --check "src/**/*.{ts,tsx}"
+      working-directory: debugger/
 
     - name: Check Formatting of Tests
       run: npx prettier --check "src/**/*.ts"
