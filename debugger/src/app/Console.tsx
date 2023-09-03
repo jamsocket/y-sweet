@@ -34,6 +34,12 @@ type DocEntryViewProps = {
 function DocEntryView(props: DocEntryViewProps) {
   let debuggable = useMemo(() => new DebuggableYDoc(props.doc), [props.doc])
 
+  const len = debuggable.entries().length
+
+  if (len === 0) {
+    return <div className="p-8">No entries.</div>
+  }
+
   return <div className="p-8">
     <DebuggableItems debuggable={debuggable} />
   </div>

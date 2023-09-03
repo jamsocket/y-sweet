@@ -7,10 +7,12 @@ import * as Y from 'yjs'
 import type { Awareness } from 'y-protocols/awareness'
 import { ClientToken } from '@y-sweet/sdk'
 import { createYjsProvider } from './yjs-provider'
+import { encodeClientToken } from '@y-sweet/sdk'
 
 type YjsContextType = {
   doc: Y.Doc
   provider: WebsocketProvider
+  clientToken: ClientToken
 }
 
 const YjsContext = createContext<YjsContextType | null>(null)
@@ -21,6 +23,14 @@ export function useYDoc(): Y.Doc {
     throw new Error('Yjs hooks must be used within a YDocProvider')
   }
   return yjsCtx.doc
+}
+
+export function useYSweetDebugUrl(): string {
+  const yjsCtx = useContext(YjsContext)
+  if (!yjsCtx) {
+    throw new Error('Yjs hooks must be used within a YDocProvider')
+  }
+  return encodeClientToken(yjsCtx.clientToken)
 }
 
 export function useYjsProvider(): WebsocketProvider {
@@ -102,32 +112,33 @@ type YDocProviderProps = {
 }
 
 export function YDocProvider(props: YDocProviderProps) {
-  const { children, clientToken: auth } = props
+  const { children, clientToken } = props
 
   const [ctx, setCtx] = useState<YjsContextType | null>(null)
 
   useEffect(() => {
     const doc = new Y.Doc()
-    const provider = createYjsProvider(doc, auth, {
-      // TODO: this disables cross-tab communication, which makes debugging easier, but should be re-enabled in prod
+    const provider = createYjsProvider(doc, clientToken, {
+      // TODO: this disables local cross-tab communication, which makes
+      // debugging easier, but should be re-enabled eventually
       disableBc: true,
     })
 
-    setCtx({ doc, provider })
+    setCtx({ doc, provider, clientToken })
 
     return () => {
       provider.destroy()
       doc.destroy()
     }
-  }, [auth.token, auth.url, auth.doc])
+  }, [clientToken.token, clientToken.url, clientToken.doc])
 
   useEffect(() => {
     if (props.setQueryParam) {
       const url = new URL(window.location.href)
-      url.searchParams.set(props.setQueryParam, auth.doc)
+      url.searchParams.set(props.setQueryParam, clientToken.doc)
       window.history.replaceState({}, '', url.toString())
     }
-  }, [props.setQueryParam, auth.doc])
+  }, [props.setQueryParam, clientToken.doc])
 
   if (ctx === null) return null
 
