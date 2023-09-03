@@ -17,12 +17,28 @@ type YjsContextType = {
 
 const YjsContext = createContext<YjsContextType | null>(null)
 
-export function useYDoc(): Y.Doc {
+type YDocOptions = {
+  hideDebuggerLink?: boolean,
+}
+
+export function useYDoc(options?: YDocOptions): Y.Doc {
   const yjsCtx = useContext(YjsContext)
+
+  useEffect(() => {
+    if (!options?.hideDebuggerLink && yjsCtx) {
+      console.log('Y-Sweet Debugger', debuggerUrl(yjsCtx.clientToken))
+    }
+  }, [options?.hideDebuggerLink, yjsCtx])
+
   if (!yjsCtx) {
     throw new Error('Yjs hooks must be used within a YDocProvider')
   }
   return yjsCtx.doc
+}
+
+export function debuggerUrl(clientToken: ClientToken): string {
+  const payload = encodeClientToken(clientToken)
+  return `https://debugger.y-sweet.dev/?payload=${payload}`
 }
 
 export function useYSweetDebugUrl(): string {
@@ -30,7 +46,7 @@ export function useYSweetDebugUrl(): string {
   if (!yjsCtx) {
     throw new Error('Yjs hooks must be used within a YDocProvider')
   }
-  return encodeClientToken(yjsCtx.clientToken)
+  return debuggerUrl(yjsCtx.clientToken)
 }
 
 export function useYjsProvider(): WebsocketProvider {
