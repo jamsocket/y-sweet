@@ -3,7 +3,7 @@
 import { YDocProvider } from "@y-sweet/react"
 import { ClientToken, decodeClientToken } from "@y-sweet/sdk"
 import { useEffect, useState } from "react"
-import { Console } from "./Console"
+import { Debugger } from "./debugger"
 
 export default function Home() {
   const [clientToken, setClientToken] = useState<ClientToken | null>(null)
@@ -18,18 +18,18 @@ export default function Home() {
   }, [])
 
   if (clientToken) {
-    return <div>
-      Debug payload: {JSON.stringify(clientToken)}
+    console.log('clientToken', clientToken)
 
-      <Debugger clientToken={clientToken} />
+    return <div>
+      <DebuggerWrapper clientToken={clientToken} />
     </div>
   } else {
     return <div>Y-Sweet Debugger.</div>
   }
 }
 
-function Debugger(props: {clientToken: ClientToken}) {
+function DebuggerWrapper(props: {clientToken: ClientToken}) {
   return <YDocProvider clientToken={props.clientToken}>
-    <Console />
+    <Debugger />
   </YDocProvider>
 }

@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import * as Y from 'yjs'
 import { Debuggable, DebuggableEntry, DebuggableYDoc } from './debuggable'
 
-export function Console() {
+export function Debugger() {
   const doc: Y.Doc = useYDoc()
   const [_, setVersion] = useState(0)
 
@@ -37,10 +37,10 @@ function DocEntryView(props: DocEntryViewProps) {
   const len = debuggable.entries().length
 
   if (len === 0) {
-    return <div className="p-8">No entries.</div>
+    return <div>No entries.</div>
   }
 
-  return <div className="p-8">
+  return <div>
     <DebuggableItems debuggable={debuggable} />
   </div>
 }
@@ -60,7 +60,7 @@ function TypePill(props: {type?: string}) {
     return null
   }
 
-  return <span className="text-xs bg-white p-1 rounded-md">{props.type}</span>
+  return <span className="text-xs bg-slate-600 text-slate-200 p-1 rounded-md">{props.type}</span>
 }
 
 function DebuggableItem(props: { entry: DebuggableEntry }) {
@@ -94,9 +94,9 @@ function PrettyKey(props: { k: any }) {
   const { k } = props
 
   if (typeof k === 'string') {
-    return <span className="text-blue-500">{k}</span>
+    return <span className="text-blue-300">{k}</span>
   } else {
-    return <span className="text-pink-500">{k}</span>
+    return <span className="text-pink-300">{k}</span>
   }
 }
 
@@ -105,12 +105,12 @@ function PrettyValue(props: { value: any }) {
     return <PrettyString value={props.value} />
   } else if (typeof props.value === 'boolean') {
     if (props.value) {
-      return <span className="text-green-600">true</span>
+      return <span className="text-green-300">true</span>
     } else {
-      return <span className="text-purple-600">false</span>
+      return <span className="text-purple-300">false</span>
     }
   } else if (typeof props.value === 'number') {
-    return <span className="text-yellow-600">{props.value}</span>
+    return <span className="text-yellow-300">{props.value}</span>
   } else {
     console.log('unimplemented value type', typeof props.value)
     return <span>unknown type</span>
@@ -121,9 +121,9 @@ function PrettyString(props: { value: string }) {
   let valueEscaped = JSON.stringify(props.value)
   valueEscaped = valueEscaped.slice(1, valueEscaped.length - 1)
   return (
-    <span className="text-blue-300">
+    <span className="text-gray-500">
       {'"'}
-      <span className="text-blue-600">{valueEscaped}</span>
+      <span className="text-neutral-200">{valueEscaped}</span>
       {'"'}
     </span>
   )
