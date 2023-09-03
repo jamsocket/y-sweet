@@ -20,7 +20,7 @@ export function Debugger() {
     return () => {
       doc.off('update', callback)
     }
-  }, [setVersion])
+  }, [setVersion, doc])
 
   return <DocEntryView doc={doc} />
 }
