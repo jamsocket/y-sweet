@@ -107,6 +107,7 @@ class DebuggableYjsMap implements Debuggable {
   }
 
   listen(listener: () => void): () => void {
+    console.log('listen called')
     this._item.observe(listener)
 
     return () => {

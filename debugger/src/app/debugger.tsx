@@ -18,6 +18,17 @@ type DocEntryViewProps = {
 
 function DocEntryView(props: DocEntryViewProps) {
   let debuggable = useMemo(() => new DebuggableYDoc(props.doc), [props.doc])
+
+  let [_, setRenderVersion] = useState(0)
+
+  useEffect(() => {
+    const clear = debuggable.listen(() => {
+      setRenderVersion((v) => v + 1)
+    })
+
+    return clear
+  }, [debuggable])
+
   const len = debuggable.entries().length
 
   if (len === 0) {
