@@ -161,57 +161,70 @@ export function YDocProvider(props: YDocProviderProps) {
   return <YjsContext.Provider value={ctx}>{children}</YjsContext.Provider>
 }
 
-function useRedraw() {
-  const [_, setRedraw] = useState(0)
-  return useCallback(() => setRedraw((x) => x + 1), [setRedraw])
+function useVersion(): [number, () => void] {
+  const [version, setRedraw] = useState(0)
+  return [version, useCallback(() => setRedraw((x) => x + 1), [setRedraw])]
 }
 
-export type ObserverKind = 'deep' | 'shallow' | 'none'
+export type ObserverKind = 'deep' | 'shallow' | 'none' | boolean
 
 export type ObjectOptions = {
   observe?: ObserverKind
 }
 
-export function useMap<T>(name: string, objectOptions?: ObjectOptions): Y.Map<T> {
+type Versioned<T> = T & { __version: number }
+
+export function useMap<T>(name: string, objectOptions?: ObjectOptions): Versioned<Y.Map<T>> {
   const doc = useYDoc()
   const map = useMemo(() => doc.getMap<T>(name), [doc, name])
-  useObserve(map, objectOptions?.observe || 'deep')
+  const version = useObserve(map, objectOptions?.observe ?? 'deep')
+  
+  let versionedMap: Versioned<Y.Map<T>> = map as any
+  versionedMap.__version = version
 
-  return map
+  return versionedMap
 }
 
-export function useArray<T>(name: string, objectOptions?: ObjectOptions): Y.Array<T> {
+export function useArray<T>(name: string, objectOptions?: ObjectOptions): Versioned<Y.Array<T>> {
   const doc = useYDoc()
   const array = useMemo(() => doc.getArray<T>(name), [doc, name])
-  useObserve(array, objectOptions?.observe || 'deep')
+  const version = useObserve(array, objectOptions?.observe ?? 'deep')
 
-  return array
+  let versionedArray: Versioned<Y.Array<T>> = array as any
+  versionedArray.__version = version
+
+  return versionedArray
 }
 
-export function useText(name: string, observerKind?: ObjectOptions): Y.Text {
+export function useText(name: string, observerKind?: ObjectOptions): Versioned<Y.Text> {
   const doc = useYDoc()
   const text = useMemo(() => doc.getText(name), [doc, name])
-  useObserve(text, observerKind?.observe || 'deep')
+  const version = useObserve(text, observerKind?.observe ?? 'deep')
 
-  return text
+  let versionedText: Versioned<Y.Text> = text as any
+  versionedText.__version = version
+
+  return versionedText
 }
 
-function useObserve(object: Y.AbstractType<any>, kind: ObserverKind) {
-  const redraw = useRedraw()
+function useObserve(object: Y.AbstractType<any>, kind: ObserverKind): number {
+  const [version, incrementVersion] = useVersion()
 
   useEffect(() => {
     if (kind === 'deep') {
-      object.observeDeep(redraw)
+      object.observeDeep(incrementVersion)
     } else if (kind === 'shallow') {
-      object.observe(redraw)
+      object.observe(incrementVersion)
     }
 
     return () => {
       if (kind === 'deep') {
-        object.unobserveDeep(redraw)
+        object.unobserveDeep(incrementVersion)
       } else if (kind === 'shallow') {
-        object.unobserve(redraw)
+        object.unobserve(incrementVersion)
       }
     }
   })
+
+  return version
 }

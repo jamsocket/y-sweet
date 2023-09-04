@@ -4,7 +4,7 @@ import { OrbitControls } from '@react-three/drei'
 import { Canvas, ThreeEvent, useFrame } from '@react-three/fiber'
 import { Compact } from '@uiw/react-color'
 import { usePresence, useMap, usePresenceSetter } from '@y-sweet/react'
-import { useCallback, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Vector3, Vector3Tuple } from 'three'
 
 const DIM = 15
@@ -199,7 +199,7 @@ export function VoxelEditor() {
     [color, voxels],
   )
 
-  let voxelArray: Record<string, Voxel> = voxels.toJSON()
+  let voxelArray: Record<string, Voxel> = useMemo(() => voxels.toJSON(), [voxels.__version])
 
   return (
     <>
