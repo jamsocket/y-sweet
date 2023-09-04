@@ -18,7 +18,7 @@ type YjsContextType = {
 const YjsContext = createContext<YjsContextType | null>(null)
 
 type YDocOptions = {
-  hideDebuggerLink?: boolean,
+  hideDebuggerLink?: boolean
 }
 
 export function useYDoc(options?: YDocOptions): Y.Doc {
@@ -178,7 +178,7 @@ export function useMap<T>(name: string, objectOptions?: ObjectOptions): Versione
   const doc = useYDoc()
   const map = useMemo(() => doc.getMap<T>(name), [doc, name])
   const version = useObserve(map, objectOptions?.observe ?? 'deep')
-  
+
   let versionedMap: Versioned<Y.Map<T>> = map as any
   versionedMap.__version = version
 
