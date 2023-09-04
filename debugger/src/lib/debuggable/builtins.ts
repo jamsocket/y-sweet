@@ -15,7 +15,9 @@ export function debuggableJsValue(value: any): Debuggable {
 export class Scalar implements Debuggable {
   constructor(private readonly _value: any) {}
 
-  type: EntityType = 'scalar'
+  type(): EntityType {
+    return 'scalar'
+  }
 
   entries(): DebuggableEntry[] {
     return []
@@ -37,7 +39,9 @@ export class Scalar implements Debuggable {
 export class JsList implements Debuggable {
   constructor(private readonly _value: any[]) {}
 
-  type: EntityType = 'list'
+  type(): EntityType {
+    return 'list'
+  }
 
   entries(): DebuggableEntry[] {
     return this._value.map((value, index) => ({ key: index, value: debuggableJsValue(value) }))
@@ -59,7 +63,9 @@ export class JsList implements Debuggable {
 export class JsObject implements Debuggable {
   constructor(private readonly _value: object) {}
 
-  type: EntityType = 'object'
+  type(): EntityType {
+    return 'object'
+  }
 
   entries(): DebuggableEntry[] {
     return Object.entries(this._value)

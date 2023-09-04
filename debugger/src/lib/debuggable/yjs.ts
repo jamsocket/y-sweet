@@ -2,7 +2,7 @@ import * as Y from 'yjs'
 import { Scalar, debuggableJsValue } from './builtins'
 import { Debuggable, DebuggableEntry, EntityType } from '.'
 
-function debuggableYjsItem(item: Y.Item): Debuggable {
+export function debuggableYjsItem(item: Y.Item): Debuggable {
   if (item instanceof Y.Map) {
     return new DebuggableYjsMap(item)
   }
@@ -30,9 +30,14 @@ function debuggableYjsItem(item: Y.Item): Debuggable {
 export class DebuggableYjsMap implements Debuggable {
   constructor(private readonly _item: Y.Map<any>) {}
 
-  type: EntityType = 'object'
-  typeName = 'Y.Map'
+  type(): EntityType {
+    return 'object'
+  }
 
+  typeName(): string {
+    return 'Y.Map'
+  }
+  
   entries(): DebuggableEntry[] {
     return Array.from(this._item._map.entries())
       .filter((v) => !(v[1].content instanceof Y.ContentDeleted))
@@ -61,8 +66,13 @@ export class DebuggableYjsMap implements Debuggable {
 export class DebuggableYjsArray implements Debuggable {
   constructor(private readonly _array: Y.Array<any>) {}
 
-  type: EntityType = 'list'
-  typeName = 'Y.Array'
+  type(): EntityType {
+    return 'list'
+  }
+
+  typeName(): string {
+    return 'Y.Array'
+  }
 
   entries(): DebuggableEntry[] {
     return this._array.map((value, index) => ({ key: index, value: debuggableYjsItem(value) }))
@@ -92,11 +102,16 @@ type QuillDeltaEntry = {
   }
 }
 
-class DebuggableYjsText implements Debuggable {
+export class DebuggableYjsText implements Debuggable {
   constructor(private readonly _text: Y.Text) {}
 
-  type: EntityType = 'list'
-  typeName = 'Y.Text'
+  type(): EntityType {
+    return 'list'
+  }
+
+  typeName(): string {
+    return 'Y.Text'
+  }
 
   entries(): DebuggableEntry[] {
     const delta: QuillDeltaEntry[] = this._text.toDelta()
