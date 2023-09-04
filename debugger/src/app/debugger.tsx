@@ -4,7 +4,7 @@ import { useYDoc } from '@y-sweet/react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import * as Y from 'yjs'
 import { Debuggable, DebuggableEntry } from '../lib/debuggable'
-import { DebuggableYDoc } from '@/lib/debuggable/yjs'
+import { DebuggableYDoc } from '@/lib/debuggable/ydoc'
 
 export function Debugger() {
   const doc: Y.Doc = useYDoc()
