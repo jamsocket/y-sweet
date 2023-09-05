@@ -35,7 +35,7 @@ impl FromStr for BucketKind {
 #[derive(Serialize, Deserialize)]
 pub struct S3Config {
     pub key: String,
-	pub endpoint: String,
+    pub endpoint: String,
     pub secret: String,
     pub bucket: String,
     pub region: String,
@@ -54,13 +54,16 @@ pub struct Configuration {
 }
 
 fn parse_s3_config(env: &Env) -> anyhow::Result<S3Config> {
-	let region = env
-            .var(S3_REGION)
-            .map_err(|_| anyhow::anyhow!("S3_REGION env var not supplied"))?
-            .to_string();
+    let region = env
+        .var(S3_REGION)
+        .map_err(|_| anyhow::anyhow!("S3_REGION env var not supplied"))?
+        .to_string();
 
-	//default to using aws
-	let endpoint = env.var(S3_ENDPOINT).map_or_else(|_| format!("https://s3.dualstack.{}.amazonaws.com", region), |s| s.to_string());
+    //default to using aws
+    let endpoint = env.var(S3_ENDPOINT).map_or_else(
+        |_| format!("https://s3.dualstack.{}.amazonaws.com", region),
+        |s| s.to_string(),
+    );
 
     Ok(S3Config {
         key: env
@@ -68,7 +71,7 @@ fn parse_s3_config(env: &Env) -> anyhow::Result<S3Config> {
             .map_err(|_| anyhow::anyhow!("S3_ACCESS_KEY_ID env var not supplied"))?
             .to_string(),
         region,
-		endpoint,
+        endpoint,
         secret: env
             .var(S3_SECRET_ACCESS_KEY)
             .map_err(|_| anyhow::anyhow!("S3_SECRET_ACCESS_KEY env var not supplied"))?
