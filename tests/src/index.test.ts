@@ -51,6 +51,23 @@ if (S3_ACCESS_KEY_ID && S3_REGION && S3_SECRET_KEY && S3_BUCKET_PREFIX && S3_BUC
   })
 }
 
+let MINIO_PORT = process.env.Y_SWEET_MINIO_PORT
+//run s3 tests using minio if available
+if (MINIO_PORT && S3_BUCKET_NAME && S3_BUCKET_PREFIX) {
+  CONFIGURATIONS.push({
+    useAuth: true,
+    server: 'worker',
+    s3: {
+      bucket_name: S3_BUCKET_NAME,
+      bucket_prefix: S3_BUCKET_PREFIX,
+      endpoint: 'http://localhost:9000',
+      aws_access_key_id: 'minioadmin',
+      aws_region: 'minio',
+      aws_secret_key: 'minioadmin',
+    },
+  })
+}
+
 const TEN_MINUTES_IN_MS = 10 * 60 * 1_000
 
 describe.each(CONFIGURATIONS)(
