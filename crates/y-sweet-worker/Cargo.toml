@@ -30,3 +30,4 @@ serde_json = "1.0.104"
 rusty-s3 = "0.4.1"
 reqwest = "0.11.18"
 time = { version = "0.3.25", features = ["wasm-bindgen"] }
+url = "2.4.1"
