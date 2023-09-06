@@ -166,7 +166,7 @@ function useVersion(): [number, () => void] {
   return [version, useCallback(() => setRedraw((x) => x + 1), [setRedraw])]
 }
 
-export type ObserverKind = 'deep' | 'shallow' | 'none' | boolean
+export type ObserverKind = 'deep' | 'shallow' | 'none'
 
 export type ObjectOptions = {
   observe?: ObserverKind
