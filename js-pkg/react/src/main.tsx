@@ -18,7 +18,7 @@ type YjsContextType = {
 const YjsContext = createContext<YjsContextType | null>(null)
 
 type YDocOptions = {
-  hideDebuggerLink?: boolean,
+  hideDebuggerLink?: boolean
 }
 
 export function useYDoc(options?: YDocOptions): Y.Doc {
