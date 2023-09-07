@@ -26,7 +26,15 @@ export function useYDoc(options?: YDocOptions): Y.Doc {
 
   useEffect(() => {
     if (!options?.hideDebuggerLink && yjsCtx) {
-      console.log('Y-Sweet Debugger', debuggerUrl(yjsCtx.clientToken))
+      const url = debuggerUrl(yjsCtx.clientToken)
+      console.log(
+        `%cOpen this in Y-Sweet Debugger ⮕ ${url}`,
+        'font-size: 1.5em; display: block; padding: 10px;',
+      )
+      console.log(
+        '%cTo hide the debugger link, pass { hideDebuggerLink: true } to useYDoc',
+        'font-style: italic;',
+      )
     }
   }, [options?.hideDebuggerLink, yjsCtx])
 
