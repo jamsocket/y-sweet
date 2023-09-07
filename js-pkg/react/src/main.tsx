@@ -29,10 +29,10 @@ export function useYDoc(options?: YDocOptions): Y.Doc {
       const url = debuggerUrl(yjsCtx.clientToken)
       console.log(
         `%cOpen in Y-Sweet Debugger ⮕ ${url}`,
-        'font-size: 2em; display: block; padding: 15px;',
+        'font-size: 1.5em; display: block; padding: 10px;',
       )
       console.log(
-        '%cTo hide this message, pass { hideDebuggerLink: true } to useYDoc',
+        '%cTo hide the debugger link, pass { hideDebuggerLink: true } to useYDoc',
         'font-style: italic;',
       )
     }
