@@ -37,7 +37,7 @@ export class DebuggableYjsMap implements Debuggable {
   typeName(): string {
     return 'Y.Map'
   }
-  
+
   entries(): DebuggableEntry[] {
     return Array.from(this._item._map.entries())
       .filter((v) => !(v[1].content instanceof Y.ContentDeleted))
