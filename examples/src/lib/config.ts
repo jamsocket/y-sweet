@@ -9,5 +9,5 @@ export const CONNECTION_STRING: string | undefined = process.env.CONNECTION_STRI
 if (CONNECTION_STRING) {
   console.log('Using config from environment variable CONNECTION_STRING')
 } else {
-  console.log('Using default config')
+  console.log('Using default connection string')
 }
