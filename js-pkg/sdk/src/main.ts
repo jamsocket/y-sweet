@@ -14,8 +14,8 @@ export type ServerToken = {
 }
 
 export type YSweetErrorPayload =
-  | { code: 'ServerRefused'; address: string; port: number }
-  | { code: 'ServerError'; status: number; message: string }
+  | { code: 'ServerRefused'; address: string; port: number; url: string }
+  | { code: 'ServerError'; status: number; message: string; url: string }
   | { code: 'NoAuthProvided' }
   | { code: 'InvalidAuthProvided' }
   | { code: 'Unknown'; message: string }
@@ -29,9 +29,9 @@ export class YSweetError extends Error {
   static getMessage(payload: YSweetErrorPayload): string {
     let message
     if (payload.code === 'ServerRefused') {
-      message = `Server at ${payload.address}:${payload.port} refused connection`
+      message = `Server at ${payload.address}:${payload.port} refused connection. URL: ${payload.url}`
     } else if (payload.code === 'ServerError') {
-      message = `Server responded with ${payload.status} ${payload.message}`
+      message = `Server responded with ${payload.status} ${payload.message}. URL: ${payload.url}`
     } else if (payload.code === 'NoAuthProvided') {
       message = 'No auth provided'
     } else if (payload.code === 'InvalidAuthProvided') {
@@ -54,23 +54,23 @@ export class YSweetError extends Error {
     let [, code, message] = match
 
     if (code === 'ServerRefused') {
-      match = message.match(/^Server at (.*?):(\d+) refused connection$/)
+      match = message.match(/^Server at (.*?):(\d+) refused connection. URL: (.*)$/)
       if (!match) {
         return new YSweetError({ code: 'Unknown', message: messageString })
       }
 
-      let [, address, port] = match
-      return new YSweetError({ code, address, port: parseInt(port) })
+      let [, address, port, url] = match
+      return new YSweetError({ code, address, port: parseInt(port), url })
     }
 
     if (code === 'ServerError') {
-      match = message.match(/^Server responded with (\d+) (.*)$/)
+      match = message.match(/^Server responded with (\d+) (.*). URL: (.*)$/)
       if (!match) {
         return new YSweetError({ code: 'Unknown', message: messageString })
       }
 
-      let [, status, statusText] = match
-      return new YSweetError({ code, status: parseInt(status), message: statusText })
+      let [, status, statusText, url] = match
+      return new YSweetError({ code, status: parseInt(status), message: statusText, url })
     }
 
     if (code === 'NoAuthProvided') {
@@ -138,8 +138,9 @@ export class DocumentManager {
     }
 
     let result: Response
+    url = `${this.baseUrl}/${url}`
     try {
-      result = await fetch(`${this.baseUrl}/${url}`, {
+      result = await fetch(url, {
         method,
         body,
         cache: 'no-store',
@@ -148,7 +149,7 @@ export class DocumentManager {
     } catch (error: any) {
       if (error.cause?.code === 'ECONNREFUSED') {
         let { address, port } = error.cause
-        throw new YSweetError({ code: 'ServerRefused', address, port })
+        throw new YSweetError({ code: 'ServerRefused', address, port, url })
       } else {
         throw new YSweetError({ code: 'Unknown', message: error.toString() })
       }
@@ -167,6 +168,7 @@ export class DocumentManager {
         code: 'ServerError',
         status: result.status,
         message: result.statusText,
+        url,
       })
     }
 
