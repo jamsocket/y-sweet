@@ -28,7 +28,7 @@ export function useYDoc(options?: YDocOptions): Y.Doc {
     if (!options?.hideDebuggerLink && yjsCtx) {
       const url = debuggerUrl(yjsCtx.clientToken)
       console.log(
-        `%cOpen in Y-Sweet Debugger ⮕ ${url}`,
+        `%cOpen this in Y-Sweet Debugger ⮕ ${url}`,
         'font-size: 1.5em; display: block; padding: 10px;',
       )
       console.log(
