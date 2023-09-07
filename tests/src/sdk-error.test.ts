@@ -11,6 +11,7 @@ test('server refused', () => {
     code: 'ServerRefused',
     address: '127.0.0.1',
     port: 1234,
+    url: 'https://foo.bar/baz',
   }
 
   expectRoundTrip(payload)
@@ -21,6 +22,7 @@ test('server error', () => {
     code: 'ServerError',
     status: 404,
     message: 'Not found',
+    url: 'https://foo.bar/baz',
   }
 
   expectRoundTrip(payload)
