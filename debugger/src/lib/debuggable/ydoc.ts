@@ -121,7 +121,7 @@ class DebuggableYjsArrayOrText implements Debuggable {
   }
 
   typeName(): string {
-    return this.displayAsText ? 'text' : 'array'
+    return this.displayAsText ? 'Y.Text' : 'Y.Array'
   }
 
   listener?: () => void
