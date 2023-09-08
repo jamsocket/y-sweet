@@ -62,10 +62,10 @@ export class DebuggableYjsMap implements Debuggable {
   }
 
   listen(listener: () => void): () => void {
-    this._item.observe(listener)
+    this._item.observeDeep(listener)
 
     return () => {
-      this._item.unobserve(listener)
+      this._item.unobserveDeep(listener)
     }
   }
 }
