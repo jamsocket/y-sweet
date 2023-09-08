@@ -1,6 +1,6 @@
 'use client'
 
-import { useYDoc } from '@y-sweet/react'
+import { useYDoc, useYjsProvider } from '@y-sweet/react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import * as Y from 'yjs'
 import { Debuggable, DebuggableEntry } from '../lib/debuggable'
@@ -8,8 +8,30 @@ import { DebuggableYDoc } from '@/lib/debuggable/ydoc'
 
 export function Debugger() {
   const doc: Y.Doc = useYDoc()
+  const provider = useYjsProvider()
+  const url = provider.ws?.url
 
-  return <DocEntryView doc={doc} />
+  const selectAll = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    e.preventDefault()
+
+    let range = document.createRange()
+    range.selectNodeContents(e.target as Node)
+    let selection = window.getSelection()
+    selection?.removeAllRanges()
+    selection?.addRange(range)
+  }, [])
+
+  return (
+    <div>
+      {url && (
+        <p className="mb-5 text-sm text-gray-400">
+          WebSocket URL: <samp onDoubleClick={selectAll}>{url}</samp>
+        </p>
+      )}
+      <DocEntryView doc={doc} />
+    </div>
+  )
 }
 
 type DocEntryViewProps = {
@@ -21,6 +43,7 @@ function DocEntryView(props: DocEntryViewProps) {
 
   let [_, setRenderVersion] = useState(0)
 
+  // NB This listen only actually matters when going from 0 to 1 entries.
   useEffect(() => {
     const clear = debuggable.listen(() => {
       setRenderVersion((v) => v + 1)
