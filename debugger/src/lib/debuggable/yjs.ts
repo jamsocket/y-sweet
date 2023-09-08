@@ -1,5 +1,5 @@
 import * as Y from 'yjs'
-import { Scalar, debuggableJsValue } from './builtins'
+import { JsList, JsObject, Scalar, debuggableJsValue } from './builtins'
 import { Debuggable, DebuggableEntry, EntityType } from '.'
 
 export function debuggableYjsItem(item: Y.Item): Debuggable {
@@ -21,6 +21,14 @@ export function debuggableYjsItem(item: Y.Item): Debuggable {
 
   if (typeof item === 'string') {
     return new Scalar(item)
+  }
+
+  if (Array.isArray(item)) {
+    return new JsList(item)
+  }
+
+  if (typeof item === 'object') {
+    return new JsObject(item)
   }
 
   console.warn('debuggableYjsItem', item, typeof item)
@@ -54,7 +62,6 @@ export class DebuggableYjsMap implements Debuggable {
   }
 
   listen(listener: () => void): () => void {
-    console.log('listen called')
     this._item.observe(listener)
 
     return () => {
