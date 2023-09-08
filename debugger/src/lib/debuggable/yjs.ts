@@ -22,7 +22,7 @@ export function debuggableYjsItem(item: Y.Item): Debuggable {
   if (typeof item === 'string') {
     return new Scalar(item)
   }
-  
+
   if (Array.isArray(item)) {
     return new JsList(item)
   }
