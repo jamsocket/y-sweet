@@ -1,7 +1,9 @@
 'use client'
 
 import { useArray } from '@y-sweet/react'
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
+import { usePresence, usePresenceSetter } from '@y-sweet/react'
+ 
 import * as Y from 'yjs'
 import Title from '@/components/Title'
 import CopyLink from '@/components/CopyLink'
@@ -52,16 +54,18 @@ export function ToDoInput(props: { onItem: (text: string) => void }) {
 }
 
 type ToDoItemProps = {
-  item: Y.Map<any>
+  item: Y.Map<any>,
+  presenceColors?: Array<string>,
+  setMyPresence: (itemId: string) => void;
 }
 
-export function ToDoItem({ item }: ToDoItemProps) {
+export function ToDoItem({ item, presenceColors, setMyPresence }: ToDoItemProps) {
   const clickCallback = useCallback(() => {
     item.set('done', !item.get('done'))
   }, [item])
 
   return (
-    <div>
+    <div className="flex">
       <label className="flex flex-row space-x-2 items-center">
         <input
           type="checkbox"
@@ -73,26 +77,60 @@ export function ToDoItem({ item }: ToDoItemProps) {
           className="bg-transparent p-1 rounded text-pink-950 text-lg focus:bg-white"
           value={item.get('text')}
           onChange={(e) => item.set('text', e.target.value)}
+          onFocus={() => setMyPresence(item.get("id"))}
         />
       </label>
+      {presenceColors && <div className="flex">{presenceColors.map((color) => <div className="w-4 h-4 rounded-full" style={{backgroundColor: color}}/>)}</div>}
     </div>
   )
 }
 
+
+type Presence = {
+  itemId: string,
+  color: string,
+}
+
+function getRandomColor(): string {
+  let hue = Math.floor(Math.random() * 360)
+  let saturation = 50 + Math.floor(Math.random() * 50)
+  let lightness = 50 + Math.floor(Math.random() * 50)
+  return `hsl(${hue}, ${saturation}%, ${lightness}%)`
+}
+
 export function ToDoList() {
   const items = useArray<Y.Map<any>>('todolist')
+  const setPresence = usePresenceSetter<Presence>()
+  const presence = usePresence<Presence>({ includeSelf: true })
+  const myColor = useRef<string | null>(null)
+  if (myColor.current === null) {
+    myColor.current = getRandomColor()
+  }
+
+  let allPresenceColors: Map<string, Array<string>> = new Map()
+  for (let [_, value] of presence) {
+    if (!allPresenceColors.get(value.itemId)) {
+      allPresenceColors.set(value.itemId, [])
+    }
+    
+    allPresenceColors.get(value.itemId)!.push(value.color)
+  }
+
+  const setMyPresence = useCallback((itemId: string) => {
+    setPresence({ itemId, color: myColor.current! })
+  }, [setPresence])
 
   const pushItem = useCallback(
     (text: string) => {
+      const randomString = Math.random().toString(36).substring(7)
       let item = new Y.Map([
+        ['id', randomString],
         ['text', text],
         ['done', false],
       ] as [string, any][])
 
       items?.push([item])
-    },
-    [items],
-  )
+  }, [items])
 
   const clearCompleted = useCallback(() => {
     let indexOffset = 0
@@ -108,7 +146,7 @@ export function ToDoList() {
     <div className="space-y-4 p-4 lg:p-8">
       <Title>To-do List</Title>
       <div className="space-y-1">
-        {items && items.map((item, index) => <ToDoItem key={index} item={item} />)}
+        {items.map((item, index) => <ToDoItem key={index} item={item} presenceColors={allPresenceColors.get(item.get("id"))} setMyPresence={setMyPresence} />)}
       </div>
       <ToDoInput onItem={pushItem} />
       <button
