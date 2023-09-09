@@ -1,18 +1,30 @@
+/**
+ * Schema of object returned after a successful document creation.
+ */
 export type DocCreationResult = {
+  /** A unique identifier for the created document. */
   doc: string
 }
 
+/**
+ * An object containing information needed for the client connect to a document.
+ * 
+ * This value is expected to be passed from your server to your client. Your server
+ * should obtain this value by calling {@link DocumentManager.getClientToken},
+ * and then pass it to the client.
+ */
 export type ClientToken = {
+  /** The bare URL of the WebSocket endpoint to connect to. The `doc` string will be appended to this. */
   url: string
+
+  /** A unique identifier for the document that the token connects to. */
   doc: string
+
+  /** A string that grants the bearer access to the document. By default, the development server does not require a token. */
   token?: string
 }
 
-export type ServerToken = {
-  url?: string
-  token?: string
-}
-
+/** Metadata associated with a {@link YSweetError}. */
 export type YSweetErrorPayload =
   | { code: 'ServerRefused'; address: string; port: number; url: string }
   | { code: 'ServerError'; status: number; message: string; url: string }
@@ -20,12 +32,28 @@ export type YSweetErrorPayload =
   | { code: 'InvalidAuthProvided' }
   | { code: 'Unknown'; message: string }
 
+/** An error returned by the y-sweet SDK. */
 export class YSweetError extends Error {
+  /**
+   * Create a new {@link YSweetError}.
+   * 
+   * @param cause An object representing metadata associated with the error.
+   * @see {@link YSweetErrorPayload}
+   */
   constructor(public cause: YSweetErrorPayload) {
     super(YSweetError.getMessage(cause))
     this.name = 'YSweetError'
   }
 
+  /** Convert the message to an error string that can be displayed to the user.
+   * 
+   * The error string can also be used with {@link YSweetError.fromMessage} to
+   * reconstruct the payload object, which is useful in the context of Next.js,
+   * which will only pass an error string from the server to the client.
+   * 
+   * @param payload The payload object to convert to a string.
+   * @returns A string representation of the error.
+   */
   static getMessage(payload: YSweetErrorPayload): string {
     let message
     if (payload.code === 'ServerRefused') {
@@ -42,9 +70,14 @@ export class YSweetError extends Error {
     return `${payload.code}: ${message}`
   }
 
-  // In development, next.js passes error objects to the client but strips out everything but the
-  // `message` field. This method allows us to reconstruct the original error object.
-  // https://nextjs.org/docs/app/api-reference/file-conventions/error#errormessage
+  /**
+   * In development, next.js passes error objects to the client but strips out everything but the
+   * `message` field. This method allows us to reconstruct the original error object.
+   * 
+   * @param messageString The error message string to reconstruct a payload from.
+   * @returns A {@link YSweetError} object.
+   * @see {@link https://nextjs.org/docs/app/api-reference/file-conventions/error#errormessage| Next.js docs}
+   */
   static fromMessage(messageString: string): YSweetError {
     let match = messageString.match(/^(.*?): (.*)$/)
     if (!match) {
@@ -85,45 +118,46 @@ export class YSweetError extends Error {
   }
 }
 
+/** Represents an interface to a y-sweet document management endpoint. */
 export class DocumentManager {
-  baseUrl: string
-  token?: string
+  /** The base URL of the remote document manager API. */
+  private baseUrl: string
 
-  constructor(serverToken?: ServerToken | string) {
-    if (serverToken === undefined) {
-      serverToken = {}
-    } else if (typeof serverToken === 'string') {
-      const parsedUrl = new URL(serverToken)
+  /** A string that grants the bearer access to the document management API. */
+  private token?: string
 
-      let token
-      if (parsedUrl.username) {
-        // Decode the token from the URL.
-        token = decodeURIComponent(parsedUrl.username)
-      }
+  /**
+   * Create a new {@link DocumentManager}.
+   * 
+   * @param serverToken A connection string (starting with `ys://` or `yss://`) referring to a y-sweet server.
+   */
+  constructor(connectionString?: string) {
+    const parsedUrl = new URL(connectionString || 'http://127.0.0.1:8080')
 
-      let protocol = parsedUrl.protocol
-      if (protocol === 'ys:') {
-        protocol = 'http:'
-      } else if (protocol === 'yss:') {
-        protocol = 'https:'
-      }
-
-      // NB: we manually construct the string here because node's URL implementation does
-      //     not handle changing the protocol of a URL well.
-      //     see: https://nodejs.org/api/url.html#urlprotocol
-      const url = `${protocol}//${parsedUrl.host}${parsedUrl.pathname}${parsedUrl.search}`
-
-      serverToken = {
-        url,
-        token,
-      }
+    let token
+    if (parsedUrl.username) {
+      // Decode the token from the URL.
+      token = decodeURIComponent(parsedUrl.username)
     }
 
-    this.baseUrl = (serverToken.url ?? 'http://127.0.0.1:8080').replace(/\/$/, '')
-    this.token = serverToken.token
+    let protocol = parsedUrl.protocol
+    if (protocol === 'ys:') {
+      protocol = 'http:'
+    } else if (protocol === 'yss:') {
+      protocol = 'https:'
+    }
+
+    // NB: we manually construct the string here because node's URL implementation does
+    //     not handle changing the protocol of a URL well.
+    //     see: https://nodejs.org/api/url.html#urlprotocol
+    const url = `${protocol}//${parsedUrl.host}${parsedUrl.pathname}${parsedUrl.search}`
+
+    this.baseUrl = url.replace(/\/$/, '')
+    this.token = token
   }
 
-  async doFetch(url: string, body?: any): Promise<Response> {
+  /** Internal helper for making an authorized fetch request to the API.  */
+  private async doFetch(url: string, body?: any): Promise<Response> {
     let method = 'GET'
     let headers: [string, string][] = []
     if (this.token) {
@@ -175,6 +209,11 @@ export class DocumentManager {
     return result
   }
 
+  /**
+   * Create a new, empty document on the y-sweet server.
+   * 
+   * @returns A {@link DocCreationResult} object containing the ID of the created document.
+   */
   public async createDoc(): Promise<DocCreationResult> {
     const result = await this.doFetch('doc/new', { method: 'POST' })
     if (!result.ok) {
@@ -183,15 +222,17 @@ export class DocumentManager {
     return result.json()
   }
 
-  public async getOrCreateDoc(docId?: string): Promise<ClientToken> {
-    if (!docId) {
-      let room = await this.createDoc()
-      docId = room.doc
-    }
-
-    return await this.getClientToken(docId, {})
-  }
-
+  /**
+   * Get a client token for the given document.
+   * 
+   * If you are using authorization, this is expected to be called from your server
+   * after a user has authenticated. The returned token should then be passed to the
+   * client.
+   * 
+   * @param docId The ID of the document to get a token for.
+   * @param request Metadata associated with the request.
+   * @returns 
+   */
   public async getClientToken(
     docId: string | DocCreationResult,
     request: AuthDocRequest,
@@ -214,31 +255,61 @@ export class DocumentManager {
   }
 }
 
+/** Request to authorize a document. Currently ignored by y-sweet server. */
 export type AuthDocRequest = {
-  authorization?: 'none' | 'readonly' | 'full'
-  user_id?: string
-  metadata?: Record<string, any>
+  // authorization?: 'none' | 'readonly' | 'full'
+  // user_id?: string
+  // metadata?: Record<string, any>
 }
 
+/**
+ * A convenience wrapper around {@link DocumentManager.createDoc} and {@link DocumentManager.getClientToken} for
+ * getting a client token for a document, given a value which may be a
+ * document ID or `undefined`.
+ * 
+ * @param docId The ID of the document to get a token for. If `undefined`, a new doc is created.
+ * @param connectionString A connection string (starting with `ys://` or `yss://`) referring to a y-sweet server.
+ * @returns A {@link ClientToken} object containing the URL and token needed to connect to the document.
+ */
 export async function getOrCreateDoc(
   docId?: string,
-  serverToken?: ServerToken | string,
+  connectionString?: string,
 ): Promise<ClientToken> {
-  const manager = new DocumentManager(serverToken)
-  return await manager.getOrCreateDoc(docId)
+  const manager = new DocumentManager(connectionString)
+
+  if (!docId) {
+    const result = await manager.createDoc()
+    docId = result.doc
+  }
+
+  return await manager.getClientToken(docId, {})
 }
 
+/**
+ * A convenience wrapper around {@link DocumentManager.getClientToken} for getting a client token for a document.
+ * 
+ * @param docId The ID of the document to get a token for.
+ * @param request Metadata associated with the request (currently ignored by y-sweet server).
+ * @param connectionString A connection string (starting with `ys://` or `yss://`) referring to a y-sweet server.
+ * @returns A {@link ClientToken} object containing the URL and token needed to connect to the document.
+ */
 export async function getClientToken(
   docId: string | DocCreationResult,
   request: AuthDocRequest,
-  serverToken?: ServerToken | string,
+  connectionString?: string,
 ): Promise<ClientToken> {
-  const manager = new DocumentManager(serverToken)
+  const manager = new DocumentManager(connectionString)
   return await manager.getClientToken(docId, request)
 }
 
-export async function createDoc(serverToken?: ServerToken | string): Promise<DocCreationResult> {
-  const manager = new DocumentManager(serverToken)
+/**
+ * A convenience wrapper around {@link DocumentManager.createDoc} for creating a new document.
+ * 
+ * @param connectionString A connection string (starting with `ys://` or `yss://`) referring to a y-sweet server.
+ * @returns A {@link DocCreationResult} object containing the ID of the created document.
+ */
+export async function createDoc(connectionString?: string): Promise<DocCreationResult> {
+  const manager = new DocumentManager(connectionString)
   return await manager.createDoc()
 }
 
