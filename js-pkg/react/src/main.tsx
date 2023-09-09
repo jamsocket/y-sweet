@@ -21,6 +21,11 @@ type YDocOptions = {
   hideDebuggerLink?: boolean
 }
 
+/**
+ * React hook to get the Y.Doc instance from the current context.
+ * 
+ * @returns The Y.Doc instance.
+ */
 export function useYDoc(options?: YDocOptions): Y.Doc {
   const yjsCtx = useContext(YjsContext)
 
@@ -44,11 +49,22 @@ export function useYDoc(options?: YDocOptions): Y.Doc {
   return yjsCtx.doc
 }
 
+/**
+ * Get a URL to open the Y-Sweet Debugger for the given client token.
+ * 
+ * @param clientToken The client token to open the debugger for.
+ * @returns A debugger URL as a string.
+ */
 export function debuggerUrl(clientToken: ClientToken): string {
   const payload = encodeClientToken(clientToken)
   return `https://debugger.y-sweet.dev/?payload=${payload}`
 }
 
+/**
+ * React hook to get the Y.Doc instance from the current context.
+ * 
+ * @returns A debugger URL as a string.
+ */
 export function useYSweetDebugUrl(): string {
   const yjsCtx = useContext(YjsContext)
   if (!yjsCtx) {
@@ -57,6 +73,14 @@ export function useYSweetDebugUrl(): string {
   return debuggerUrl(yjsCtx.clientToken)
 }
 
+/**
+ * React hook for obtaining the Yjs WebsocketProvider instance from the current context.
+ * 
+ * This is useful for integrating components that expect a direct reference
+ * to the provider.
+ * 
+ * @returns The Yjs WebsocketProvider instance.
+ */
 export function useYjsProvider(): WebsocketProvider {
   const yjsCtx = useContext(YjsContext)
   if (!yjsCtx) {
@@ -65,6 +89,11 @@ export function useYjsProvider(): WebsocketProvider {
   return yjsCtx.provider
 }
 
+/**
+ * React hook for obtaining the Yjs Awareness instance from the current context.
+ * 
+ * @returns The Yjs Awareness instance for the current document.
+ */
 export function useAwareness(): Awareness {
   const yjsCtx = useContext(YjsContext)
   if (!yjsCtx) {
@@ -73,10 +102,21 @@ export function useAwareness(): Awareness {
   return yjsCtx.provider.awareness
 }
 
+/**
+ * Options for the {@link usePresence} hook.
+ */
 type UsePresenceOptions = {
+  /** Whether the presence object should include the local client.
+   * Defaults to `false`.
+   */
   includeSelf?: boolean
 }
 
+/**
+ * React hook that returs a setter function for the local presence object.
+ * 
+ * @returns A setter function for the local presence object.
+ */
 export function usePresenceSetter<T extends Record<string, any>>(): (presence: T) => void {
   const awareness = useAwareness()
 
@@ -92,6 +132,7 @@ export function usePresenceSetter<T extends Record<string, any>>(): (presence: T
   return setLocalPresence
 }
 
+/** React hook that returns other users’ presence values as a `Map<number, any>`. */
 export function usePresence<T extends Record<string, any>>(
   options?: UsePresenceOptions,
 ): Map<number, T> {
@@ -124,7 +165,11 @@ export function usePresence<T extends Record<string, any>>(
   return presence
 }
 
-type YDocProviderProps = {
+/**
+ * Props to the {@link YDocProvider} component.
+ */
+export type YDocProviderProps = {
+  /** The children to render. */
   children: ReactNode
 
   /** Response of a `getConnectionKey` call, passed from server to client. */
@@ -135,6 +180,9 @@ type YDocProviderProps = {
   setQueryParam?: string
 }
 
+/**
+ * A React component that provides a Y.Doc instance to its children.
+ */
 export function YDocProvider(props: YDocProviderProps) {
   const { children, clientToken } = props
 
@@ -174,12 +222,41 @@ function useRedraw() {
   return useCallback(() => setRedraw((x) => x + 1), [setRedraw])
 }
 
+/** Represents possible values to pass to hooks that return Yjs objects,
+ * which determines whether or not they trigger a re-render when the
+ * Yjs object changes.
+ * 
+ * - `'deep'` will re-render when any nested property changes.
+ * - `'shallow'` will re-render when the object itself changes.
+ * - `'none'` will never re-render.
+ */
 export type ObserverKind = 'deep' | 'shallow' | 'none'
 
+/**
+ * Options for hooks that return Yjs objects, like {@link useMap}.
+ * 
+ * @see {@link ObserverKind}
+ */
 export type ObjectOptions = {
   observe?: ObserverKind
 }
 
+/**
+ * Returns a `Y.Map<T>` object from the `Y.Doc` in the current context.
+ * 
+ * The string `name` is the name of the top-level Yjs object to return.
+ * Two clients that call `useMap(...)` with the same `name` will get
+ * the same object.
+ * 
+ * By default, this will subscribe the calling component to updates on
+ * the object and its children. See {@link ObjectOptions} and
+ * {@link ObserverKind} for finer control of observer behavior.
+ * 
+ * @typeParam T The type of the values in the map. Keys are always strings.
+ * @param name The name of the top-level Yjs object to return.
+ * @param objectOptions 
+ * @returns 
+ */
 export function useMap<T>(name: string, objectOptions?: ObjectOptions): Y.Map<T> {
   const doc = useYDoc()
   const map = useMemo(() => doc.getMap<T>(name), [doc, name])
@@ -188,6 +265,22 @@ export function useMap<T>(name: string, objectOptions?: ObjectOptions): Y.Map<T>
   return map
 }
 
+/**
+ * Returns a `Y.Array<T>` object from the `Y.Doc` in the current context.
+ * 
+ * The string `name` is the name of the top-level Yjs object to return.
+ * Two clients that call `useArray(...)` with the same `name` will get
+ * the same object.
+ * 
+ * By default, this will subscribe the calling component to updates on
+ * the object and its children. See {@link ObjectOptions} and
+ * {@link ObserverKind} for finer control of observer behavior.
+ * 
+ * @typeParam T The type of the values in the array.
+ * @param name The name of the top-level Yjs object to return.
+ * @param objectOptions 
+ * @returns 
+ */
 export function useArray<T>(name: string, objectOptions?: ObjectOptions): Y.Array<T> {
   const doc = useYDoc()
   const array = useMemo(() => doc.getArray<T>(name), [doc, name])
@@ -196,6 +289,21 @@ export function useArray<T>(name: string, objectOptions?: ObjectOptions): Y.Arra
   return array
 }
 
+/**
+ * Returns a `Y.Text` object from the `Y.Doc` in the current context.
+ * 
+ * The string `name` is the name of the top-level Yjs object to return.
+ * Two clients that call `useText(...)` with the same `name` will get
+ * the same object.
+ * 
+ * By default, this will subscribe the calling component to updates on
+ * the object and its children. See {@link ObjectOptions} and
+ * {@link ObserverKind} for finer control of observer behavior.
+ * 
+ * @param name The name of the top-level Yjs object to return.
+ * @param objectOptions 
+ * @returns 
+ */
 export function useText(name: string, observerKind?: ObjectOptions): Y.Text {
   const doc = useYDoc()
   const text = useMemo(() => doc.getText(name), [doc, name])
@@ -204,7 +312,17 @@ export function useText(name: string, observerKind?: ObjectOptions): Y.Text {
   return text
 }
 
-function useObserve(object: Y.AbstractType<any>, kind: ObserverKind) {
+/**
+ * A hook that causes its calling component to re-render when the given
+ * Yjs object changes.
+ * 
+ * The `kind` parameter determines the level of change that will trigger
+ * a re-render. See {@link ObserverKind} for more information.
+ * 
+ * @param object The Yjs object to observe.
+ * @param kind The kind of observation to perform.
+ */
+export function useObserve(object: Y.AbstractType<any>, kind: ObserverKind) {
   const redraw = useRedraw()
 
   useEffect(() => {
