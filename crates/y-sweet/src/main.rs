@@ -21,6 +21,7 @@ mod server;
 mod stores;
 
 const DEFAULT_S3_REGION: Region = Region::UsEast1;
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(Parser)]
 struct Opts {
@@ -54,6 +55,8 @@ enum ServSubcommand {
         #[clap(long)]
         json: bool,
     },
+
+    Version,
 }
 
 fn get_store_from_opts(store_path: &str) -> Result<Box<dyn Store>> {
@@ -157,6 +160,9 @@ async fn main() -> Result<()> {
             } else {
                 print_auth_message(&auth);
             }
+        }
+        ServSubcommand::Version => {
+            println!("{}", VERSION);
         }
     }
 
