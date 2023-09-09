@@ -6,6 +6,7 @@
   "workspaces": [
     "js-pkg/react",
     "js-pkg/sdk",
+    "js-pkg/gen-docs",
     "examples",
     "debugger",
     "tests"

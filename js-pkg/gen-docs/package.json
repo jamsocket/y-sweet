@@ -1,0 +1,18 @@
+{
+  "name": "gen-docs",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "build": "ts-node src/main.ts",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx}\""
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "ts-node": "^10.9.1",
+    "typedoc": "^0.25.1"
+  },
+  "devDependencies": {
+    "prettier": "^3.0.3"
+  }
+}
