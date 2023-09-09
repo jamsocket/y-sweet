@@ -5,11 +5,11 @@ import { ClientToken } from '@y-sweet/sdk'
 
 /**
  * Given a {@link ClientToken}, create a {@link WebsocketProvider} for it.
- * 
- * @param doc 
- * @param clientToken 
- * @param extraOptions 
- * @returns 
+ *
+ * @param doc
+ * @param clientToken
+ * @param extraOptions
+ * @returns
  */
 export function createYjsProvider(
   doc: Y.Doc,
