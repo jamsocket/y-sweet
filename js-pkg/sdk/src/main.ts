@@ -8,7 +8,7 @@ export type DocCreationResult = {
 
 /**
  * An object containing information needed for the client connect to a document.
- * 
+ *
  * This value is expected to be passed from your server to your client. Your server
  * should obtain this value by calling {@link DocumentManager.getClientToken},
  * and then pass it to the client.
@@ -36,7 +36,7 @@ export type YSweetErrorPayload =
 export class YSweetError extends Error {
   /**
    * Create a new {@link YSweetError}.
-   * 
+   *
    * @param cause An object representing metadata associated with the error.
    * @see {@link YSweetErrorPayload}
    */
@@ -46,11 +46,11 @@ export class YSweetError extends Error {
   }
 
   /** Convert the message to an error string that can be displayed to the user.
-   * 
+   *
    * The error string can also be used with {@link YSweetError.fromMessage} to
    * reconstruct the payload object, which is useful in the context of Next.js,
    * which will only pass an error string from the server to the client.
-   * 
+   *
    * @param payload The payload object to convert to a string.
    * @returns A string representation of the error.
    */
@@ -73,7 +73,7 @@ export class YSweetError extends Error {
   /**
    * In development, next.js passes error objects to the client but strips out everything but the
    * `message` field. This method allows us to reconstruct the original error object.
-   * 
+   *
    * @param messageString The error message string to reconstruct a payload from.
    * @returns A {@link YSweetError} object.
    * @see {@link https://nextjs.org/docs/app/api-reference/file-conventions/error#errormessage| Next.js docs}
@@ -128,7 +128,7 @@ export class DocumentManager {
 
   /**
    * Create a new {@link DocumentManager}.
-   * 
+   *
    * @param serverToken A connection string (starting with `ys://` or `yss://`) referring to a y-sweet server.
    */
   constructor(connectionString?: string) {
@@ -211,7 +211,7 @@ export class DocumentManager {
 
   /**
    * Create a new, empty document on the y-sweet server.
-   * 
+   *
    * @returns A {@link DocCreationResult} object containing the ID of the created document.
    */
   public async createDoc(): Promise<DocCreationResult> {
@@ -224,14 +224,14 @@ export class DocumentManager {
 
   /**
    * Get a client token for the given document.
-   * 
+   *
    * If you are using authorization, this is expected to be called from your server
    * after a user has authenticated. The returned token should then be passed to the
    * client.
-   * 
+   *
    * @param docId The ID of the document to get a token for.
    * @param request Metadata associated with the request.
-   * @returns 
+   * @returns
    */
   public async getClientToken(
     docId: string | DocCreationResult,
@@ -266,7 +266,7 @@ export type AuthDocRequest = {
  * A convenience wrapper around {@link DocumentManager.createDoc} and {@link DocumentManager.getClientToken} for
  * getting a client token for a document, given a value which may be a
  * document ID or `undefined`.
- * 
+ *
  * @param docId The ID of the document to get a token for. If `undefined`, a new doc is created.
  * @param connectionString A connection string (starting with `ys://` or `yss://`) referring to a y-sweet server.
  * @returns A {@link ClientToken} object containing the URL and token needed to connect to the document.
@@ -287,7 +287,7 @@ export async function getOrCreateDoc(
 
 /**
  * A convenience wrapper around {@link DocumentManager.getClientToken} for getting a client token for a document.
- * 
+ *
  * @param docId The ID of the document to get a token for.
  * @param request Metadata associated with the request (currently ignored by y-sweet server).
  * @param connectionString A connection string (starting with `ys://` or `yss://`) referring to a y-sweet server.
@@ -304,7 +304,7 @@ export async function getClientToken(
 
 /**
  * A convenience wrapper around {@link DocumentManager.createDoc} for creating a new document.
- * 
+ *
  * @param connectionString A connection string (starting with `ys://` or `yss://`) referring to a y-sweet server.
  * @returns A {@link DocCreationResult} object containing the ID of the created document.
  */
