@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "start": "ts-node src/main.ts",
+    "build": "ts-node src/main.ts",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx}\""
   },
   "author": "",
