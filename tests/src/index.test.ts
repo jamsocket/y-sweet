@@ -41,10 +41,7 @@ describe.each(CONFIGURATIONS)(
 
     beforeAll(async () => {
       SERVER = new Server(configuration)
-      DOCUMENT_MANANGER = new DocumentManager({
-        url: SERVER.serverUrl(),
-        token: SERVER.serverToken,
-      })
+      DOCUMENT_MANANGER = new DocumentManager(SERVER.connectionString())
 
       await SERVER.waitForReady()
     }, TEN_MINUTES_IN_MS)
@@ -83,36 +80,6 @@ describe.each(CONFIGURATIONS)(
         provider.on('synced', resolve)
         provider.on('syncing', reject)
       })
-    })
-
-    test('Configure server with URL', async () => {
-      let url = new URL(DOCUMENT_MANANGER.baseUrl)
-      url.username = encodeURIComponent(DOCUMENT_MANANGER.token ?? '')
-
-      const docManager = new DocumentManager(url.toString())
-
-      const docResult = await docManager.createDoc()
-      expect(docResult.doc).toBeDefined()
-
-      const key = await docManager.getClientToken(docResult, {})
-      expect(key.url).toBeDefined()
-    })
-
-    test('Test for ys:// connection string', async () => {
-      // NB: when the server returns ys[s]:// URLs, this test will start failing and can be removed.
-
-      let baseUrl = new URL(DOCUMENT_MANANGER.baseUrl).host
-      let username = encodeURIComponent(DOCUMENT_MANANGER.token ?? '')
-
-      let url = `ys://${username}@${baseUrl}`
-
-      const docManager = new DocumentManager(url.toString())
-
-      const docResult = await docManager.createDoc()
-      expect(docResult.doc).toBeDefined()
-
-      const key = await docManager.getClientToken(docResult, {})
-      expect(key.url).toBeDefined()
     })
 
     if (configuration.useAuth) {

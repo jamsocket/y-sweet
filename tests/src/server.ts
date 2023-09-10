@@ -97,7 +97,7 @@ export class Server {
   async waitForReady(): Promise<void> {
     for (let i = 0; i < 300; i++) {
       try {
-        await fetch(this.serverUrl())
+        await fetch(`http://127.0.0.1:${this.port}`)
         return
       } catch (e) {
         await new Promise((resolve, reject) => {
@@ -109,8 +109,8 @@ export class Server {
     throw new Error('Server failed to start')
   }
 
-  serverUrl() {
-    return `http://127.0.0.1:${this.port}`
+  connectionString(): string {
+    return `ys://${this.serverToken}@127.0.0.1:${this.port}`
   }
 
   cleanup() {

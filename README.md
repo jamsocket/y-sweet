@@ -24,6 +24,11 @@ The goal of the y-sweet stack is to give developers the end-to-end developer erg
 
 y-sweet is MIT-licensed, and was created by [Drifting in Space](https://driftingin.space).
 
+## Docs
+
+- [React](https://docs.y-sweet.dev/modules/_y_sweet_react.html)
+- [SDK](https://docs.y-sweet.dev/modules/_y_sweet_sdk.html)
+
 ## Packages
 
 ### Server
