@@ -40,6 +40,7 @@ async function generateDocumentation() {
     entryPointStrategy: 'merge',
     entryPoints: tempFiles,
     name: 'y-sweet',
+    readme: path.join(jsPkgDir, '../', 'README.md'),
   })
 
   const project = await app.convert()
