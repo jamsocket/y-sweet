@@ -1,4 +1,4 @@
-<img src="logo.svg" />
+<img src="https://raw.githubusercontent.com/drifting-in-space/y-sweet/main/logo.svg" />
 
 # y-sweet: a Yjs server with persistence and auth
 
