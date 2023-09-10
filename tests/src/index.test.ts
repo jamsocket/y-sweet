@@ -1,5 +1,6 @@
 import { WebsocketProvider } from 'y-websocket'
 import { DocumentManager } from '@y-sweet/sdk'
+import { createYjsProvider } from '@y-sweet/react'
 import { WebSocket } from 'ws'
 import * as Y from 'yjs'
 import { Server, ServerConfiguration } from './server'
@@ -70,11 +71,7 @@ describe.each(CONFIGURATIONS)(
       }
 
       const doc = new Y.Doc()
-      const params = key.token ? { token: key.token } : undefined
-      const provider = new WebsocketProvider(key.url, key.doc, doc, {
-        params,
-        WebSocketPolyfill: require('ws'),
-      })
+      const provider = createYjsProvider(doc, key, { WebSocketPolyfill: require('ws') })
 
       await new Promise((resolve, reject) => {
         provider.on('synced', resolve)
