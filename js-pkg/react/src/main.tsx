@@ -9,6 +9,8 @@ import { ClientToken } from '@y-sweet/sdk'
 import { createYjsProvider } from './yjs-provider'
 import { encodeClientToken } from '@y-sweet/sdk'
 
+export { createYjsProvider }
+
 type YjsContextType = {
   doc: Y.Doc
   provider: WebsocketProvider
