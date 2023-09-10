@@ -68,7 +68,7 @@ export class JsObject implements Debuggable {
   }
 
   entries(): DebuggableEntry[] {
-    return Object.entries(this._value)
+    return Object.entries(this._value || {})
       .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([key, value]) => ({ key, value: debuggableJsValue(value) }))
   }
