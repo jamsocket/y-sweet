@@ -1,15 +1,20 @@
 'use client'
 
-import { useYDoc, useYjsProvider } from '@y-sweet/react'
+import { useAwareness, useYDoc, useYjsProvider } from '@y-sweet/react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import * as Y from 'yjs'
 import { Debuggable, DebuggableEntry } from '../lib/debuggable'
 import { DebuggableYDoc } from '@/lib/debuggable/ydoc'
+import { Awareness } from 'y-protocols/awareness'
+import { DebuggableAwareness } from '@/lib/debuggable/yawareness'
 
 export function Debugger() {
-  const doc: Y.Doc = useYDoc()
+  const doc: Y.Doc = useYDoc({
+    hideDebuggerLink: true,
+  })
   const provider = useYjsProvider()
   const url = provider.ws?.url
+  const awareness = useAwareness()
 
   const selectAll = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
@@ -29,13 +34,42 @@ export function Debugger() {
           WebSocket URL: <samp onDoubleClick={selectAll}>{url}</samp>
         </p>
       )}
-      <DocEntryView doc={doc} />
+      <div className="flex flex-row">
+        <div className="flex-1">
+          <h2 className="text-2xl font-bold mb-4">State</h2>
+          <DocEntryView doc={doc} />
+        </div>
+        <div className="flex-1">
+          <h2 className="text-2xl font-bold mb-4">Awareness</h2>
+          <AwarenessView awareness={awareness} />
+        </div>
+      </div>
     </div>
   )
 }
 
 type DocEntryViewProps = {
   doc: Y.Doc
+}
+
+function AwarenessView(props: { awareness: Awareness }) {
+  const debuggable = useMemo(() => new DebuggableAwareness(props.awareness), [props.awareness])
+
+  let [_, setRenderVersion] = useState(0)
+
+  useEffect(() => {
+    const clear = debuggable.listen(() => {
+      setRenderVersion((v) => v + 1)
+    })
+
+    return clear
+  }, [debuggable])
+
+  return (
+    <div className="cursor-default">
+      <DebuggableItems debuggable={debuggable} />
+    </div>
+  )
 }
 
 function DocEntryView(props: DocEntryViewProps) {
