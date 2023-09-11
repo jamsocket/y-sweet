@@ -7,7 +7,7 @@ use std::sync::{Arc, OnceLock, RwLock};
 use yrs::{
     block::ClientID,
     updates::{decoder::Decode, encoder::Encode},
-    Subscription, Update, UpdateSubscription, Transact, ReadTxn,
+    ReadTxn, Subscription, Transact, Update, UpdateSubscription,
 };
 
 // TODO: this is an implementation detail and should not be exposed.

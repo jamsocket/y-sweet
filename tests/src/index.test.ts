@@ -89,7 +89,7 @@ describe.each(CONFIGURATIONS)(
       }
 
       const doc = new Y.Doc()
-      const provider = createYjsProvider(doc, key, { })
+      const provider = createYjsProvider(doc, key, {})
 
       await new Promise((resolve, reject) => {
         provider.on('synced', resolve)
@@ -104,7 +104,7 @@ describe.each(CONFIGURATIONS)(
       const doc = new Y.Doc()
 
       // Connect to the doc.
-      const provider = createYjsProvider(doc, key, { })
+      const provider = createYjsProvider(doc, key, {})
 
       // Wait for the doc to sync.
       await new Promise<void>((resolve, reject) => {
