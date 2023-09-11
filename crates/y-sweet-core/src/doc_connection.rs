@@ -7,7 +7,7 @@ use std::sync::{Arc, OnceLock, RwLock};
 use yrs::{
     block::ClientID,
     updates::{decoder::Decode, encoder::Encode},
-    Subscription, Update, UpdateSubscription,
+    ReadTxn, Subscription, Transact, Update, UpdateSubscription,
 };
 
 // TODO: this is an implementation detail and should not be exposed.
@@ -54,6 +54,24 @@ impl DocConnection {
     pub fn new_inner(awareness: Arc<RwLock<Awareness>>, callback: Callback) -> Self {
         let (doc_subscription, awareness_subscription) = {
             let mut awareness = awareness.write().unwrap();
+
+            // Initial handshake is based on this:
+            // https://github.com/y-crdt/y-sync/blob/56958e83acfd1f3c09f5dd67cf23c9c72f000707/src/sync.rs#L45-L54
+
+            {
+                // Send a server-side state vector, so that the client can send
+                // updates that happened offline.
+                let sv = awareness.doc().transact().state_vector();
+                let sync_step_1 = Message::Sync(SyncMessage::SyncStep1(sv)).encode_v1();
+                callback(&sync_step_1);
+            }
+
+            {
+                // Send the initial awareness state.
+                let update = awareness.update().unwrap();
+                let awareness = Message::Awareness(update).encode_v1();
+                callback(&awareness);
+            }
 
             let doc_subscription = {
                 let doc = awareness.doc();

@@ -1,15 +1,13 @@
 'use client'
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { ClientToken, encodeClientToken } from '@y-sweet/sdk'
 import type { ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import type { Awareness } from 'y-protocols/awareness'
 import { WebsocketProvider } from 'y-websocket'
 import * as Y from 'yjs'
-import type { Awareness } from 'y-protocols/awareness'
-import { ClientToken } from '@y-sweet/sdk'
-import { createYjsProvider } from './yjs-provider'
-import { encodeClientToken } from '@y-sweet/sdk'
-
-export { createYjsProvider }
+import { WebsocketProviderParams, createYjsProvider } from './yjs-provider'
+export { createYjsProvider, type WebsocketProviderParams }
 
 type YjsContextType = {
   doc: Y.Doc
