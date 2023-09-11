@@ -10,7 +10,7 @@
 - Scales horizontally with a [session backend](https://driftingin.space/posts/session-lived-application-backends) model.
 - Deploys as a native Linux process, or as a WebAssembly module on Cloudflare's edge.
 - Provides document-level access control via client tokens.
-- Written in Rust with a focus on stability and performance, building on the excellent [y-crdt](https://github.com/y-crdt/y-crdt/) library.
+- Written in Rust with a focus on stability and performance, building on the [blazing fast](https://github.com/dmonad/crdt-benchmarks) [y-crdt](https://github.com/y-crdt/y-crdt/) library.
 
 ## y-sweet stack
 
