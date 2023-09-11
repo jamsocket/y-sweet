@@ -79,6 +79,67 @@ describe.each(CONFIGURATIONS)(
       })
     })
 
+    test('Offline changes are synced to doc', async () => {
+      const docResult = await DOCUMENT_MANANGER.createDoc()
+      const key = await DOCUMENT_MANANGER.getClientToken(docResult, {})
+
+      const doc = new Y.Doc()
+
+      // Connect to the doc.
+      const provider = createYjsProvider(doc, key, { WebSocketPolyfill: require('ws') })
+
+      expect(provider.ws).not.toBeNull()
+      provider.ws!.close()
+
+      await new Promise<void>((resolve, reject) => {
+        setTimeout(() => reject('Expected to disconnect.'), 10)
+        provider.on('connection-close', () => {
+          resolve()
+        })
+      })
+
+      expect(provider.synced).toBe(false)
+
+      // Modify the doc while offline.
+      doc.getMap('test').set('foo', 'bar')
+
+      // Reconnect to the doc.
+      provider.connect()
+      await new Promise<void>((resolve, reject) => {
+        provider.on('status', (event: { status: string }) => {
+          if (event.status === 'connected') {
+            resolve()
+          } else {
+            reject(`Expected connected status, got ${event.status}`)
+          }
+        })
+      })
+
+      await new Promise<void>((resolve, reject) => {
+        provider.on('sync', () => {
+          resolve()
+        })
+        provider.on('syncing', reject)
+      })
+      expect(provider.synced).toBe(true)
+
+      // Create a second doc.
+      const doc2 = new Y.Doc()
+
+      // Connect to the doc.
+      const key2 = await DOCUMENT_MANANGER.getClientToken(docResult, {})
+      const provider2 = createYjsProvider(doc2, key2, { WebSocketPolyfill: require('ws') })
+
+      // Wait for the doc to sync.
+      await new Promise((resolve, reject) => {
+        provider2.on('synced', resolve)
+        provider2.on('syncing', reject)
+      })
+
+      // Ensure that the second doc received the changes.
+      expect(doc2.getMap('test').get('foo')).toBe('bar')
+    })
+
     if (configuration.useAuth) {
       test('Attempting to connect to a document without auth should fail', async () => {
         const docResult = await DOCUMENT_MANANGER.createDoc()
