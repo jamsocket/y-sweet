@@ -100,7 +100,10 @@ async fn websocket_connect(req: Request, ctx: RouteContext<&mut YServe>) -> Resu
     let connection = {
         let server = server.clone();
         DocConnection::new(awareness, move |bytes| {
-            server.send_with_bytes(bytes).unwrap();
+            let result = server.send_with_bytes(bytes);
+            if let Err(result) = result {
+                console_log!("Error sending bytes: {:?}", result);
+            }
         })
     };
 
@@ -119,6 +122,7 @@ async fn websocket_connect(req: Request, ctx: RouteContext<&mut YServe>) -> Resu
                     }
                 }
                 worker::WebsocketEvent::Close(_) => {
+                    let _ = server.close::<&str>(None, None);
                     break;
                 }
             }

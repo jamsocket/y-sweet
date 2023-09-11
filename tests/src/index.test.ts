@@ -1,9 +1,27 @@
-import { WebsocketProvider } from 'y-websocket'
 import { DocumentManager } from '@y-sweet/sdk'
-import { createYjsProvider } from '@y-sweet/react'
+import { createYjsProvider as createYjsProvider_, WebsocketProviderParams } from '@y-sweet/react'
 import { WebSocket } from 'ws'
 import * as Y from 'yjs'
 import { Server, ServerConfiguration } from './server'
+
+/**
+ * Wraps `createYjsProvider` with a polyfill for `WebSocket` and
+ * disables the broadcast channel, which gets in the way of tests
+ * because it bypasses the network for local changes.
+ */
+function createYjsProvider(
+  doc: Y.Doc,
+  clientToken: { url: string; doc: string; token?: string },
+  extraOptions: WebsocketProviderParams,
+) {
+  extraOptions = {
+    WebSocketPolyfill: require('ws'),
+    // Broadcast channel prevents us from mocking separate clients.
+    disableBc: true,
+    ...extraOptions,
+  }
+  return createYjsProvider_(doc, clientToken, extraOptions)
+}
 
 const CONFIGURATIONS: ServerConfiguration[] = [
   { useAuth: false, server: 'native' },
@@ -71,7 +89,7 @@ describe.each(CONFIGURATIONS)(
       }
 
       const doc = new Y.Doc()
-      const provider = createYjsProvider(doc, key, { WebSocketPolyfill: require('ws') })
+      const provider = createYjsProvider(doc, key, { })
 
       await new Promise((resolve, reject) => {
         provider.on('synced', resolve)
@@ -86,8 +104,15 @@ describe.each(CONFIGURATIONS)(
       const doc = new Y.Doc()
 
       // Connect to the doc.
-      const provider = createYjsProvider(doc, key, { WebSocketPolyfill: require('ws') })
+      const provider = createYjsProvider(doc, key, { })
 
+      // Wait for the doc to sync.
+      await new Promise<void>((resolve, reject) => {
+        provider.on('synced', resolve)
+        provider.on('syncing', reject)
+      })
+
+      // Disconnect.
       expect(provider.ws).not.toBeNull()
       provider.ws!.close()
 
@@ -129,6 +154,8 @@ describe.each(CONFIGURATIONS)(
       // Connect to the doc.
       const key2 = await DOCUMENT_MANANGER.getClientToken(docResult, {})
       const provider2 = createYjsProvider(doc2, key2, { WebSocketPolyfill: require('ws') })
+
+      expect(doc2.getMap('test').get('foo')).toBeUndefined()
 
       // Wait for the doc to sync.
       await new Promise((resolve, reject) => {

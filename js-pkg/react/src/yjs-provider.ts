@@ -14,7 +14,7 @@ import { ClientToken } from '@y-sweet/sdk'
 export function createYjsProvider(
   doc: Y.Doc,
   clientToken: ClientToken,
-  extraOptions: Partial<WebsocketParams> = {},
+  extraOptions: Partial<WebsocketProviderParams> = {},
 ) {
   const params = clientToken.token ? { token: clientToken.token } : undefined
 
@@ -27,7 +27,7 @@ export function createYjsProvider(
 }
 
 // Taken from y-websocket.d.ts
-type WebsocketParams = {
+export type WebsocketProviderParams = {
   connect?: boolean | undefined
   awareness?: Awareness | undefined
   params?:
