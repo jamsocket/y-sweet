@@ -4,6 +4,7 @@
   "private": true,
   "description": "The monorepo for Y-sweet",
   "workspaces": [
+    "js-pkg/client",
     "js-pkg/react",
     "js-pkg/sdk",
     "js-pkg/gen-docs",

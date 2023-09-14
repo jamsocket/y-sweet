@@ -1,46 +1,46 @@
 {
-    "name": "@y-sweet/sdk",
-    "scripts": {
-        "build": "tsup",
-        "clean": "rm -rf dist",
-        "dev": "tsup --watch",
-        "format": "prettier --write \"**/*.{ts,tsx,js,jsx}\""
-    },
-    "version": "0.0.7",
-    "description": "Javascript/Typescript backend SDK for building collaboration features with y-sweet.",
-    "main": "./dist/main.js",
-    "types": "./dist/main.d.ts",
-    "exports": {
-        ".": {
-            "import": {
-                "types": "./dist/main.d.mts",
-                "default": "./dist/main.mjs"
-            },
-            "require": {
-                "types": "./dist/main.d.ts",
-                "module": "./dist/main.mjs",
-                "default": "./dist/main.js"
-            }
-        }
-    },
-    "files": [
-        "dist/**/*"
-    ],
-    "homepage": "https://github.com/drifting-in-space/y-sweet",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/drifting-in-space/y-sweet.git"
-    },
-    "license": "MIT",
-    "devDependencies": {
-        "prettier": "^3.0.0",
-        "tsup": "^7.2.0",
-        "typescript": "^5.1.6"
-    },
-    "bugs": {
-        "url": "https://github.com/drifting-in-space/y-sweet/issues"
-    },
-    "dependencies": {
-        "@types/node": "^20.5.9"
+  "name": "@y-sweet/sdk",
+  "scripts": {
+    "build": "tsup",
+    "clean": "rm -rf dist",
+    "dev": "tsup --watch",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx}\""
+  },
+  "version": "0.0.8",
+  "description": "Javascript/Typescript backend SDK for building collaboration features with y-sweet.",
+  "main": "./dist/main.js",
+  "types": "./dist/main.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/main.d.mts",
+        "default": "./dist/main.mjs"
+      },
+      "require": {
+        "types": "./dist/main.d.ts",
+        "module": "./dist/main.mjs",
+        "default": "./dist/main.js"
+      }
     }
+  },
+  "files": [
+    "dist/**/*"
+  ],
+  "homepage": "https://github.com/drifting-in-space/y-sweet",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/drifting-in-space/y-sweet.git"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "prettier": "^3.0.0",
+    "tsup": "^7.2.0",
+    "typescript": "^5.1.6"
+  },
+  "bugs": {
+    "url": "https://github.com/drifting-in-space/y-sweet/issues"
+  },
+  "dependencies": {
+    "@types/node": "^20.5.9"
+  }
 }

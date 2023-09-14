@@ -15,7 +15,7 @@ export function createYjsProvider(
   doc: Y.Doc,
   clientToken: ClientToken,
   extraOptions: Partial<WebsocketProviderParams> = {},
-) {
+): WebsocketProvider {
   const params = clientToken.token ? { token: clientToken.token } : undefined
 
   const provider = new WebsocketProvider(clientToken.url, clientToken.doc, doc, {

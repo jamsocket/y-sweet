@@ -28,6 +28,9 @@ async function generateDocumentation() {
   const jsPkgDir = path.join(__dirname, '..', '..')
 
   const tempFiles = await Promise.all([
+    generateDocumentationForProject(path.join(jsPkgDir, 'client'), [
+      path.join(jsPkgDir, 'client', 'src', 'main.ts'),
+    ]),
     generateDocumentationForProject(path.join(jsPkgDir, 'react'), [
       path.join(jsPkgDir, 'react', 'src', 'main.tsx'),
     ]),

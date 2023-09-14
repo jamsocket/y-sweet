@@ -1,5 +1,5 @@
 {
-  "name": "@y-sweet/react",
+  "name": "@y-sweet/client",
   "scripts": {
     "build": "tsup",
     "clean": "rm -rf dist",
@@ -7,7 +7,7 @@
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx}\""
   },
   "version": "0.0.8",
-  "description": "React library for building collaboration features with y-sweet.",
+  "description": "JS library for building collaboration features with y-sweet.",
   "main": "./dist/main.js",
   "types": "./dist/main.d.ts",
   "exports": {
@@ -42,11 +42,9 @@
     "url": "https://github.com/drifting-in-space/y-sweet/issues"
   },
   "peerDependencies": {
-    "react": "^16.8.0 || ^17.0.0 || ^18.0.0",
     "yjs": "^13.0.0"
   },
   "dependencies": {
-    "@y-sweet/client": "0.0.8",
     "@y-sweet/sdk": "0.0.8",
     "y-protocols": "^1.0.5",
     "y-websocket": "^1.5.0"

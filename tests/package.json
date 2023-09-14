@@ -1,26 +1,26 @@
 {
-    "name": "y-sweet-integration-tests",
-    "version": "0.0.0",
-    "private": true,
-    "description": "Integration tests for Y-sweet.",
-    "scripts": {
-        "test": "tsc && jest --detectOpenHandles --forceExit",
-        "format": "prettier --write \"**/*.{ts,tsx,js,jsx,md}\""
-    },
-    "license": "MIT",
-    "devDependencies": {
-        "@types/jest": "^29.5.3",
-        "@types/ws": "^8.5.5",
-        "examples": "file:../examples",
-        "prettier": "^3.0.0",
-        "ts-jest": "^29.1.1",
-        "typescript": "^5.1.6",
-        "ws": "^8.13.0",
-        "y-websocket": "^1.5.0",
-        "yjs": "file:../node_modules/yjs"
-    },
-    "dependencies": {
-        "@y-sweet/sdk": "0.0.7",
-        "@y-sweet/react": "0.0.7"
-    }
+  "name": "y-sweet-integration-tests",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Integration tests for Y-sweet.",
+  "scripts": {
+    "test": "tsc && jest --detectOpenHandles --forceExit",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,md}\""
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@types/jest": "^29.5.3",
+    "@types/ws": "^8.5.5",
+    "examples": "file:../examples",
+    "prettier": "^3.0.0",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.1.6",
+    "ws": "^8.13.0",
+    "y-websocket": "^1.5.0",
+    "yjs": "file:../node_modules/yjs"
+  },
+  "dependencies": {
+    "@y-sweet/sdk": "0.0.8",
+    "@y-sweet/react": "0.0.8"
+  }
 }
