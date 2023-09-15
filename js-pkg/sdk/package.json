@@ -1,7 +1,7 @@
 {
   "name": "@y-sweet/sdk",
   "scripts": {
-    "build": "tsc -b",
+    "build": "tsc -b ./tsconfig.json ./tsconfig.cjs.json",
     "clean": "rm -rf dist",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx}\""
   },
@@ -17,7 +17,8 @@
       },
       "require": {
         "types": "./dist/main.d.ts",
-        "default": "./dist/main.js"
+        "module": "./dist/main.js",
+        "default": "./dist/cjs/main.js"
       }
     }
   },
