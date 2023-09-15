@@ -7,6 +7,8 @@ use time::OffsetDateTime;
 use url::Url;
 use y_sweet_core::store::Store;
 
+use crate::config::S3Config;
+
 const PRESIGNED_URL_DURATION_SECONDS: u64 = 60 * 60;
 pub struct S3Store {
     bucket: Bucket,
@@ -18,25 +20,18 @@ pub struct S3Store {
 }
 
 impl S3Store {
-    pub fn new(
-        endpoint: String,
-        region: String,
-        bucket_name: String,
-        prefix: Option<String>,
-        aws_access_key_id: String,
-        aws_secret: String,
-    ) -> Self {
-        let credentials = Credentials::new(aws_access_key_id, aws_secret);
-        let endpoint: Url = endpoint.parse().expect("endpoint is a valid url");
+    pub fn new(config: S3Config) -> Self {
+        let credentials = Credentials::new(config.key, config.secret);
+        let endpoint: Url = config.endpoint.parse().expect("endpoint is a valid url");
         let path_style =
-			// if endpoint is localhost then bucket url must be of forme http://localhost:<port>/<bucket>
-			// instead of <method>:://<bucket>.<endpoint>
+            // if endpoint is localhost then bucket url must be of forme http://localhost:<port>/<bucket>
+            // instead of <method>:://<bucket>.<endpoint>
             if endpoint.host_str().expect("endpoint Url should have host") == "localhost" {
                 rusty_s3::UrlStyle::Path
             } else {
                 rusty_s3::UrlStyle::VirtualHost
             };
-        let bucket = Bucket::new(endpoint, path_style, bucket_name, region)
+        let bucket = Bucket::new(endpoint, path_style, config.bucket, config.region)
             .expect("Url has a valid scheme and host");
         let client = Client::new();
 
@@ -46,7 +41,7 @@ impl S3Store {
             _bucket_inited: RefCell::new(false),
             client,
             credentials,
-            prefix,
+            prefix: config.bucket_prefix,
             presigned_url_duration,
         }
     }
