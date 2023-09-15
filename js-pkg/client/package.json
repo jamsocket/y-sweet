@@ -12,12 +12,11 @@
   "exports": {
     ".": {
       "import": {
-        "types": "./dist/main.d.mts",
-        "default": "./dist/main.mjs"
+        "types": "./dist/main.d.ts",
+        "default": "./dist/main.js"
       },
       "require": {
         "types": "./dist/main.d.ts",
-        "module": "./dist/main.mjs",
         "default": "./dist/main.js"
       }
     }
