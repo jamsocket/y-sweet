@@ -1,9 +1,8 @@
 {
   "name": "@y-sweet/sdk",
   "scripts": {
-    "build": "tsup",
+    "build": "tsc -b",
     "clean": "rm -rf dist",
-    "dev": "tsup --watch",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx}\""
   },
   "version": "0.0.8",
@@ -34,7 +33,6 @@
   "license": "MIT",
   "devDependencies": {
     "prettier": "^3.0.0",
-    "tsup": "^7.2.0",
     "typescript": "^5.1.6"
   },
   "bugs": {
