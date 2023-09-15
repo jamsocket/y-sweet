@@ -17,6 +17,6 @@
     "preserveWatchOutput": true,
     "skipLibCheck": true,
     "strict": true,
-    "module": "es2020"
+    "module": "CommonJS"
   }
 }
