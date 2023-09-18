@@ -1,6 +1,6 @@
 {
   "name": "gen-docs",
-  "version": "1.0.0",
+  "version": "0.0.8",
   "description": "",
   "scripts": {
     "build": "ts-node src/main.ts",

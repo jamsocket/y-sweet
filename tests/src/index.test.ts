@@ -1,3 +1,4 @@
+import { describe, expect, test, beforeAll, afterAll } from 'vitest'
 import { DocumentManager } from '@y-sweet/sdk'
 import { createYjsProvider as createYjsProvider_, WebsocketProviderParams } from '@y-sweet/react'
 import { WebSocket } from 'ws'

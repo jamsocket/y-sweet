@@ -1,3 +1,4 @@
+import { expect, test } from 'vitest'
 import { YSweetError, YSweetErrorPayload } from '@y-sweet/sdk'
 
 function expectRoundTrip(payload: YSweetErrorPayload) {

@@ -106,7 +106,7 @@ function main() {
         }
       })
 
-      fs.writeFileSync(packageData.packageFile, JSON.stringify(packageJson, null, 4) + '\n')
+      fs.writeFileSync(packageData.packageFile, JSON.stringify(packageJson, null, 2) + '\n')
 
       console.log(`Updated ${packageData.packageFile} to version ${newVersion}`)
 

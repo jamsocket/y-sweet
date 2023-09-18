@@ -1,7 +1,9 @@
-import { WebsocketProvider } from 'y-websocket'
+import { WebsocketProvider } from './websocket'
 import * as Y from 'yjs'
 import type { Awareness } from 'y-protocols/awareness'
 import { ClientToken } from '@y-sweet/sdk'
+
+export {WebsocketProvider }
 
 /**
  * Given a {@link ClientToken}, create a {@link WebsocketProvider} for it.
@@ -15,7 +17,7 @@ export function createYjsProvider(
   doc: Y.Doc,
   clientToken: ClientToken,
   extraOptions: Partial<WebsocketProviderParams> = {},
-) {
+): WebsocketProvider {
   const params = clientToken.token ? { token: clientToken.token } : undefined
 
   const provider = new WebsocketProvider(clientToken.url, clientToken.doc, doc, {
