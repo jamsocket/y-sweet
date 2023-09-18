@@ -4,6 +4,7 @@ on:
   pull_request:
     branches: [ "main" ]
     paths:
+      - ".github/workflows/check-ts.yml"
       - "examples/**"
       - "debugger/**"
       - "tests/**"
@@ -40,6 +41,10 @@ jobs:
     - name: Check Formatting of SDK
       run: npx prettier --check "src/**/*.{ts,tsx}"
       working-directory: js-pkg/sdk/
+
+    - name: Check Formatting of client
+      run: npx prettier --check "src/**/*.{ts,tsx}"
+      working-directory: js-pkg/client/
 
     - name: Check Formatting of doc generator
       run: npx prettier --check "**/*.{ts,tsx}"

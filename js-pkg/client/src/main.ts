@@ -3,7 +3,7 @@ import * as Y from 'yjs'
 import type { Awareness } from 'y-protocols/awareness'
 import { ClientToken } from '@y-sweet/sdk'
 
-export {WebsocketProvider }
+export { WebsocketProvider }
 
 /**
  * Given a {@link ClientToken}, create a {@link WebsocketProvider} for it.
