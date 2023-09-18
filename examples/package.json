@@ -35,7 +35,6 @@
     "y-codemirror": "^3.0.1",
     "y-protocols": "^1.0.5",
     "y-quill": "^0.1.5",
-    "y-websocket": "^1.5.0",
     "yjs": "^13.6.7"
   },
   "devDependencies": {
