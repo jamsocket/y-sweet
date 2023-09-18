@@ -9,6 +9,7 @@ type S3Config = {
   aws_access_key_id: string
   aws_secret_key: string
   aws_region: string
+  endpoint?: string
   bucket_name: string
   bucket_prefix: string
 }
@@ -67,6 +68,7 @@ export class Server {
         vars['AWS_ACCESS_KEY_ID'] = configuration.s3.aws_access_key_id
         vars['AWS_SECRET_ACCESS_KEY'] = configuration.s3.aws_secret_key
         vars['AWS_REGION'] = configuration.s3.aws_region
+        if (configuration.s3.endpoint) vars['AWS_ENDPOINT_URL_S3'] = configuration.s3.endpoint
         vars['BUCKET_KIND'] = 'S3'
       }
 

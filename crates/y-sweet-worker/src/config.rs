@@ -10,6 +10,7 @@ const CHECKPOINT_FREQ_SECONDS: &str = "CHECKPOINT_FREQ_SECONDS";
 const S3_ACCESS_KEY_ID: &str = "AWS_ACCESS_KEY_ID";
 const S3_SECRET_ACCESS_KEY: &str = "AWS_SECRET_ACCESS_KEY";
 const S3_REGION: &str = "AWS_REGION";
+const S3_ENDPOINT: &str = "AWS_ENDPOINT_URL_S3";
 const S3_BUCKET_PREFIX: &str = "S3_BUCKET_PREFIX";
 const S3_BUCKET_NAME: &str = "S3_BUCKET_NAME";
 
@@ -31,9 +32,10 @@ impl FromStr for BucketKind {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct S3Config {
     pub key: String,
+    pub endpoint: String,
     pub secret: String,
     pub bucket: String,
     pub region: String,
@@ -52,15 +54,24 @@ pub struct Configuration {
 }
 
 fn parse_s3_config(env: &Env) -> anyhow::Result<S3Config> {
+    let region = env
+        .var(S3_REGION)
+        .map_err(|_| anyhow::anyhow!("AWS_REGION env var not supplied"))?
+        .to_string();
+
+    //default to using aws
+    let endpoint = env.var(S3_ENDPOINT).map_or_else(
+        |_| format!("https://s3.dualstack.{}.amazonaws.com", region),
+        |s| s.to_string(),
+    );
+
     Ok(S3Config {
         key: env
             .var(S3_ACCESS_KEY_ID)
             .map_err(|_| anyhow::anyhow!("AWS_ACCESS_KEY_ID env var not supplied"))?
             .to_string(),
-        region: env
-            .var(S3_REGION)
-            .map_err(|_| anyhow::anyhow!("AWS_REGION env var not supplied"))?
-            .to_string(),
+        region,
+        endpoint,
         secret: env
             .var(S3_SECRET_ACCESS_KEY)
             .map_err(|_| anyhow::anyhow!("AWS_SECRET_ACCESS_KEY env var not supplied"))?

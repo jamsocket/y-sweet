@@ -1,9 +1,11 @@
+use crate::config::S3Config;
 use anyhow::Result;
 use async_trait::async_trait;
 use reqwest::{Client, StatusCode};
 use rusty_s3::{Bucket, Credentials, S3Action};
 use std::{cell::RefCell, time::Duration};
 use time::OffsetDateTime;
+use url::Url;
 use y_sweet_core::store::Store;
 
 const PRESIGNED_URL_DURATION_SECONDS: u64 = 60 * 60;
@@ -17,19 +19,18 @@ pub struct S3Store {
 }
 
 impl S3Store {
-    pub fn new(
-        region: String,
-        bucket_name: String,
-        prefix: Option<String>,
-        aws_access_key_id: String,
-        aws_secret: String,
-    ) -> Self {
-        let credentials = Credentials::new(aws_access_key_id, aws_secret);
-        let endpoint = format!("https://s3.dualstack.{}.amazonaws.com", region)
-            .parse()
-            .expect("endpoint is a valid Url");
-        let path_style = rusty_s3::UrlStyle::VirtualHost;
-        let bucket = Bucket::new(endpoint, path_style, bucket_name, region)
+    pub fn new(config: S3Config) -> Self {
+        let credentials = Credentials::new(config.key, config.secret);
+        let endpoint: Url = config.endpoint.parse().expect("endpoint is a valid url");
+        let path_style =
+            // if endpoint is localhost then bucket url must be of forme http://localhost:<port>/<bucket>
+            // instead of <method>:://<bucket>.<endpoint>
+            if endpoint.host_str().expect("endpoint Url should have host") == "localhost" {
+                rusty_s3::UrlStyle::Path
+            } else {
+                rusty_s3::UrlStyle::VirtualHost
+            };
+        let bucket = Bucket::new(endpoint, path_style, config.bucket, config.region)
             .expect("Url has a valid scheme and host");
         let client = Client::new();
 
@@ -39,7 +40,7 @@ impl S3Store {
             _bucket_inited: RefCell::new(false),
             client,
             credentials,
-            prefix,
+            prefix: config.bucket_prefix,
             presigned_url_duration,
         }
     }
