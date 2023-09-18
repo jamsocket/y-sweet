@@ -41,6 +41,10 @@ jobs:
       run: npx prettier --check "src/**/*.{ts,tsx}"
       working-directory: js-pkg/sdk/
 
+    - name: Check Formatting of client
+      run: npx prettier --check "src/**/*.{ts,tsx}"
+      working-directory: js-pkg/client/
+
     - name: Check Formatting of doc generator
       run: npx prettier --check "**/*.{ts,tsx}"
       working-directory: js-pkg/gen-docs/
