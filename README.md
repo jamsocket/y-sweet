@@ -29,7 +29,7 @@ y-sweet is MIT-licensed, and was created by [Drifting in Space](https://drifting
 
 ## Docs
 
-- API docs
+- [API docs](https://docs.y-sweet.dev/index.html)
     - [Vanilla JS client](https://docs.y-sweet.dev/modules/_y_sweet_client.html)
     - [React hooks](https://docs.y-sweet.dev/modules/_y_sweet_react.html)
     - [Document management SDK](https://docs.y-sweet.dev/modules/_y_sweet_sdk.html)
