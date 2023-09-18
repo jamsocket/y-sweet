@@ -1,3 +1,4 @@
+use crate::config::S3Config;
 use anyhow::Result;
 use async_trait::async_trait;
 use reqwest::{Client, StatusCode};
@@ -6,8 +7,6 @@ use std::{cell::RefCell, time::Duration};
 use time::OffsetDateTime;
 use url::Url;
 use y_sweet_core::store::Store;
-
-use crate::config::S3Config;
 
 const PRESIGNED_URL_DURATION_SECONDS: u64 = 60 * 60;
 pub struct S3Store {
