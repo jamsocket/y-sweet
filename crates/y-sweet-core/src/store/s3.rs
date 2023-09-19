@@ -59,8 +59,8 @@ impl S3Store {
     async fn inited_bucket(&self) -> Result<&Bucket> {
         {
             let Ok(inited) = self._bucket_inited.read() else {
-				panic!();
-			};
+                return Err(anyhow::anyhow!("Unable to acquire read lock on _bucket_inited"));
+            };
             if *inited {
                 return Ok(&self.bucket);
             };
@@ -73,8 +73,8 @@ impl S3Store {
         match response.status() {
             StatusCode::OK => {
                 let Ok(mut inited) = self._bucket_inited.write() else {
-					panic!();
-				};
+                    return Err(anyhow::anyhow!("Unable to acquire write lock on _bucket_inited"));
+                };
                 *inited = true;
                 return Ok(&self.bucket);
             }
