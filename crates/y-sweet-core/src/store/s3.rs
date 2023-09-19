@@ -4,7 +4,8 @@ use async_trait::async_trait;
 use reqwest::{Client, StatusCode, Url};
 use rusty_s3::{Bucket, Credentials, S3Action};
 use serde::{Deserialize, Serialize};
-use std::sync::RwLock;
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering::SeqCst;
 use std::time::Duration;
 use time::OffsetDateTime;
 
@@ -21,7 +22,7 @@ pub struct S3Config {
 const PRESIGNED_URL_DURATION_SECONDS: u64 = 60 * 60;
 pub struct S3Store {
     bucket: Bucket,
-    _bucket_inited: RwLock<bool>,
+    _bucket_inited: AtomicBool,
     client: Client,
     credentials: Credentials,
     prefix: Option<String>,
@@ -47,7 +48,7 @@ impl S3Store {
         let presigned_url_duration = Duration::from_secs(PRESIGNED_URL_DURATION_SECONDS);
         S3Store {
             bucket,
-            _bucket_inited: RwLock::new(false),
+            _bucket_inited: AtomicBool::new(false),
             client,
             credentials,
             prefix: config.bucket_prefix,
@@ -57,15 +58,8 @@ impl S3Store {
 
     //lazily checks bucket exists on first use
     async fn inited_bucket(&self) -> Result<&Bucket> {
-        {
-            let Ok(inited) = self._bucket_inited.read() else {
-                return Err(anyhow::anyhow!(
-                    "Unable to acquire read lock on _bucket_inited"
-                ));
-            };
-            if *inited {
-                return Ok(&self.bucket);
-            };
+        if self._bucket_inited.load(SeqCst) {
+            return Ok(&self.bucket);
         }
 
         let action = self.bucket.head_bucket(Some(&self.credentials));
@@ -74,12 +68,7 @@ impl S3Store {
         let response = self.client.head(presigned_url).send().await?;
         match response.status() {
             StatusCode::OK => {
-                let Ok(mut inited) = self._bucket_inited.write() else {
-                    return Err(anyhow::anyhow!(
-                        "Unable to acquire write lock on _bucket_inited"
-                    ));
-                };
-                *inited = true;
+                self._bucket_inited.store(true, SeqCst);
                 return Ok(&self.bucket);
             }
             StatusCode::NOT_FOUND => {
