@@ -33,18 +33,6 @@ impl FromStr for BucketKind {
     }
 }
 
-/*
-#[derive(Clone, Serialize, Deserialize)]
-pub struct S3Config {
-    pub key: String,
-    pub endpoint: String,
-    pub secret: String,
-    pub bucket: String,
-    pub region: String,
-    pub bucket_prefix: Option<String>,
-}
-*/
-
 #[derive(Serialize, Deserialize)]
 pub struct Configuration {
     pub auth_key: Option<String>,
