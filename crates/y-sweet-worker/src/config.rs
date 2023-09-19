@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::{str::FromStr, time::Duration};
 use worker::Env;
 use y_sweet_core::auth::KeyId;
+use y_sweet_core::store::s3::S3Config;
 
 const BUCKET: &str = "Y_SWEET_DATA";
 const BUCKET_KIND: &str = "BUCKET_KIND";
@@ -32,6 +33,7 @@ impl FromStr for BucketKind {
     }
 }
 
+/*
 #[derive(Clone, Serialize, Deserialize)]
 pub struct S3Config {
     pub key: String,
@@ -41,6 +43,7 @@ pub struct S3Config {
     pub region: String,
     pub bucket_prefix: Option<String>,
 }
+*/
 
 #[derive(Serialize, Deserialize)]
 pub struct Configuration {
