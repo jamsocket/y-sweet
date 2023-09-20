@@ -21,7 +21,7 @@ The y-sweet server can be used by any Yjs app, or you can use our opinionated st
 
 - `@y-sweet/sdk`, a TypeScript library for interacting with `y-sweet-server` from your application backend.
 - `@y-sweet/react`, a React hooks library for building Yjs applications.
-- A debugger for exploring Yjs document and presence state (WIP).
+- A [debugger](https://y-sweet.cloud/advanced/debugger) for exploring Yjs document and presence state.
 
 The goal of the y-sweet stack is to give developers the end-to-end developer ergonomics they would expect from a proprietary state-sync platform, **without the lock-in**.
 
