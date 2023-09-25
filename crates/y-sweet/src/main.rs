@@ -4,23 +4,28 @@ use crate::stores::filesystem::FileSystemStore;
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use cli::{print_auth_message, print_server_url};
-use s3::Region;
 use serde_json::json;
 use std::{
+    env,
     net::{IpAddr, Ipv4Addr, SocketAddr},
     path::PathBuf,
 };
-use stores::blobstore::S3Store;
 use tracing::metadata::LevelFilter;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 use url::Url;
-use y_sweet_core::{auth::Authenticator, store::Store};
+use y_sweet_core::{
+    auth::Authenticator,
+    store::{
+        s3::{S3Config, S3Store},
+        Store,
+    },
+};
 
 mod cli;
 mod server;
 mod stores;
 
-const DEFAULT_S3_REGION: Region = Region::UsEast1;
+const DEFAULT_S3_REGION: &str = "us-east-1";
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(Parser)]
@@ -59,31 +64,60 @@ enum ServSubcommand {
     Version,
 }
 
+const S3_ACCESS_KEY_ID: &str = "AWS_ACCESS_KEY_ID";
+const S3_SECRET_ACCESS_KEY: &str = "AWS_SECRET_ACCESS_KEY";
+const S3_REGION: &str = "AWS_REGION";
+const S3_ENDPOINT: &str = "AWS_ENDPOINT_URL_S3";
+const S3_BUCKET_PREFIX: &str = "S3_BUCKET_PREFIX";
+const S3_BUCKET_NAME: &str = "S3_BUCKET_NAME";
+fn parse_s3_config_from_env_and_args(
+    bucket: Option<String>,
+    prefix: Option<String>,
+) -> anyhow::Result<S3Config> {
+    let region = env::var(S3_REGION).unwrap_or(DEFAULT_S3_REGION.into());
+
+    //default to using aws
+    let endpoint = env::var(S3_ENDPOINT).map_or_else(
+        |_| format!("https://s3.dualstack.{}.amazonaws.com", region),
+        |s| s.to_string(),
+    );
+
+    Ok(S3Config {
+        key: env::var(S3_ACCESS_KEY_ID)
+            .map_err(|_| anyhow::anyhow!("AWS_ACCESS_KEY_ID env var not supplied"))?
+            .to_string(),
+        region,
+        endpoint,
+        secret: env::var(S3_SECRET_ACCESS_KEY)
+            .map_err(|_| anyhow::anyhow!("AWS_SECRET_ACCESS_KEY env var not supplied"))?
+            .to_string(),
+        bucket: {
+            if let Ok(bucket_name) = env::var(S3_BUCKET_NAME) {
+                bucket_name
+            } else {
+                bucket.ok_or_else(|| anyhow::anyhow!("S3_BUCKET_NAME env var not supplied"))?
+            }
+        },
+        bucket_prefix: {
+            if let Ok(bucket_prefix) = env::var(S3_BUCKET_PREFIX) {
+                Some(bucket_prefix)
+            } else {
+                prefix
+            }
+        },
+    })
+}
+
 fn get_store_from_opts(store_path: &str) -> Result<Box<dyn Store>> {
     if store_path.starts_with("s3://") {
-        let region = match Region::from_default_env() {
-            Ok(region) => {
-                tracing::info!(region=?region, "Using region from environment.");
-                region
-            }
-            Err(e) => {
-                tracing::warn!(
-                    error=?e,
-                    "Failed to get region from environment, using default ({}).",
-                    DEFAULT_S3_REGION
-                );
-                DEFAULT_S3_REGION
-            }
-        };
         let url = url::Url::parse(store_path)?;
-
         let bucket = url
             .host_str()
             .ok_or_else(|| anyhow::anyhow!("Invalid S3 URL"))?
             .to_owned();
-        let prefix = url.path().trim_start_matches('/').to_owned();
-
-        let store = S3Store::new(region, bucket, prefix)?;
+        let bucket_prefix = Some(url.path().trim_start_matches('/').to_owned());
+        let config = parse_s3_config_from_env_and_args(Some(bucket), bucket_prefix)?;
+        let store = S3Store::new(config);
         Ok(Box::new(store))
     } else {
         Ok(Box::new(FileSystemStore::new(PathBuf::from(store_path))?))
