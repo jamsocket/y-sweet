@@ -115,7 +115,10 @@ async fn websocket_connect(req: Request, ctx: RouteContext<&mut YServe>) -> Resu
             match event.unwrap() {
                 worker::WebsocketEvent::Message(message) => {
                     if let Some(bytes) = message.bytes() {
-                        connection.send(&bytes).await.unwrap();
+                        let result = connection.send(&bytes).await;
+                        if let Err(result) = result {
+                            console_log!("Error sending bytes: {:?}", result);
+                        }
                     } else {
                         server
                             .send_with_str("Received unexpected text message.")
