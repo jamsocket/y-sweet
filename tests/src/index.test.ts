@@ -115,6 +115,22 @@ describe.each(CONFIGURATIONS)(
       })
     })
 
+    test('Create a doc by specifying a name', async () => {
+      const docResult = await DOCUMENT_MANANGER.createDoc({
+        doc: 'mydoc123',
+      })
+
+      expect(docResult.doc).toBe('mydoc123')
+    })
+
+    test('Reject invalid doc name', async () => {
+      await expect(
+        DOCUMENT_MANANGER.createDoc({
+          doc: 'mydoc123!',
+        }),
+      ).rejects.toThrow('400')
+    })
+
     test('Offline changes are synced to doc', async () => {
       const docResult = await DOCUMENT_MANANGER.createDoc()
       const key = await DOCUMENT_MANANGER.getClientToken(docResult, {})

@@ -22,7 +22,9 @@ use tokio::sync::mpsc::channel;
 use tracing::{span, Instrument, Level};
 use url::Url;
 use y_sweet_core::{
-    api_types::{AuthDocRequest, ClientToken, NewDocResponse},
+    api_types::{
+        validate_doc_name, AuthDocRequest, ClientToken, DocCreationRequest, NewDocResponse,
+    },
     auth::Authenticator,
     doc_connection::DocConnection,
     doc_sync::DocWithSyncKv,
@@ -250,13 +252,31 @@ async fn handle_socket(socket: WebSocket, awareness: Arc<RwLock<Awareness>>) {
 async fn new_doc(
     authorization: Option<TypedHeader<headers::Authorization<Bearer>>>,
     State(server_state): State<Arc<Server>>,
+    Json(body): Json<DocCreationRequest>,
 ) -> Result<Json<NewDocResponse>, StatusCode> {
     server_state.check_auth(authorization)?;
 
-    let doc_id = server_state.create_doc().await.map_err(|d| {
-        tracing::error!(?d, "Failed to create doc");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    let doc_id = if let Some(doc_id) = body.doc {
+        if !validate_doc_name(doc_id.as_str()) {
+            return Err(StatusCode::BAD_REQUEST);
+        }
+
+        server_state
+            .get_or_create_doc(doc_id.as_str())
+            .await
+            .map_err(|e| {
+                tracing::error!(?e, "Failed to create doc");
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
+
+        doc_id
+    } else {
+        server_state.create_doc().await.map_err(|d| {
+            tracing::error!(?d, "Failed to create doc");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?
+    };
+
     Ok(Json(NewDocResponse { doc: doc_id }))
 }
 

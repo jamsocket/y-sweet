@@ -1,3 +1,4 @@
 /target
 data
 node_modules
+.vscode

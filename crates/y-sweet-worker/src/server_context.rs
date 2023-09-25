@@ -21,6 +21,7 @@ impl ServerContext {
         } else {
             Box::new(R2Store::new(bucket, config.bucket_prefix.clone()))
         };
+        #[allow(clippy::arc_with_non_send_sync)] // Arc required for compatibility with core.
         let store: Arc<Box<dyn Store>> = Arc::new(store);
 
         Self {

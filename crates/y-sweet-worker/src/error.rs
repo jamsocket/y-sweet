@@ -23,6 +23,10 @@ pub enum Error {
     UpstreamConnectionError,
     #[error("Internal error.")]
     InternalError,
+    #[error("Bad request.")]
+    BadRequest,
+    #[error("Invalid doc name.")]
+    InvalidDocName,
 }
 
 impl Error {
@@ -37,6 +41,8 @@ impl Error {
             Self::ExpectedClientAuthHeader => 401,
             Self::BadClientAuthHeader => 403,
             Self::InternalError => 500,
+            Self::BadRequest => 400,
+            Self::InvalidDocName => 400,
         }
     }
 }

@@ -1,3 +1,8 @@
+export type DocCreationRequest = {
+  /** The ID of the document to create. If not provided, a random ID will be generated. */
+  doc?: string
+}
+
 /**
  * Schema of object returned after a successful document creation.
  */
@@ -214,8 +219,8 @@ export class DocumentManager {
    *
    * @returns A {@link DocCreationResult} object containing the ID of the created document.
    */
-  public async createDoc(): Promise<DocCreationResult> {
-    const result = await this.doFetch('doc/new', { method: 'POST' })
+  public async createDoc(request?: DocCreationRequest): Promise<DocCreationResult> {
+    const result = await this.doFetch('doc/new', request || {})
     if (!result.ok) {
       throw new Error(`Failed to create doc: ${result.status} ${result.statusText}`)
     }

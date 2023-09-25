@@ -31,8 +31,6 @@ jobs:
           crates/y-sweet-worker/target/
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-    - name: Install dependencies of JS library
-      run: npm ci
     - name: Test deps
       run: npm ci
       working-directory: tests
@@ -45,3 +43,10 @@ jobs:
         Y_SWEET_S3_BUCKET_PREFIX: testing
         Y_SWEET_S3_BUCKET_NAME: ysweet-testing-y-sweet-data
       working-directory: tests
+      timeout-minutes: 10
+
+    - uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-data
+        path: tests/out

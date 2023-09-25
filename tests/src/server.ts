@@ -1,5 +1,5 @@
 import { ChildProcess, execSync, spawn } from 'child_process'
-import { rmSync } from 'fs'
+import { rmSync, mkdirSync } from 'fs'
 import { tmpdir } from 'os'
 import { dirname, join } from 'path'
 
@@ -20,6 +20,17 @@ export type ServerConfiguration = {
   s3?: S3Config
 }
 
+function configToString(configuration: ServerConfiguration) {
+  let result = configuration.server
+  if (configuration.useAuth) {
+    result += '-auth'
+  }
+  if (configuration.s3) {
+    result += '-s3'
+  }
+  return result
+}
+
 export class Server {
   process: ChildProcess
   port: number
@@ -27,6 +38,7 @@ export class Server {
   reject?: (reason?: any) => void
   serverToken?: string
   finished: boolean = false
+  outFileBase: string
 
   static generateAuth(yServeBase: string) {
     const result = execSync('cargo run -- gen-auth --json', { cwd: yServeBase })
@@ -36,26 +48,45 @@ export class Server {
   constructor(configuration: ServerConfiguration) {
     const yServeBase = join(dirname(__filename), '..', '..', 'crates')
 
-    execSync('cargo build --release', { stdio: 'inherit', cwd: yServeBase })
-
     this.port = Math.floor(Math.random() * 10000) + 10000
     this.dataDir = join(tmpdir(), `y-sweet-test-${this.port}`)
+    const outFilePath = join(dirname(__filename), '..', 'out')
+
+    mkdirSync(outFilePath, { recursive: true })
+
+    this.outFileBase = join(outFilePath, configToString(configuration))
 
     let auth
     if (configuration.useAuth) {
+      console.log('Generating auth.')
       auth = Server.generateAuth(yServeBase)
       this.serverToken = auth.server_token
+      console.log('Done generating auth.')
     }
 
     if (configuration.server === 'native') {
-      let command = `cargo run -- serve --port ${this.port} ${this.dataDir} --prod`
+      console.log('Running build')
+      execSync(`cargo build &> ${this.outFileBase}.build.txt`, {
+        cwd: yServeBase,
+        timeout: 300_000,
+        stdio: 'inherit',
+      })
+      console.log('Done building.')
+
+      console.log('Starting server.')
+      let command = `target/debug/y-sweet serve --port ${this.port} ${this.dataDir} --prod`
       if (configuration.useAuth) {
         command += ` --auth ${auth.private_key}`
       }
 
-      this.process = spawn(command, { cwd: yServeBase, stdio: 'inherit', shell: true })
+      command += ` &> ${this.outFileBase}.log.txt`
+
+      console.log('Spawning server.')
+      this.process = spawn(command, { cwd: yServeBase, shell: true, stdio: 'inherit' })
+      console.log('Done spawning server.')
     } else if (configuration.server === 'worker') {
       const workerBase = join(yServeBase, 'y-sweet-worker')
+
       const vars: Record<string, string> = {}
 
       if (configuration.useAuth) {
@@ -72,7 +103,7 @@ export class Server {
         vars['BUCKET_KIND'] = 'S3'
       }
 
-      let command = `npx wrangler dev --persist-to ${this.dataDir} --port ${this.port} --env test`
+      let command = `npx wrangler@3.3.0 dev --persist-to ${this.dataDir} --port ${this.port} --env test`
 
       if (Object.entries(vars).length > 0) {
         command += ' --var'
@@ -81,7 +112,9 @@ export class Server {
         }
       }
 
-      this.process = spawn(command, { cwd: workerBase, stdio: 'inherit', shell: true })
+      // For some reason, forwarding the output to a file breaks the build itself.
+
+      this.process = spawn(command, { cwd: workerBase, shell: true, stdio: 'inherit' })
     } else {
       throw new Error(`Unknown server type ${configuration.server}`)
     }
@@ -97,9 +130,12 @@ export class Server {
   }
 
   async waitForReady(): Promise<void> {
-    for (let i = 0; i < 300; i++) {
+    const attempts = 300
+    for (let i = 0; i < attempts; i++) {
+      console.log(`Waiting for server to start. (Attempt ${i + 1} of ${attempts})`)
       try {
         await fetch(`http://127.0.0.1:${this.port}`)
+        console.log('Server started.')
         return
       } catch (e) {
         await new Promise((resolve, reject) => {

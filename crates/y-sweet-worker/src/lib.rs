@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use worker::{event, Env};
 use worker::{Date, Request, Response, Result, RouteContext, Router, Url};
 use y_sweet_core::{
-    api_types::{ClientToken, NewDocResponse},
+    api_types::{validate_doc_name, ClientToken, DocCreationRequest, NewDocResponse},
     auth::Authenticator,
     doc_sync::DocWithSyncKv,
 };
@@ -67,7 +67,7 @@ fn check_server_token(
 
         if let Some(token) = auth_header_val.strip_prefix("Bearer ") {
             if auth
-                .verify_server_token(&token, get_time_millis_since_epoch())
+                .verify_server_token(token, get_time_millis_since_epoch())
                 .is_err()
             {
                 return Err(Error::BadAuthHeader);
@@ -84,12 +84,22 @@ async fn new_doc_handler(req: Request, ctx: RouteContext<ServerContext>) -> Resu
 }
 
 async fn new_doc(
-    req: Request,
+    mut req: Request,
     mut ctx: RouteContext<ServerContext>,
 ) -> std::result::Result<NewDocResponse, Error> {
     check_server_token(&req, ctx.data.auth()?)?;
 
-    let doc_id = nanoid::nanoid!();
+    let body = req
+        .json::<DocCreationRequest>()
+        .await
+        .map_err(|_| Error::BadRequest)?;
+
+    let doc_id = body.doc.unwrap_or_else(|| nanoid::nanoid!());
+
+    if !validate_doc_name(&doc_id) {
+        return Err(Error::InvalidDocName);
+    }
+
     let store = Some(ctx.data.store());
     let dwskv = DocWithSyncKv::new(&doc_id, store, || {}).await.unwrap();
 
