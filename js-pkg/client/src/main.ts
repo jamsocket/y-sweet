@@ -1,9 +1,8 @@
-import { WebsocketProvider } from './websocket'
+import { WebsocketProvider, type WebsocketProviderParams } from './websocket'
 import * as Y from 'yjs'
-import type { Awareness } from 'y-protocols/awareness'
 import { ClientToken } from '@y-sweet/sdk'
 
-export { WebsocketProvider }
+export { WebsocketProvider, WebsocketProviderParams }
 
 /**
  * Given a {@link ClientToken}, create a {@link WebsocketProvider} for it.
@@ -26,28 +25,4 @@ export function createYjsProvider(
   })
 
   return provider
-}
-
-// Taken from y-websocket.d.ts
-export type WebsocketProviderParams = {
-  connect?: boolean | undefined
-  awareness?: Awareness | undefined
-  params?:
-    | {
-        [x: string]: string
-      }
-    | undefined
-  WebSocketPolyfill?:
-    | {
-        new (url: string | URL, protocols?: string | string[] | undefined): WebSocket
-        prototype: WebSocket
-        readonly CLOSED: number
-        readonly CLOSING: number
-        readonly CONNECTING: number
-        readonly OPEN: number
-      }
-    | undefined
-  resyncInterval?: number | undefined
-  maxBackoffTime?: number | undefined
-  disableBc?: boolean | undefined
 }
