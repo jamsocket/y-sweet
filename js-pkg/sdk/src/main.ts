@@ -161,19 +161,20 @@ export class DocumentManager {
     this.token = token
   }
 
+  private async doFetch(url: string, method: 'GET'): Promise<any>;
+  private async doFetch(url: string, method: 'POST', body: any): Promise<any>;
+
   /** Internal helper for making an authorized fetch request to the API.  */
-  private async doFetch(url: string, body?: any): Promise<Response> {
-    let method = 'GET'
+  private async doFetch(url: string, method: 'GET' | 'POST', body?: any): Promise<Response> {
     let headers: [string, string][] = []
     if (this.token) {
       // Tokens come base64 encoded.
       headers.push(['Authorization', `Bearer ${this.token}`])
     }
 
-    if (body !== undefined) {
+    if (method === 'POST') {
       headers.push(['Content-Type', 'application/json'])
       body = JSON.stringify(body)
-      method = 'POST'
     }
 
     let result: Response
@@ -220,7 +221,7 @@ export class DocumentManager {
    * @returns A {@link DocCreationResult} object containing the ID of the created document.
    */
   public async createDoc(request?: DocCreationRequest): Promise<DocCreationResult> {
-    const result = await this.doFetch('doc/new', request || {})
+    const result = await this.doFetch('doc/new', 'POST', request || {})
     if (!result.ok) {
       throw new Error(`Failed to create doc: ${result.status} ${result.statusText}`)
     }
@@ -246,7 +247,7 @@ export class DocumentManager {
       docId = docId.doc
     }
 
-    const result = await this.doFetch(`doc/${docId}/auth`, request)
+    const result = await this.doFetch(`doc/${docId}/auth`, 'POST', request)
     if (!result.ok) {
       throw new Error(`Failed to auth doc ${docId}: ${result.status} ${result.statusText}`)
     }
