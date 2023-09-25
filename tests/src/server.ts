@@ -65,21 +65,12 @@ export class Server {
     }
 
     if (configuration.server === 'native') {
-      console.log('Running build')
-      execSync(`cargo build &> ${this.outFileBase}.build.txt`, {
-        cwd: yServeBase,
-        timeout: 300_000,
-        stdio: 'inherit',
-      })
-      console.log('Done building.')
+      execSync('cargo build', { stdio: 'inherit', cwd: yServeBase })
 
-      console.log('Starting server.')
       let command = `target/debug/y-sweet serve --port ${this.port} ${this.dataDir} --prod`
       if (configuration.useAuth) {
         command += ` --auth ${auth.private_key}`
       }
-
-      command += ` &> ${this.outFileBase}.log.txt`
 
       console.log('Spawning server.')
       this.process = spawn(command, { cwd: yServeBase, shell: true, stdio: 'inherit' })
