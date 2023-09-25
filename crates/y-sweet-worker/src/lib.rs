@@ -16,7 +16,6 @@ pub mod config;
 pub mod durable_object;
 pub mod error;
 pub mod r2_store;
-pub mod s3_store;
 pub mod server_context;
 pub mod threadless;
 
