@@ -161,8 +161,8 @@ export class DocumentManager {
     this.token = token
   }
 
-  private async doFetch(url: string, method: 'GET'): Promise<any>;
-  private async doFetch(url: string, method: 'POST', body: any): Promise<any>;
+  private async doFetch(url: string, method: 'GET'): Promise<any>
+  private async doFetch(url: string, method: 'POST', body: any): Promise<any>
 
   /** Internal helper for making an authorized fetch request to the API.  */
   private async doFetch(url: string, method: 'GET' | 'POST', body?: any): Promise<Response> {
