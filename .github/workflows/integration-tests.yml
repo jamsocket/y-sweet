@@ -31,8 +31,6 @@ jobs:
           crates/y-sweet-worker/target/
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-    - name: Install dependencies of JS library
-      run: npm ci
     - name: Test deps
       run: npm ci
       working-directory: tests
