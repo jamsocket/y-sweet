@@ -246,13 +246,7 @@ export class DocumentManager {
       docId = docId.doc
     }
 
-    const result = await this.doFetch(`doc/${docId}/auth`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(request),
-    })
+    const result = await this.doFetch(`doc/${docId}/auth`, request)
     if (!result.ok) {
       throw new Error(`Failed to auth doc ${docId}: ${result.status} ${result.statusText}`)
     }
