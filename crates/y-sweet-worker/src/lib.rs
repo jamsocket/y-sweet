@@ -66,7 +66,7 @@ fn check_server_token(
 
         if let Some(token) = auth_header_val.strip_prefix("Bearer ") {
             if auth
-                .verify_server_token(&token, get_time_millis_since_epoch())
+                .verify_server_token(token, get_time_millis_since_epoch())
                 .is_err()
             {
                 return Err(Error::BadAuthHeader);
