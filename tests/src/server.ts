@@ -132,7 +132,6 @@ export class Server {
   async waitForReady(): Promise<void> {
     const attempts = 300
     for (let i = 0; i < attempts; i++) {
-      console.log(`Waiting for server to start. (Attempt ${i + 1} of ${attempts})`)
       try {
         await fetch(`http://127.0.0.1:${this.port}`)
         console.log('Server started.')
