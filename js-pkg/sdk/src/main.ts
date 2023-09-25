@@ -161,20 +161,25 @@ export class DocumentManager {
     this.token = token
   }
 
-  private async doFetch(url: string, method: 'GET'): Promise<any>
-  private async doFetch(url: string, method: 'POST', body: any): Promise<any>
+  private async doFetch(url: string, method: 'GET'): Promise<Response>
+  private async doFetch(url: string, method: 'POST', body: Record<string, any>): Promise<Response>
 
   /** Internal helper for making an authorized fetch request to the API.  */
-  private async doFetch(url: string, method: 'GET' | 'POST', body?: any): Promise<Response> {
+  private async doFetch(
+    url: string,
+    method: 'GET' | 'POST',
+    body?: Record<string, any>,
+  ): Promise<Response> {
     let headers: [string, string][] = []
     if (this.token) {
       // Tokens come base64 encoded.
       headers.push(['Authorization', `Bearer ${this.token}`])
     }
 
+    let bodyJson
     if (method === 'POST') {
       headers.push(['Content-Type', 'application/json'])
-      body = JSON.stringify(body)
+      bodyJson = JSON.stringify(body)
     }
 
     let result: Response
@@ -182,7 +187,7 @@ export class DocumentManager {
     try {
       result = await fetch(url, {
         method,
-        body,
+        body: bodyJson,
         cache: 'no-store',
         headers,
       })
