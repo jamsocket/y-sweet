@@ -1,3 +1,8 @@
+export type DocCreationRequest = {
+  /** The ID of the document to create. If not provided, a random ID will be generated. */
+  doc?: string
+}
+
 /**
  * Schema of object returned after a successful document creation.
  */
@@ -156,19 +161,25 @@ export class DocumentManager {
     this.token = token
   }
 
+  private async doFetch(url: string, method: 'GET'): Promise<Response>
+  private async doFetch(url: string, method: 'POST', body: Record<string, any>): Promise<Response>
+
   /** Internal helper for making an authorized fetch request to the API.  */
-  private async doFetch(url: string, body?: any): Promise<Response> {
-    let method = 'GET'
+  private async doFetch(
+    url: string,
+    method: 'GET' | 'POST',
+    body?: Record<string, any>,
+  ): Promise<Response> {
     let headers: [string, string][] = []
     if (this.token) {
       // Tokens come base64 encoded.
       headers.push(['Authorization', `Bearer ${this.token}`])
     }
 
-    if (body !== undefined) {
+    let bodyJson
+    if (method === 'POST') {
       headers.push(['Content-Type', 'application/json'])
-      body = JSON.stringify(body)
-      method = 'POST'
+      bodyJson = JSON.stringify(body)
     }
 
     let result: Response
@@ -176,7 +187,7 @@ export class DocumentManager {
     try {
       result = await fetch(url, {
         method,
-        body,
+        body: bodyJson,
         cache: 'no-store',
         headers,
       })
@@ -214,8 +225,8 @@ export class DocumentManager {
    *
    * @returns A {@link DocCreationResult} object containing the ID of the created document.
    */
-  public async createDoc(): Promise<DocCreationResult> {
-    const result = await this.doFetch('doc/new', { method: 'POST' })
+  public async createDoc(request?: DocCreationRequest): Promise<DocCreationResult> {
+    const result = await this.doFetch('doc/new', 'POST', request || {})
     if (!result.ok) {
       throw new Error(`Failed to create doc: ${result.status} ${result.statusText}`)
     }
@@ -241,7 +252,7 @@ export class DocumentManager {
       docId = docId.doc
     }
 
-    const result = await this.doFetch(`doc/${docId}/auth`, request)
+    const result = await this.doFetch(`doc/${docId}/auth`, 'POST', request)
     if (!result.ok) {
       throw new Error(`Failed to auth doc ${docId}: ${result.status} ${result.statusText}`)
     }
