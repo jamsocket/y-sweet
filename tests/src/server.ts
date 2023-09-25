@@ -36,8 +36,6 @@ export class Server {
   constructor(configuration: ServerConfiguration) {
     const yServeBase = join(dirname(__filename), '..', '..', 'crates')
 
-    execSync('cargo build --release', { stdio: 'inherit', cwd: yServeBase })
-
     this.port = Math.floor(Math.random() * 10000) + 10000
     this.dataDir = join(tmpdir(), `y-sweet-test-${this.port}`)
 
@@ -48,7 +46,9 @@ export class Server {
     }
 
     if (configuration.server === 'native') {
-      let command = `cargo run -- serve --port ${this.port} ${this.dataDir} --prod`
+      execSync('cargo build', { stdio: 'inherit', cwd: yServeBase })
+
+      let command = `target/debug/y-sweet serve --port ${this.port} ${this.dataDir} --prod`
       if (configuration.useAuth) {
         command += ` --auth ${auth.private_key}`
       }
