@@ -69,21 +69,17 @@ impl S3Store {
         match response.status() {
             StatusCode::OK => {
                 self._bucket_inited.store(true, SeqCst);
-                return Ok(&self.bucket);
+                Ok(&self.bucket)
             }
-            StatusCode::NOT_FOUND => {
-                return Err(anyhow::anyhow!(
-                    "No such bucket {} exists!",
-                    self.bucket.name()
-                ))
-            }
-            _ => {
-                return Err(anyhow::anyhow!(
-                    "Other AWS Error: Code {} Err {}",
-                    response.status(),
-                    response.text().await?
-                ))
-            }
+            StatusCode::NOT_FOUND => Err(anyhow::anyhow!(
+                "No such bucket {} exists!",
+                self.bucket.name()
+            )),
+            _ => Err(anyhow::anyhow!(
+                "Other AWS Error: Code {} Err {}",
+                response.status(),
+                response.text().await?
+            )),
         }
     }
 

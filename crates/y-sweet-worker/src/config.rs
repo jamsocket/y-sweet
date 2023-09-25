@@ -95,7 +95,7 @@ impl TryFrom<&Env> for Configuration {
             |b| BucketKind::from_str(&b.to_string()),
         )?;
         let s3_config = if let BucketKind::S3Compatible = bucket_kind {
-            Some(parse_s3_config(&env)?)
+            Some(parse_s3_config(env)?)
         } else {
             None
         };

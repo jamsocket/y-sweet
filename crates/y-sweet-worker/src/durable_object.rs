@@ -22,6 +22,7 @@ impl YServe {
     pub async fn get_doc(&mut self, req: &Request, doc_id: &str) -> Result<&mut DocWithSyncKv> {
         if self.lazy_doc.is_none() {
             let mut context = ServerContext::from_request(req, &self.env).unwrap();
+            #[allow(clippy::arc_with_non_send_sync)] // Arc required for compatibility with core.
             let storage = Arc::new(self.state.storage());
 
             let store = Some(context.store());
