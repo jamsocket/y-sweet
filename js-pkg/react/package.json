@@ -47,7 +47,6 @@
   },
   "dependencies": {
     "@y-sweet/client": "0.0.8",
-    "@y-sweet/sdk": "0.0.8",
     "y-protocols": "^1.0.5"
   }
 }
