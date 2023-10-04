@@ -9,7 +9,7 @@ use thiserror::Error;
 const EXPIRATION_MILLIS: u64 = 1000 * 60 * 60; // 60 minutes
 
 /// Static version of:
-/// 
+///
 /// ```
 /// use data_encoding::{Specification, BASE64URL_NOPAD, Translate};
 /// let spec = Specification {
