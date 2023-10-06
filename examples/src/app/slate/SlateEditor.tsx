@@ -1,13 +1,11 @@
 'use client'
 
-import { withYjs, slateNodesToInsertDelta, YjsEditor } from '@slate-yjs/core'
-import { useYDoc } from '@y-sweet/react'
+import { withYjs, YjsEditor } from '@slate-yjs/core'
+import { useYDoc, useYjsProvider } from '@y-sweet/react'
 import { useEffect, useMemo, useState } from 'react'
 import { Editor, Transforms, createEditor } from 'slate'
 import { Slate, Editable, withReact } from 'slate-react'
-import { Transform } from 'stream'
 import * as Y from 'yjs'
-import { YXmlText } from 'yjs/dist/src/internals'
 
 const initialValue = [
   {
@@ -17,34 +15,49 @@ const initialValue = [
 ]
 
 export function SlateEditor() {
-  const [value, setValue] = useState([])
+  const [connected, setConnected] = useState(false)
 
   const yDoc = useYDoc()
+  const yProvider = useYjsProvider()
+
   const sharedType = useMemo(() => {
-    const sharedType = yDoc.get('content', Y.XmlText) as YXmlText
+    return yDoc.get('content', Y.XmlText) as Y.XmlText
+  }, [yDoc])
 
-    sharedType.applyDelta(slateNodesToInsertDelta(initialValue))
+  useEffect(() => {
+    yProvider.on('sync', setConnected)
+    return () => yProvider.off('sync', setConnected)
+  }, [yProvider])
 
-    return sharedType
-  }, [])
+  if (!connected) return 'Loading...'
 
-  const editor = useMemo(() => withReact(withYjs(createEditor(), sharedType)), [])
-  const { normalizeNode } = editor
-  editor.normalizeNode = (entry) => {
-    const [node] = entry
-    if (!Editor.isEditor(node) || node.children.length > 0) {
-      return normalizeNode(entry)
+  return <SlateConnectedEditor sharedType={sharedType} />
+}
+
+function SlateConnectedEditor({ sharedType }: { sharedType: Y.XmlText }) {
+  const editor = useMemo(() => {
+    const e = withReact(withYjs(createEditor(), sharedType))
+
+    const { normalizeNode } = e
+    e.normalizeNode = (entry) => {
+      const [node] = entry
+      if (!Editor.isEditor(node) || node.children.length > 0) {
+        return normalizeNode(entry)
+      }
+
+      Transforms.insertNodes(e, initialValue, { at: [0] })
     }
-  }
+
+    return e
+  }, [sharedType])
 
   useEffect(() => {
     YjsEditor.connect(editor)
-
     return () => YjsEditor.disconnect(editor)
   }, [editor])
 
   return (
-    <Slate editor={editor} initialValue={initialValue} onChange={setValue as any}>
+    <Slate editor={editor} initialValue={initialValue}>
       <Editable />
     </Slate>
   )
