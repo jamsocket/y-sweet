@@ -8,7 +8,10 @@ use thiserror::Error;
 
 const EXPIRATION_MILLIS: u64 = 1000 * 60 * 60; // 60 minutes
 
-/// Static version of:
+/// This is a custom base64 encoder that is equivalent to BASE64URL_NOPAD for encoding,
+/// but is tolerant when decoding of the “standard” alphabet and also of padding.
+/// This is necessary for now because we used to use standard base64 encoding with padding,
+/// but we can eventually remove it.
 ///
 /// ```
 /// use data_encoding::{Specification, BASE64URL_NOPAD, Translate};
