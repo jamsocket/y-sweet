@@ -2096,9 +2096,9 @@ version = "0.0.12"
 dependencies = [
  "anyhow",
  "async-trait",
- "base64",
  "bincode",
  "dashmap",
+ "data-encoding",
  "getrandom 0.2.10",
  "lib0",
  "rand 0.8.5",
