@@ -1,18 +1,10 @@
 'use client'
 
-import { withYjs, YjsEditor } from '@slate-yjs/core'
 import { useYDoc, useYjsProvider } from '@y-sweet/react'
 import { useEffect, useMemo, useState } from 'react'
-import { Editor, Transforms, createEditor } from 'slate'
-import { Slate, Editable, withReact } from 'slate-react'
 import * as Y from 'yjs'
 
-const initialValue = [
-  {
-    type: 'paragraph',
-    children: [{ text: 'A line of text in a paragraph.' }],
-  },
-]
+import RichtextSlateEditor from './RichtextSlateEditor'
 
 export function SlateEditor() {
   const [connected, setConnected] = useState(false)
@@ -31,34 +23,11 @@ export function SlateEditor() {
 
   if (!connected) return 'Loading...'
 
-  return <SlateConnectedEditor sharedType={sharedType} />
-}
-
-function SlateConnectedEditor({ sharedType }: { sharedType: Y.XmlText }) {
-  const editor = useMemo(() => {
-    const e = withReact(withYjs(createEditor(), sharedType))
-
-    const { normalizeNode } = e
-    e.normalizeNode = (entry) => {
-      const [node] = entry
-      if (!Editor.isEditor(node) || node.children.length > 0) {
-        return normalizeNode(entry)
-      }
-
-      Transforms.insertNodes(e, initialValue, { at: [0] })
-    }
-
-    return e
-  }, [sharedType])
-
-  useEffect(() => {
-    YjsEditor.connect(editor)
-    return () => YjsEditor.disconnect(editor)
-  }, [editor])
-
   return (
-    <Slate editor={editor} initialValue={initialValue}>
-      <Editable />
-    </Slate>
+    <div className="p-8">
+      <div className="bg-white rounded-lg">
+        <RichtextSlateEditor sharedType={sharedType} />
+      </div>
+    </div>
   )
 }
