@@ -1,14 +1,16 @@
 import React, { useCallback, useMemo, useEffect } from 'react'
+import { flushSync } from 'react-dom'
 import isHotkey from 'is-hotkey'
 import { Editable, withReact, useSlate, Slate } from 'slate-react'
 import type { ReactEditor, RenderElementProps, RenderLeafProps } from 'slate-react'
 import { Editor, Transforms, createEditor, Element as SlateElement } from 'slate'
 import type { BaseEditor, Descendant } from 'slate'
-import { withHistory } from 'slate-history'
 import * as Y from 'yjs'
-import { withYjs, YjsEditor } from '@slate-yjs/core'
+import { withYjs, YjsEditor, withCursors, withYHistory } from '@slate-yjs/core'
+import type { Awareness } from 'y-protocols/awareness'
 
 import { Button, Toolbar } from './components'
+import { RemoteCursorOverlay } from './Cursors'
 
 import {
   LuBold,
@@ -101,11 +103,26 @@ const HOTKEYS: Record<string, MarkType> = {
 const LIST_TYPES = [NumberedListType, BulletedListType]
 const TEXT_ALIGN_TYPES = [AlignLeft, AlignCenter, AlignRight, AlignJustify]
 
-const RichTextExample = ({ sharedType }: { sharedType: Y.XmlText }) => {
+const RichTextExample = ({
+  sharedType,
+  awareness,
+}: {
+  sharedType: Y.XmlText
+  awareness: Awareness
+}) => {
   const renderElement = useCallback((props: RenderElementProps) => <Element {...props} />, [])
   const renderLeaf = useCallback((props: RenderLeafProps) => <Leaf {...props} />, [])
   const editor = useMemo(() => {
-    const e = withHistory(withReact(withYjs(createEditor(), sharedType)))
+    const e = withReact(
+      withYHistory(
+        withCursors(withYjs(createEditor(), sharedType), awareness, {
+          data: {
+            color: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
+            name: 'Anonymous Coward',
+          },
+        }),
+      ),
+    )
 
     const { normalizeNode } = e
     e.normalizeNode = (entry) => {
@@ -118,7 +135,7 @@ const RichTextExample = ({ sharedType }: { sharedType: Y.XmlText }) => {
     }
 
     return e
-  }, [sharedType])
+  }, [sharedType, awareness])
 
   useEffect(() => {
     YjsEditor.connect(editor)
@@ -127,40 +144,42 @@ const RichTextExample = ({ sharedType }: { sharedType: Y.XmlText }) => {
 
   return (
     <Slate editor={editor} initialValue={initialValue}>
-      <Toolbar>
-        <MarkButton format="bold" icon={<LuBold />} />
-        <MarkButton format="italic" icon={<LuItalic />} />
-        <MarkButton format="underline" icon={<LuUnderline />} />
-        <MarkButton format="code" icon={<LuCode />} />
-        <BlockButton format="heading-one" icon={<LuHeading1 />} />
-        <BlockButton format="heading-two" icon={<LuHeading2 />} />
-        <BlockButton format="block-quote" icon={<LuTextQuote />} />
-        <BlockButton format="numbered-list" icon={<LuListOrdered />} />
-        <BlockButton format="bulleted-list" icon={<LuList />} />
-        <BlockButton format="left" icon={<LuAlignLeft />} />
-        <BlockButton format="center" icon={<LuAlignCenter />} />
-        <BlockButton format="right" icon={<LuAlignRight />} />
-        <BlockButton format="justify" icon={<LuAlignJustify />} />
-      </Toolbar>
-      <div className="p-2">
-        <Editable
-          renderElement={renderElement}
-          renderLeaf={renderLeaf}
-          className="p-2 min-h-[100px] !outline-none"
-          spellCheck
-          autoFocus
-          onKeyDown={(event) => {
-            for (const hotkey in HOTKEYS) {
-              if (isHotkey(hotkey, event as any)) {
-                event.preventDefault()
+      <RemoteCursorOverlay className="">
+        <Toolbar>
+          <MarkButton format="bold" icon={<LuBold />} />
+          <MarkButton format="italic" icon={<LuItalic />} />
+          <MarkButton format="underline" icon={<LuUnderline />} />
+          <MarkButton format="code" icon={<LuCode />} />
+          <BlockButton format="heading-one" icon={<LuHeading1 />} />
+          <BlockButton format="heading-two" icon={<LuHeading2 />} />
+          <BlockButton format="block-quote" icon={<LuTextQuote />} />
+          <BlockButton format="numbered-list" icon={<LuListOrdered />} />
+          <BlockButton format="bulleted-list" icon={<LuList />} />
+          <BlockButton format="left" icon={<LuAlignLeft />} />
+          <BlockButton format="center" icon={<LuAlignCenter />} />
+          <BlockButton format="right" icon={<LuAlignRight />} />
+          <BlockButton format="justify" icon={<LuAlignJustify />} />
+        </Toolbar>
+        <div className="p-2">
+          <Editable
+            renderElement={renderElement}
+            renderLeaf={renderLeaf}
+            className="p-2 min-h-[100px] !outline-none"
+            spellCheck
+            autoFocus
+            onKeyDown={(event) => {
+              for (const hotkey in HOTKEYS) {
+                if (isHotkey(hotkey, event as any)) {
+                  event.preventDefault()
 
-                const mark = HOTKEYS[hotkey]
-                toggleMark(editor, mark)
+                  const mark = HOTKEYS[hotkey]
+                  toggleMark(editor, mark)
+                }
               }
-            }
-          }}
-        />
-      </div>
+            }}
+          />
+        </div>
+      </RemoteCursorOverlay>
     </Slate>
   )
 }
