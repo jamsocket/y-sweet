@@ -123,6 +123,14 @@ export class YSweetError extends Error {
   }
 }
 
+// I can't find an official way to detect we're in a cloudflare worker.
+// `caches.default` seems as good a start as any though.
+const isCloudflareWorker = !!(
+  (typeof window === 'undefined' || !window) &&
+  globalThis?.caches &&
+  'default' in globalThis.caches
+)
+
 /** Represents an interface to a y-sweet document management endpoint. */
 export class DocumentManager {
   /** The base URL of the remote document manager API. */
@@ -188,8 +196,9 @@ export class DocumentManager {
       result = await fetch(url, {
         method,
         body: bodyJson,
-        cache: 'no-store',
         headers,
+        // cloudflares workers don't implment the `cache` property
+        ...(isCloudflareWorker ? { cf: { cacheTtl: 0 } } : { cache: 'no-store' }),
       })
     } catch (error: any) {
       if (error.cause?.code === 'ECONNREFUSED') {
