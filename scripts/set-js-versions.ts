@@ -109,11 +109,11 @@ function main() {
       fs.writeFileSync(packageData.packageFile, JSON.stringify(packageJson, null, 2) + '\n')
 
       console.log(`Updated ${packageData.packageFile} to version ${newVersion}`)
+    })
 
-      // Update the package-lock.json
-      spawnSync('npm', ['install'], {
-        stdio: 'inherit',
-      })
+    // Update the package-lock.json
+    spawnSync('npm', ['install'], {
+      stdio: 'inherit',
     })
 
     console.log(`Version set to ${versionToSet}`)
