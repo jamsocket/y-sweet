@@ -71,7 +71,7 @@ if (MINIO_PORT && S3_BUCKET_NAME && S3_BUCKET_PREFIX) {
 const TEN_MINUTES_IN_MS = 10 * 60 * 1_000
 
 describe.each(CONFIGURATIONS)(
-  'Test $server (auth: $useAuth)',
+  'Test $server (auth: $useAuth, s3: $s3)',
   (configuration: ServerConfiguration) => {
     let SERVER: Server
     let DOCUMENT_MANANGER: DocumentManager
