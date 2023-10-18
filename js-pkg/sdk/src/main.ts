@@ -1,3 +1,5 @@
+import crypto from 'crypto'
+
 export type DocCreationRequest = {
   /** The ID of the document to create. If not provided, a random ID will be generated. */
   doc?: string
@@ -183,12 +185,17 @@ export class DocumentManager {
     }
 
     let result: Response
-    url = `${this.baseUrl}/${url}`
+
+    // NOTE: In some environments (e.g. NextJS), responses are cached by default. Disabling
+    // the cache using `cache: 'no-store'` causes fetch() to error in other environments
+    // (e.g. Cloudflare Workers). To work around this, we simply add a cache-busting query
+    // param.
+    const cacheBust = crypto.randomUUID().slice(0, 24).replace(/-/g, '')
+    url = `${this.baseUrl}/${url}?z=${cacheBust}`
     try {
       result = await fetch(url, {
         method,
         body: bodyJson,
-        cache: 'no-store',
         headers,
       })
     } catch (error: any) {
