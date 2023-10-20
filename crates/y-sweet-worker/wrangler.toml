@@ -6,7 +6,7 @@ compatibility_date = "2022-01-20"
 WORKERS_RS_VERSION = "0.0.18"
 
 [build]
-command = "which worker-build || cargo install -q worker-build --version 0.0.10 --force && worker-build --release"
+command = "echo 'Run ./build.sh to rebuild'"
 
 [[migrations]]
 tag = "v1"

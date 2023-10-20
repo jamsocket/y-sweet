@@ -77,6 +77,7 @@ export class Server {
       console.log('Done spawning server.')
     } else if (configuration.server === 'worker') {
       const workerBase = join(yServeBase, 'y-sweet-worker')
+      execSync('./build.sh --dev', { stdio: 'inherit', cwd: workerBase })
 
       const vars: Record<string, string> = {}
 
