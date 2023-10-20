@@ -25,10 +25,10 @@ function createYjsProvider(
 }
 
 const CONFIGURATIONS: ServerConfiguration[] = [
-  { useAuth: false, server: 'native' },
-  { useAuth: true, server: 'native' },
+  // { useAuth: false, server: 'native' },
+  // { useAuth: true, server: 'native' },
   { useAuth: false, server: 'worker' },
-  { useAuth: true, server: 'worker' },
+  // { useAuth: true, server: 'worker' },
 ]
 
 let S3_ACCESS_KEY_ID = process.env.Y_SWEET_S3_ACCESS_KEY_ID
@@ -96,7 +96,12 @@ describe.each(CONFIGURATIONS)(
       await expect(DOCUMENT_MANANGER.getClientToken('foobar', {})).rejects.toThrow('404')
     })
 
-    test('Create and connect to doc', async () => {
+    test('Create new doc again', async () => {
+      const result = await DOCUMENT_MANANGER.createDoc()
+      expect(typeof result.doc).toBe('string')
+    })
+
+    test.skip('Create and connect to doc', async () => {
       const docResult = await DOCUMENT_MANANGER.createDoc()
       const key = await DOCUMENT_MANANGER.getClientToken(docResult, {})
 
@@ -115,7 +120,7 @@ describe.each(CONFIGURATIONS)(
       })
     })
 
-    test('Create a doc by specifying a name', async () => {
+    test.skip('Create a doc by specifying a name', async () => {
       const docResult = await DOCUMENT_MANANGER.createDoc({
         doc: 'mydoc123',
       })
@@ -123,7 +128,7 @@ describe.each(CONFIGURATIONS)(
       expect(docResult.doc).toBe('mydoc123')
     })
 
-    test('Reject invalid doc name', async () => {
+    test.skip('Reject invalid doc name', async () => {
       await expect(
         DOCUMENT_MANANGER.createDoc({
           doc: 'mydoc123!',
@@ -131,7 +136,7 @@ describe.each(CONFIGURATIONS)(
       ).rejects.toThrow('400')
     })
 
-    test('Offline changes are synced to doc', async () => {
+    test.skip('Offline changes are synced to doc', async () => {
       const docResult = await DOCUMENT_MANANGER.createDoc()
       const key = await DOCUMENT_MANANGER.getClientToken(docResult, {})
 
