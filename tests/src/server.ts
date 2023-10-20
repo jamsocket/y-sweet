@@ -3,7 +3,13 @@ import { rmSync, mkdirSync } from 'fs'
 import { tmpdir } from 'os'
 import { dirname, join } from 'path'
 
-export type ServerType = 'native' | 'worker'
+/**
+ * This tells the test runner how to provision the server:
+ * - `native` means to run the server directly from the Rust code.
+ * - `worker` means to run the server locally as a Cloudflare Worker.
+ * - `local` means to use a server already running on port 8080.
+ */
+export type ServerType = 'native' | 'worker' | 'local'
 
 type S3Config = {
   aws_access_key_id: string
@@ -32,13 +38,13 @@ function configToString(configuration: ServerConfiguration) {
 }
 
 export class Server {
-  process: ChildProcess
+  process?: ChildProcess
   port: number
-  dataDir: string
+  dataDir?: string
   reject?: (reason?: any) => void
   serverToken?: string
   finished: boolean = false
-  outFileBase: string
+  outFileBase?: string
 
   static generateAuth(yServeBase: string) {
     const result = execSync('cargo run -- gen-auth --json', { cwd: yServeBase })
@@ -47,6 +53,11 @@ export class Server {
 
   constructor(configuration: ServerConfiguration) {
     const yServeBase = join(dirname(__filename), '..', '..', 'crates')
+
+    if (configuration.server === 'local') {
+      this.port = 8080
+      return
+    }
 
     this.port = Math.floor(Math.random() * 10000) + 10000
     this.dataDir = join(tmpdir(), `y-sweet-test-${this.port}`)
@@ -77,6 +88,7 @@ export class Server {
       console.log('Done spawning server.')
     } else if (configuration.server === 'worker') {
       const workerBase = join(yServeBase, 'y-sweet-worker')
+      execSync('./build.sh --dev', { stdio: 'inherit', cwd: workerBase })
 
       const vars: Record<string, string> = {}
 
@@ -120,7 +132,7 @@ export class Server {
   }
 
   async waitForReady(): Promise<void> {
-    const attempts = 300
+    const attempts = 15
     for (let i = 0; i < attempts; i++) {
       try {
         await fetch(`http://127.0.0.1:${this.port}`)
@@ -136,13 +148,35 @@ export class Server {
     throw new Error('Server failed to start')
   }
 
+  async waitForShutdown(): Promise<void> {
+    if (!this.process || this.process.exitCode !== null) {
+      console.log('Server already exited.')
+      return
+    }
+
+    await new Promise<void>((resolve, reject) => {
+      this.reject = reject
+      this.process?.on('exit', (code) => {
+        console.log('Server exited', code)
+        resolve()
+      })
+    })
+
+    console.log('papapappa')
+  }
+
   connectionString(): string {
     return `ys://${this.serverToken}@127.0.0.1:${this.port}`
   }
 
-  cleanup() {
+  async cleanup() {
+    console.log('cleanup called')
     this.finished = true
-    this.process.kill()
-    rmSync(this.dataDir, { recursive: true, force: true })
+    this.process?.kill()
+    await this.waitForShutdown()
+    if (this.dataDir) {
+      rmSync(this.dataDir, { recursive: true, force: true })
+    }
+    console.log('cleanup finished')
   }
 }

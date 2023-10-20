@@ -50,8 +50,9 @@ impl Error {
 impl From<Error> for Result<Response, worker::Error> {
     fn from(err: Error) -> Self {
         let status_code = err.status_code();
-        let body = format!("{{\"error\": \"{}\"}}", err);
-        let mut response = Response::from_json(&body)?;
+        // let body = format!("{{\"error\": \"{}\"}}", err);
+        // let mut response = Response::from_json(&body)?;
+        let mut response = Response::empty()?;
         response = response.with_status(status_code);
         Ok(response)
     }

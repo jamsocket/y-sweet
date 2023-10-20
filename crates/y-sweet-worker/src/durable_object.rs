@@ -2,7 +2,7 @@ use crate::{
     config::Configuration, server_context::ServerContext, threadless::Threadless, DocIdPair,
 };
 use futures::StreamExt;
-use std::sync::Arc;
+use std::{cell::OnceCell, rc::Rc};
 use worker::{
     durable_object, Env, Request, Response, Result, RouteContext, Router, State, WebSocketPair,
 };
@@ -23,7 +23,7 @@ impl YServe {
         if self.lazy_doc.is_none() {
             let mut context = ServerContext::from_request(req, &self.env).unwrap();
             #[allow(clippy::arc_with_non_send_sync)] // Arc required for compatibility with core.
-            let storage = Arc::new(self.state.storage());
+            let storage = Rc::new(self.state.storage());
 
             let store = Some(context.store());
             let storage = Threadless(storage);
@@ -93,6 +93,7 @@ impl DurableObject for YServe {
 
 async fn websocket_connect(req: Request, ctx: RouteContext<&mut YServe>) -> Result<Response> {
     let WebSocketPair { client, server } = WebSocketPair::new()?;
+    let closed = Rc::new(OnceCell::new());
     server.accept()?;
 
     let doc_id = ctx.param("doc_id").unwrap().to_owned();
@@ -100,10 +101,13 @@ async fn websocket_connect(req: Request, ctx: RouteContext<&mut YServe>) -> Resu
 
     let connection = {
         let server = server.clone();
+        let closed = closed.clone();
         DocConnection::new(awareness, move |bytes| {
-            let result = server.send_with_bytes(bytes);
-            if let Err(result) = result {
-                console_log!("Error sending bytes: {:?}", result);
+            if closed.get().is_none() {
+                let result = server.send_with_bytes(bytes);
+                if let Err(result) = result {
+                    console_log!("Error sending bytes: {:?}", result);
+                }
             }
         })
     };
@@ -131,6 +135,12 @@ async fn websocket_connect(req: Request, ctx: RouteContext<&mut YServe>) -> Resu
                 }
             }
         }
+
+        closed.set(()).unwrap();
+        // If we don't explicitly drop connection, it is not moved into the thread and is
+        // dropped after the request is sent.
+        console_log!("Dropping connection.");
+        drop(connection)
     });
 
     let resp = Response::from_websocket(client)?;
