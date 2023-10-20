@@ -11,7 +11,7 @@ repository = "https://github.com/drifting-in-space/y-sweet"
 anyhow = "1.0.72"
 async-trait = "0.1.71"
 axum = { version = "0.6.19", features = ["ws", "headers"] }
-clap = { version = "4.3.12", features = ["derive"] }
+clap = { version = "4.3.12", features = ["derive", "env"] }
 colored = "2.0.4"
 dashmap = "5.5.0"
 futures = "0.3.28"
