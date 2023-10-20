@@ -25,10 +25,10 @@ function createYjsProvider(
 }
 
 const CONFIGURATIONS: ServerConfiguration[] = [
-  // { useAuth: false, server: 'native' },
-  // { useAuth: true, server: 'native' },
+  { useAuth: false, server: 'native' },
+  { useAuth: true, server: 'native' },
   { useAuth: false, server: 'worker' },
-  // { useAuth: true, server: 'worker' },
+  { useAuth: true, server: 'worker' },
 ]
 
 let S3_ACCESS_KEY_ID = process.env.Y_SWEET_S3_ACCESS_KEY_ID
