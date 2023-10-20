@@ -101,7 +101,7 @@ describe.each(CONFIGURATIONS)(
       expect(typeof result.doc).toBe('string')
     })
 
-    test.skip('Create and connect to doc', async () => {
+    test('Create and connect to doc', async () => {
       const docResult = await DOCUMENT_MANANGER.createDoc()
       const key = await DOCUMENT_MANANGER.getClientToken(docResult, {})
 
@@ -120,7 +120,7 @@ describe.each(CONFIGURATIONS)(
       })
     })
 
-    test.skip('Create a doc by specifying a name', async () => {
+    test('Create a doc by specifying a name', async () => {
       const docResult = await DOCUMENT_MANANGER.createDoc({
         doc: 'mydoc123',
       })
@@ -128,7 +128,7 @@ describe.each(CONFIGURATIONS)(
       expect(docResult.doc).toBe('mydoc123')
     })
 
-    test.skip('Reject invalid doc name', async () => {
+    test('Reject invalid doc name', async () => {
       await expect(
         DOCUMENT_MANANGER.createDoc({
           doc: 'mydoc123!',
@@ -136,7 +136,7 @@ describe.each(CONFIGURATIONS)(
       ).rejects.toThrow('400')
     })
 
-    test.skip('Offline changes are synced to doc', async () => {
+    test('Offline changes are synced to doc', async () => {
       const docResult = await DOCUMENT_MANANGER.createDoc()
       const key = await DOCUMENT_MANANGER.getClientToken(docResult, {})
 
