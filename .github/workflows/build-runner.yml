@@ -14,7 +14,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: cicd-runner-base
+  IMAGE_NAME: drifting-in-space/cicd-runner-base
 
 
 jobs:
