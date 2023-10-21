@@ -84,10 +84,16 @@ export class Server {
       console.log('Done spawning server.')
     } else if (configuration.server === 'worker') {
       const workerBase = join(yServeBase, 'y-sweet-worker')
-      execSync('./build.sh --dev > ' + join(this.outFileBase, 'build.txt') + ' 2> ' + join(this.outFileBase, 'build-stderr.txt'), {
-        stdio: 'ignore',
-        cwd: workerBase,
-      })
+      execSync(
+        './build.sh --dev > ' +
+          join(this.outFileBase, 'build.txt') +
+          ' 2> ' +
+          join(this.outFileBase, 'build-stderr.txt'),
+        {
+          stdio: 'ignore',
+          cwd: workerBase,
+        },
+      )
 
       const vars: Record<string, string> = {}
 
