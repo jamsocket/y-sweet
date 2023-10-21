@@ -39,6 +39,8 @@ export type YSweetErrorPayload =
   | { code: 'InvalidAuthProvided' }
   | { code: 'Unknown'; message: string }
 
+export type CheckStoreResult = {ok: true} | {ok: false, error: string}
+
 /** An error returned by the y-sweet SDK. */
 export class YSweetError extends Error {
   /**
@@ -225,6 +227,10 @@ export class DocumentManager {
     }
 
     return result
+  }
+
+  public async checkStore(): Promise<CheckStoreResult> {
+    return (await this.doFetch('check_store', 'GET')).json()
   }
 
   /**

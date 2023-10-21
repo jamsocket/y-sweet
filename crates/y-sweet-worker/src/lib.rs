@@ -1,6 +1,7 @@
 #[cfg(feature = "fetch-event")]
 use config::Configuration;
 use error::{Error, IntoResponse};
+use serde_json::{Value, json};
 use server_context::ServerContext;
 use std::collections::HashMap;
 #[cfg(feature = "fetch-event")]
@@ -9,7 +10,7 @@ use worker::{Date, Request, Response, Result, RouteContext, Router, Url};
 use y_sweet_core::{
     api_types::{validate_doc_name, ClientToken, DocCreationRequest, NewDocResponse},
     auth::Authenticator,
-    doc_sync::DocWithSyncKv,
+    doc_sync::DocWithSyncKv, store::StoreError,
 };
 
 pub mod config;
@@ -30,7 +31,8 @@ pub fn router(
     context: ServerContext,
 ) -> std::result::Result<Router<'static, ServerContext>, Error> {
     Ok(Router::with_data(context)
-        .get("/", |_, _| Response::ok("Hello world!"))
+        .get("/", |_, _| Response::ok("Y-Sweet!"))
+        .get_async("/check_store", check_store_handler)
         .post_async("/doc/new", new_doc_handler)
         .post_async("/doc/:doc_id/auth", auth_doc_handler)
         .get_async("/doc/ws/:doc_id", forward_to_durable_object))
@@ -107,6 +109,30 @@ async fn new_doc(
     let response = NewDocResponse { doc: doc_id };
 
     Ok(response)
+}
+
+async fn check_store_handler(req: Request, ctx: RouteContext<ServerContext>) -> Result<Response> {
+    check_store(req, ctx).await.into_response()
+}
+
+async fn check_store(
+    req: Request,
+    mut ctx: RouteContext<ServerContext>,
+) -> std::result::Result<Value, Error> {
+    check_server_token(&req, ctx.data.auth()?)?;
+
+    let store = ctx.data.store();
+    let result = store.init().await;
+
+    let result = match result {
+        Ok(_) => json!({"ok": true}),
+        Err(StoreError::ConnectionError(_)) => json!({"ok": false, "error": "Connection error."}),
+        Err(StoreError::BucketDoesNotExist(_)) => json!({"ok": false, "error": "Bucket does not exist."}),
+        Err(StoreError::NotAuthorized(_)) => json!({"ok": false, "error": "Not authorized."}),
+        _ => json!({"ok": false, "error": "Unknown error."}),
+    };
+
+    Ok(result)
 }
 
 async fn auth_doc_handler(req: Request, ctx: RouteContext<ServerContext>) -> Result<Response> {

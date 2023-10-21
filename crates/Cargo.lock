@@ -2028,6 +2028,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "bincode",
+ "bytes",
  "dashmap",
  "data-encoding",
  "getrandom 0.2.10",
