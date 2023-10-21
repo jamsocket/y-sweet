@@ -6,7 +6,6 @@ use std::collections::HashMap;
 #[cfg(feature = "fetch-event")]
 use worker::{event, Env};
 use worker::{Date, Request, Response, Result, RouteContext, Router, Url};
-use worker_sys::console_log;
 use y_sweet_core::{
     api_types::{validate_doc_name, ClientToken, DocCreationRequest, NewDocResponse},
     auth::Authenticator,
@@ -41,8 +40,6 @@ pub fn router(
 #[event(fetch)]
 pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
     console_error_panic_hook::set_once();
-
-    console_log!("Here1");
 
     let configuration = Configuration::try_from(&env).map_err(|e| e.to_string())?;
     let context = ServerContext::new(configuration, &env);
