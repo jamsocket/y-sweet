@@ -1,4 +1,4 @@
-FROM rust:1.56-slim
+FROM rust:1.73-slim
 
 # Alternative approach:
 # RUN cargo install wasm-pack
