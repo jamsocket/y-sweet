@@ -177,9 +177,21 @@ async fn main() -> Result<()> {
             )
             .await?;
 
-            tracing::info!(%addr, "Listening");
+            let handle = tokio::spawn(async move {
+                server.serve(&addr).await.unwrap();
+            });
 
-            server.serve(&addr).await?;
+            tracing::info!("Listening on ws://{}", addr);
+
+            tokio::signal::ctrl_c()
+                .await
+                .expect("Failed to install CTRL+C signal handler");
+
+            tracing::info!("Shutting down.");
+
+            // TODO: graceful shutdown; close connections and write everything.
+
+            handle.abort();
         }
         ServSubcommand::GenAuth { json } => {
             let auth = Authenticator::gen_key()?;

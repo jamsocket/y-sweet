@@ -96,6 +96,11 @@ describe.each(CONFIGURATIONS)(
       await expect(DOCUMENT_MANANGER.getClientToken('foobar', {})).rejects.toThrow('404')
     })
 
+    test('Create new doc again', async () => {
+      const result = await DOCUMENT_MANANGER.createDoc()
+      expect(typeof result.doc).toBe('string')
+    })
+
     test('Create and connect to doc', async () => {
       const docResult = await DOCUMENT_MANANGER.createDoc()
       const key = await DOCUMENT_MANANGER.getClientToken(docResult, {})

@@ -26,8 +26,8 @@ impl FromStr for BucketKind {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            s if s == "R2" => Ok(Self::NativeR2),
-            s if s == "S3" => Ok(Self::S3Compatible),
+            "R2" => Ok(Self::NativeR2),
+            "S3" => Ok(Self::S3Compatible),
             _ => Err(anyhow::anyhow!("invalid bucket kind")),
         }
     }

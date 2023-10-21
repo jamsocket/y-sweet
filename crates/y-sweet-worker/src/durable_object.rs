@@ -2,6 +2,7 @@ use crate::{
     config::Configuration, server_context::ServerContext, threadless::Threadless, DocIdPair,
 };
 use futures::StreamExt;
+use js_sys::Uint8Array;
 use std::sync::Arc;
 use worker::{
     durable_object, Env, Request, Response, Result, RouteContext, Router, State, WebSocketPair,
@@ -101,7 +102,11 @@ async fn websocket_connect(req: Request, ctx: RouteContext<&mut YServe>) -> Resu
     let connection = {
         let server = server.clone();
         DocConnection::new(awareness, move |bytes| {
-            let result = server.send_with_bytes(bytes);
+            let uint8_array = Uint8Array::from(bytes);
+            let result = server
+                .as_ref()
+                .send_with_array_buffer(&uint8_array.buffer());
+
             if let Err(result) = result {
                 console_log!("Error sending bytes: {:?}", result);
             }

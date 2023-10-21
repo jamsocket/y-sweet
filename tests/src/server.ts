@@ -77,6 +77,7 @@ export class Server {
       console.log('Done spawning server.')
     } else if (configuration.server === 'worker') {
       const workerBase = join(yServeBase, 'y-sweet-worker')
+      execSync('./build.sh --dev', { stdio: 'inherit', cwd: workerBase })
 
       const vars: Record<string, string> = {}
 
@@ -94,7 +95,7 @@ export class Server {
         vars['BUCKET_KIND'] = 'S3'
       }
 
-      let command = `npx wrangler@3.3.0 dev --persist-to ${this.dataDir} --port ${this.port} --env test`
+      let command = `npx --yes wrangler dev --persist-to ${this.dataDir} --port ${this.port} --env test`
 
       if (Object.entries(vars).length > 0) {
         command += ' --var'
@@ -104,7 +105,6 @@ export class Server {
       }
 
       // For some reason, forwarding the output to a file breaks the build itself.
-
       this.process = spawn(command, { cwd: workerBase, shell: true, stdio: 'inherit' })
     } else {
       throw new Error(`Unknown server type ${configuration.server}`)
