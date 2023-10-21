@@ -11,6 +11,7 @@ use y_sweet_core::{
     auth::Authenticator,
     doc_sync::DocWithSyncKv,
 };
+use worker_sys::console_log;
 
 pub mod config;
 pub mod durable_object;
@@ -40,6 +41,8 @@ pub fn router(
 #[event(fetch)]
 pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
     console_error_panic_hook::set_once();
+
+    console_log!("Here1");
 
     let configuration = Configuration::try_from(&env).map_err(|e| e.to_string())?;
     let context = ServerContext::new(configuration, &env);

@@ -60,7 +60,7 @@ if (MINIO_PORT && S3_BUCKET_NAME && S3_BUCKET_PREFIX) {
     s3: {
       bucket_name: S3_BUCKET_NAME,
       bucket_prefix: S3_BUCKET_PREFIX,
-      endpoint: 'http://localhost:9000',
+      endpoint: `http://localhost:${MINIO_PORT}`,
       aws_access_key_id: 'minioadmin',
       aws_region: 'minio',
       aws_secret_key: 'minioadmin',

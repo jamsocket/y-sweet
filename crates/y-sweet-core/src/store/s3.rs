@@ -9,7 +9,7 @@ use std::sync::atomic::Ordering::SeqCst;
 use std::time::Duration;
 use time::OffsetDateTime;
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct S3Config {
     pub key: String,
     pub endpoint: String,
