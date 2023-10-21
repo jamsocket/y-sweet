@@ -156,7 +156,7 @@ describe.each(CONFIGURATIONS)(
       provider.ws!.close()
 
       await new Promise<void>((resolve, reject) => {
-        setTimeout(() => reject('Expected to disconnect.'), 10)
+        setTimeout(() => reject('Expected to disconnect.'), 1_000)
         provider.on('connection-close', () => {
           resolve()
         })

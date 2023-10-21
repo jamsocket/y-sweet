@@ -2,7 +2,7 @@
 
 set -e
 
-if ! which worker-build &> /dev/null
+if ! [ -x "$(command -v worker-build)" ]
 then
     echo "Installing worker-build..."
     cargo install -q worker-build --version 0.0.10 --force

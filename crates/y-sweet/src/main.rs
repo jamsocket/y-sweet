@@ -37,19 +37,20 @@ struct Opts {
 #[derive(Subcommand)]
 enum ServSubcommand {
     Serve {
+        #[clap(env = "Y_SWEE_STORE")]
         store: Option<String>,
 
-        #[clap(long, default_value = "8080")]
+        #[clap(long, default_value = "8080", env = "Y_SWEET_PORT")]
         port: u16,
-        #[clap(long)]
+        #[clap(long, env = "Y_SWEET_HOST")]
         host: Option<IpAddr>,
-        #[clap(long, default_value = "10")]
+        #[clap(long, default_value = "10", env = "Y_SWEET_CHECKPOINT_FREQ_SECONDS")]
         checkpoint_freq_seconds: u64,
 
-        #[clap(long)]
+        #[clap(long, env = "Y_SWEET_AUTH")]
         auth: Option<String>,
 
-        #[clap(long)]
+        #[clap(long, env = "Y_SWEET_URL_PREFIX")]
         url_prefix: Option<Url>,
 
         #[clap(long)]

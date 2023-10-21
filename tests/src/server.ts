@@ -55,6 +55,7 @@ export class Server {
     mkdirSync(outFilePath, { recursive: true })
 
     this.outFileBase = join(outFilePath, configToString(configuration))
+    mkdirSync(this.outFileBase, { recursive: true })
 
     let auth
     if (configuration.useAuth) {
@@ -65,19 +66,28 @@ export class Server {
     }
 
     if (configuration.server === 'native') {
-      execSync('cargo build', { stdio: 'inherit', cwd: yServeBase })
+      execSync('cargo build > ' + join(this.outFileBase, 'build.txt'), {
+        stdio: 'ignore',
+        cwd: yServeBase,
+      })
 
       let command = `target/debug/y-sweet serve --port ${this.port} ${this.dataDir} --prod`
       if (configuration.useAuth) {
         command += ` --auth ${auth.private_key}`
       }
 
+      command +=
+        ' > ' + join(this.outFileBase, 'server.txt') + ' 2> ' + join(this.outFileBase, 'stderr.txt')
+
       console.log('Spawning server.')
-      this.process = spawn(command, { cwd: yServeBase, shell: true, stdio: 'inherit' })
+      this.process = spawn(command, { cwd: yServeBase, shell: true, stdio: 'ignore' })
       console.log('Done spawning server.')
     } else if (configuration.server === 'worker') {
       const workerBase = join(yServeBase, 'y-sweet-worker')
-      execSync('./build.sh --dev', { stdio: 'inherit', cwd: workerBase })
+      execSync('./build.sh --dev > ' + join(this.outFileBase, 'build.txt'), {
+        stdio: 'ignore',
+        cwd: workerBase,
+      })
 
       const vars: Record<string, string> = {}
 
@@ -104,8 +114,11 @@ export class Server {
         }
       }
 
+      command +=
+        ' > ' + join(this.outFileBase, 'server.txt') + ' 2> ' + join(this.outFileBase, 'stderr.txt')
+
       // For some reason, forwarding the output to a file breaks the build itself.
-      this.process = spawn(command, { cwd: workerBase, shell: true, stdio: 'inherit' })
+      this.process = spawn(command, { cwd: workerBase, shell: true, stdio: 'ignore' })
     } else {
       throw new Error(`Unknown server type ${configuration.server}`)
     }
