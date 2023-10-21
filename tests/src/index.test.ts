@@ -89,7 +89,7 @@ describe.each(CONFIGURATIONS)(
 
     test('Check store status', async () => {
       const result = await DOCUMENT_MANANGER.checkStore()
-      expect(result).toEqual({ok: true})
+      expect(result).toEqual({ ok: true })
     })
 
     test('Create new doc', async () => {

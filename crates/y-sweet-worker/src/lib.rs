@@ -1,7 +1,7 @@
 #[cfg(feature = "fetch-event")]
 use config::Configuration;
 use error::{Error, IntoResponse};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use server_context::ServerContext;
 use std::collections::HashMap;
 #[cfg(feature = "fetch-event")]
@@ -10,7 +10,8 @@ use worker::{Date, Request, Response, Result, RouteContext, Router, Url};
 use y_sweet_core::{
     api_types::{validate_doc_name, ClientToken, DocCreationRequest, NewDocResponse},
     auth::Authenticator,
-    doc_sync::DocWithSyncKv, store::StoreError,
+    doc_sync::DocWithSyncKv,
+    store::StoreError,
 };
 
 pub mod config;
@@ -127,7 +128,9 @@ async fn check_store(
     let result = match result {
         Ok(_) => json!({"ok": true}),
         Err(StoreError::ConnectionError(_)) => json!({"ok": false, "error": "Connection error."}),
-        Err(StoreError::BucketDoesNotExist(_)) => json!({"ok": false, "error": "Bucket does not exist."}),
+        Err(StoreError::BucketDoesNotExist(_)) => {
+            json!({"ok": false, "error": "Bucket does not exist."})
+        }
         Err(StoreError::NotAuthorized(_)) => json!({"ok": false, "error": "Not authorized."}),
         _ => json!({"ok": false, "error": "Unknown error."}),
     };
