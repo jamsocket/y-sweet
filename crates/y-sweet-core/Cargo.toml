@@ -11,6 +11,7 @@ repository = "https://github.com/drifting-in-space/y-sweet"
 anyhow = "1.0.72"
 async-trait = "0.1.71"
 bincode = "1.3.3"
+bytes = "1.5.0"
 data-encoding = "2.4.0"
 getrandom = { version = "0.2.10", features = ["js"] }
 lib0 = "0.16.9"

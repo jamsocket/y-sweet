@@ -87,6 +87,11 @@ describe.each(CONFIGURATIONS)(
       SERVER.cleanup()
     })
 
+    test('Check store status', async () => {
+      const result = await DOCUMENT_MANANGER.checkStore()
+      expect(result).toEqual({ ok: true })
+    })
+
     test('Create new doc', async () => {
       const result = await DOCUMENT_MANANGER.createDoc()
       expect(typeof result.doc).toBe('string')
