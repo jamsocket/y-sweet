@@ -176,6 +176,7 @@ impl<'a> yrs_kvstore::KVStore<'a> for SyncKv {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::store::Result;
     use async_trait::async_trait;
     use dashmap::DashMap;
     use std::sync::atomic::AtomicUsize;
@@ -189,6 +190,10 @@ mod test {
     #[cfg_attr(not(feature = "single-threaded"), async_trait)]
     #[cfg_attr(feature = "single-threaded", async_trait(?Send))]
     impl Store for MemoryStore {
+        async fn init(&self) -> Result<()> {
+            Ok(())
+        }
+
         async fn get(&self, key: &str) -> Result<Option<Vec<u8>>> {
             Ok(self.data.get(key).map(|v| v.clone()))
         }
