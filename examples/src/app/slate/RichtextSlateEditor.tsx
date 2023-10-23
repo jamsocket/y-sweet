@@ -31,6 +31,7 @@ import {
   LuAlignRight,
   LuAlignJustify,
 } from 'react-icons/lu'
+import { ANIMAL_NAMES } from './animal-names'
 
 const ParagraphType = 'paragraph'
 const HeadingOneType = 'heading-one'
@@ -106,15 +107,6 @@ const HOTKEYS: Record<string, MarkType> = {
 
 const LIST_TYPES = [NumberedListType, BulletedListType]
 const TEXT_ALIGN_TYPES = [AlignLeft, AlignCenter, AlignRight, AlignJustify]
-
-const ANIMAL_NAMES = [
-  'Lion', 'Tiger', 'Elephant', 'Deer', 'Bear', 'Monkey', 'Giraffe', 'Dolphin', 'Whale', 'Penguin',
-  'Koala', 'Kangaroo', 'Panda', 'Zebra', 'Hippopotamus', 'Rhinoceros', 'Leopard', 'Cheetah', 'Fox', 'Wolf',
-  'Rabbit', 'Squirrel', 'Raccoon', 'Otter', 'Skunk', 'Beaver', 'Badger', 'Opossum', 'Mouse', 'Rat',
-  'Hedgehog', 'Bat', 'Sloth', 'Anteater', 'Armadillo', 'Porcupine', 'Platypus', 'Wombat', 'Tasmanian Devil', 'Mole',
-  'Weasel', 'Ferret', 'Marten', 'Mink', 'Sable', 'Stoat', 'Meerkat', 'Prairie Dog', 'Groundhog', 'Woodchuck',
-  'Chipmunk', 'Hamster', 'Gerbil', 'Guinea Pig', 'Chinchilla', 'Degu', 'Lemming', 'Vole', 'Muskrat', 'Shrew'
-]
 
 function DecoratedEditable(props: React.ComponentProps<typeof Editable>) {
   const decorate = useDecorateRemoteCursors()
