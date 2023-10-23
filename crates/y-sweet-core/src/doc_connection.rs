@@ -1,12 +1,16 @@
 use crate::sync::{
     self,
     awareness::{Awareness, Event},
-    DefaultProtocol, Message, Protocol, SyncMessage,
+    DefaultProtocol, Message, Protocol, SyncMessage, MSG_SYNC, MSG_SYNC_UPDATE,
 };
+use lib0::encoding::Write;
 use std::sync::{Arc, OnceLock, RwLock};
 use yrs::{
     block::ClientID,
-    updates::{decoder::Decode, encoder::Encode},
+    updates::{
+        decoder::Decode,
+        encoder::{Encode, Encoder, EncoderV1},
+    },
     ReadTxn, Subscription, Transact, Update, UpdateSubscription,
 };
 
@@ -84,10 +88,12 @@ impl DocConnection {
                     if closed.get().is_some() {
                         return;
                     }
-
-                    // TODO: avoid allocation: https://github.com/y-crdt/y-sync/blob/master/src/net/broadcast.rs#L48
-                    let msg = Message::Sync(SyncMessage::Update(event.update.clone()));
-                    let msg = msg.encode_v1();
+                    // https://github.com/y-crdt/y-sync/blob/56958e83acfd1f3c09f5dd67cf23c9c72f000707/src/net/broadcast.rs#L47-L52
+                    let mut encoder = EncoderV1::new();
+                    encoder.write_var(MSG_SYNC);
+                    encoder.write_var(MSG_SYNC_UPDATE);
+                    encoder.write_buf(&event.update);
+                    let msg = encoder.to_vec();
                     callback(&msg);
                 })
                 .unwrap()
