@@ -230,7 +230,7 @@ export class DocumentManager {
   }
 
   public async checkStore(): Promise<CheckStoreResult> {
-    return (await this.doFetch('check_store', 'GET')).json()
+    return await (await this.doFetch('check_store', 'GET')).json()
   }
 
   /**
