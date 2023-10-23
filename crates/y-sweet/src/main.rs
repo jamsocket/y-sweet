@@ -161,7 +161,9 @@ async fn main() -> Result<()> {
             let store = if let Some(store) = store {
                 Some(get_store_from_opts(store)?)
             } else if let Ok(store) = std::env::var("Y_SWEET_STORE") {
-                Some(get_store_from_opts(&store)?)
+                let store = get_store_from_opts(&store)?;
+                store.init().await?;
+                Some(store)
             } else {
                 tracing::warn!("No store set. Documents will be stored in memory only.");
                 None

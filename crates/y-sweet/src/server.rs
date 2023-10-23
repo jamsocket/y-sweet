@@ -13,6 +13,7 @@ use axum::{
 use dashmap::{mapref::one::MappedRef, DashMap};
 use futures::{SinkExt, StreamExt};
 use serde::Deserialize;
+use serde_json::{json, Value};
 use std::{
     net::SocketAddr,
     sync::{Arc, RwLock},
@@ -170,6 +171,7 @@ impl Server {
         let server_state = Arc::new(self);
 
         let app = Router::new()
+            .route("/check_store", get(check_store))
             .route("/doc/ws/:doc_id", get(handler))
             .route("/doc/new", post(new_doc))
             .route("/doc/:doc_id/auth", post(auth_doc))
@@ -247,6 +249,21 @@ async fn handle_socket(socket: WebSocket, awareness: Arc<RwLock<Awareness>>) {
             tracing::warn!(?e, "Error handling message");
         }
     }
+}
+
+async fn check_store(
+    authorization: Option<TypedHeader<headers::Authorization<Bearer>>>,
+    State(server_state): State<Arc<Server>>,
+) -> Result<Json<Value>, StatusCode> {
+    server_state.check_auth(authorization)?;
+
+    if server_state.store.is_none() {
+        return Ok(Json(json!({"ok": false, "error": "No store set."})));
+    };
+
+    // The check_store endpoint for the native server is kind of moot, since
+    // the server will not start if store is not ok.
+    Ok(Json(json!({"ok": true})))
 }
 
 async fn new_doc(
