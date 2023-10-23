@@ -31,6 +31,7 @@ import {
   LuAlignRight,
   LuAlignJustify,
 } from 'react-icons/lu'
+import { ANIMAL_NAMES } from './animal-names'
 
 const ParagraphType = 'paragraph'
 const HeadingOneType = 'heading-one'
@@ -127,7 +128,7 @@ const RichtextSlateEditor = ({
         withCursors(withYjs(createEditor(), sharedType), awareness, {
           data: {
             color: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
-            name: 'Anonymous Coward',
+            name: 'Anonymous ' + ANIMAL_NAMES[Math.floor(Math.random() * ANIMAL_NAMES.length)],
           },
         }),
       ),
