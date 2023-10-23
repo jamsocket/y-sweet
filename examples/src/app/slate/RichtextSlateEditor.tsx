@@ -107,6 +107,15 @@ const HOTKEYS: Record<string, MarkType> = {
 const LIST_TYPES = [NumberedListType, BulletedListType]
 const TEXT_ALIGN_TYPES = [AlignLeft, AlignCenter, AlignRight, AlignJustify]
 
+const ANIMAL_NAMES = [
+  'Lion', 'Tiger', 'Elephant', 'Deer', 'Bear', 'Monkey', 'Giraffe', 'Dolphin', 'Whale', 'Penguin',
+  'Koala', 'Kangaroo', 'Panda', 'Zebra', 'Hippopotamus', 'Rhinoceros', 'Leopard', 'Cheetah', 'Fox', 'Wolf',
+  'Rabbit', 'Squirrel', 'Raccoon', 'Otter', 'Skunk', 'Beaver', 'Badger', 'Opossum', 'Mouse', 'Rat',
+  'Hedgehog', 'Bat', 'Sloth', 'Anteater', 'Armadillo', 'Porcupine', 'Platypus', 'Wombat', 'Tasmanian Devil', 'Mole',
+  'Weasel', 'Ferret', 'Marten', 'Mink', 'Sable', 'Stoat', 'Meerkat', 'Prairie Dog', 'Groundhog', 'Woodchuck',
+  'Chipmunk', 'Hamster', 'Gerbil', 'Guinea Pig', 'Chinchilla', 'Degu', 'Lemming', 'Vole', 'Muskrat', 'Shrew'
+]
+
 function DecoratedEditable(props: React.ComponentProps<typeof Editable>) {
   const decorate = useDecorateRemoteCursors()
 
@@ -127,7 +136,7 @@ const RichtextSlateEditor = ({
         withCursors(withYjs(createEditor(), sharedType), awareness, {
           data: {
             color: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
-            name: 'Anonymous Coward',
+            name: 'Anonymous ' + ANIMAL_NAMES[Math.floor(Math.random() * ANIMAL_NAMES.length)],
           },
         }),
       ),
