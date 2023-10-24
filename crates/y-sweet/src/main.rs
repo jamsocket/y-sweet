@@ -37,7 +37,7 @@ struct Opts {
 #[derive(Subcommand)]
 enum ServSubcommand {
     Serve {
-        #[clap(env = "Y_SWEE_STORE")]
+        #[clap(env = "Y_SWEET_STORE")]
         store: Option<String>,
 
         #[clap(long, default_value = "8080", env = "Y_SWEET_PORT")]
