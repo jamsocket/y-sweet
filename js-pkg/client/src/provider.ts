@@ -214,11 +214,10 @@ export type YSweetProviderParams = {
  * creates a websocket connection to http://localhost:1234/my-document-name
  *
  * @example
- *   import * as Y from 'yjs'
- *   import { YSweetProvider } from 'y-websocket'
- *   const doc = new Y.Doc()
- *   const provider = new YSweetProvider('http://localhost:1234', 'my-document-name', doc)
- *
+ * import * as Y from 'yjs'
+ * import { YSweetProvider } from 'y-websocket'
+ * const doc = new Y.Doc()
+ * const provider = new YSweetProvider('http://localhost:1234', 'my-document-name', doc)
  * @extends {Observable<string>}
  */
 export class YSweetProvider extends Observable<string> {
