@@ -196,7 +196,7 @@ type WebSocketPolyfillType = {
   readonly OPEN: number
 }
 
-export type WebsocketProviderParams = {
+export type YSweetProviderParams = {
   connect?: boolean
   awareness?: awarenessProtocol.Awareness
   params?: {
@@ -215,9 +215,9 @@ export type WebsocketProviderParams = {
  *
  * @example
  *   import * as Y from 'yjs'
- *   import { WebsocketProvider } from 'y-websocket'
+ *   import { YSweetProvider } from 'y-websocket'
  *   const doc = new Y.Doc()
- *   const provider = new WebsocketProvider('http://localhost:1234', 'my-document-name', doc)
+ *   const provider = new YSweetProvider('http://localhost:1234', 'my-document-name', doc)
  *
  * @extends {Observable<string>}
  */
@@ -271,7 +271,7 @@ export class YSweetProvider extends Observable<string> {
       resyncInterval = -1,
       maxBackoffTime = 2500,
       disableBc = false,
-    }: WebsocketProviderParams = {},
+    }: YSweetProviderParams = {},
   ) {
     super()
     // ensure that url is always ends with /
