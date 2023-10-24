@@ -1,16 +1,16 @@
 'use client'
 
-import { WebsocketProvider, WebsocketProviderParams, createYjsProvider } from '@y-sweet/client'
+import { YSweetProvider, WebsocketProviderParams, createYjsProvider } from '@y-sweet/client'
 import { ClientToken, encodeClientToken } from '@y-sweet/sdk'
 import type { ReactNode } from 'react'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
-export { createYjsProvider, WebsocketProvider, type WebsocketProviderParams }
+export { createYjsProvider, YSweetProvider, YSweetProvider as WebsocketProvider, type WebsocketProviderParams }
 
 type YjsContextType = {
   doc: Y.Doc
-  provider: WebsocketProvider
+  provider: YSweetProvider
   clientToken: ClientToken
 }
 
@@ -80,7 +80,7 @@ export function useYSweetDebugUrl(): string {
  *
  * @returns The Yjs WebsocketProvider instance.
  */
-export function useYjsProvider(): WebsocketProvider {
+export function useYjsProvider(): YSweetProvider {
   const yjsCtx = useContext(YjsContext)
   if (!yjsCtx) {
     throw new Error('Yjs hooks must be used within a YDocProvider')
