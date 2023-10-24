@@ -13,15 +13,18 @@ React library for building collaboration features with y-sweet.
 npm install @y-sweet/react
 ```
 
-## Documentation
-Read the [documentation](https://www.y-sweet.dev/) for guides and API references.
-
 ## Examples
 Explore our [collaborative examples](https://github.com/drifting-in-space/y-sweet) to help you get started.
 
 All examples are open source and live in this repository, within [/examples](https://github.com/drifting-in-space/y-sweet/tree/main/examples).
 
 # Using @y-sweet/react
+
+Yjs models data as a nested data structure with types like `Y.Array` corresponding to array data, `Y.Map` corresponding to objects and key/value maps, and `Y.Text` corresponding to strings. Each hook returns a Yjs type, so refer to Yjs documentation for details on how to use them.
+
+In addition to returning a Yjs type, each hook also subscribes the component to changes to that type. By default, changes to that value, _or any descendent_ of that value, triggers a rerender of the component.
+
+The `@y-sweet/react` hooks provide a way to access data for each of these types.
 
 ### `useMap` is a shared object or map
 
@@ -93,33 +96,53 @@ bindingRef.current = new CodemirrorBinding(yText!, editorRef.current, awareness)
 
 ### `usePresence` for general purpose presence features
 
-The `usePresence` hook is a more opinionated service that lets you define what presence data you're saving.
+The `usePresence` and `usePresenceSetter` hooks are a higher-level React abstraction on top of Yjs’s awareness.
 
-This is easier for building your own live cursors or avatars than the using the `useAwareness` hook.
+`usePresence` returns a `Map<number, object>` of presence data for other users. The key is the user ID, and the value is whatever that user has set as their presence data.
+
+`usePresenceSetter` returns a function that can be used to set the current user’s presence data.
 
 Our [Presence](/demos/presence) demo defines presence as a map of x,y keys and color value pairs.
 
 ```tsx Presence.tsx
-const [presence, setPresence] = usePresence<{ x: number; y: number; color: string }>()
+'use client'
 
-const updatePresence = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-setPresence({
-    x: e.clientX - e.currentTarget.offsetLeft,
-    y: e.clientY - e.currentTarget.offsetTop,
-    color: myColor.current,
-})
-}, [setPresence])
+import { usePresence, usePresenceSetter } from '@y-sweet/react'
+import { useCallback, useRef } from 'react'
 
-<div
-    className="border-blue-400 border relative overflow-hidden w-[500px] h-[500px]"
-    onMouseMove={updatePresence}
->
-    {Array.from(presence.entries()).map(([key, value]) => (
+const COLORS = ['bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-pink-500']
+
+type Presence = { x: number; y: number; color: string }
+
+export function Presence() {
+  const myColor = useRef(COLORS[Math.floor(Math.random() * COLORS.length)])
+  const presence = usePresence<Presence>()
+  const setPresence = usePresenceSetter<Presence>()
+
+  const updatePresence = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      setPresence({
+        x: e.clientX - e.currentTarget.offsetLeft,
+        y: e.clientY - e.currentTarget.offsetTop,
+        color: myColor.current,
+      })
+    },
+    [setPresence],
+  )
+
+  return (
+    <div
+      className="border-blue-400 border relative overflow-hidden w-[500px] h-[500px]"
+      onMouseMove={updatePresence}
+    >
+      {Array.from(presence.entries()).map(([key, value]) => (
         <div
-            key={key}
-            className={`absolute rounded-full ${value.color}`}
-            style={{ left: value.x - 6, top: value.y - 8, width: 10, height: 10 }}
+          key={key}
+          className={`absolute rounded-full ${value.color}`}
+          style={{ left: value.x - 6, top: value.y - 8, width: 10, height: 10 }}
         />
-    ))}
-</div>
+      ))}
+    </div>
+  )
+}
 ```
