@@ -6,11 +6,7 @@ import type { ReactNode } from 'react'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
-export {
-  createYjsProvider,
-  YSweetProvider,
-  type YSweetProviderParams,
-}
+export { createYjsProvider, YSweetProvider, type YSweetProviderParams }
 
 type YjsContextType = {
   doc: Y.Doc
