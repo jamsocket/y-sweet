@@ -34,6 +34,7 @@ y-sweet is MIT-licensed, and was created by [Drifting in Space](https://drifting
     - [React hooks](https://docs.y-sweet.dev/modules/_y_sweet_react.html)
     - [Document management SDK](https://docs.y-sweet.dev/modules/_y_sweet_sdk.html)
 - [Y-Sweet Cloud (managed service) docs](https://y-sweet.cloud/quickstart)
+- [Self Hosting](/docs/running)
 
 ## Packages
 
@@ -51,3 +52,13 @@ y-sweet is MIT-licensed, and was created by [Drifting in Space](https://drifting
 | --- | ---- | ---- | ---- |
 | npm | `@y-sweet/sdk` | [![npm](https://img.shields.io/npm/v/@y-sweet/sdk)](https://www.npmjs.com/package/@y-sweet/sdk) | `js-pkg/sdk` |
 | npm | `@y-sweet/react` | [![npm](https://img.shields.io/npm/v/@y-sweet/react)](https://www.npmjs.com/package/@y-sweet/react) | `js-pkg/react` |
+
+## Y-Sweet Cloud
+
+If you were to use the open source y-sweet server alone, you would still have to set up the infrastructure for self hosting it. With Y-Sweet cloud, every document is automatically persisted. You can link your own S3-compatible storage, or just let us take care of the details.
+
+You can try a preview for free today by following our [quickstart](https://y-sweet.cloud/quickstart) guide.
+
+If you are interested in being a build partner for early access to new features, please [reach out](mailto:hi@driftingin.space).
+
+We are committed to growing y-sweet as an open-source-first project, wherever you decide to host it.
