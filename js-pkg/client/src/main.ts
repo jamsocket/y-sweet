@@ -2,7 +2,7 @@ import { YSweetProvider, type YSweetProviderParams } from './provider'
 import * as Y from 'yjs'
 import { ClientToken } from '@y-sweet/sdk'
 
-export { YSweetProvider, YSweetProviderParams as WebsocketProviderParams, YSweetProviderParams }
+export { YSweetProvider, YSweetProviderParams }
 
 /**
  * Given a {@link ClientToken}, create a {@link YSweetProvider} for it.

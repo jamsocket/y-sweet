@@ -9,9 +9,7 @@ import * as Y from 'yjs'
 export {
   createYjsProvider,
   YSweetProvider,
-  YSweetProvider as WebsocketProvider,
   type YSweetProviderParams,
-  type YSweetProviderParams as WebsocketProviderParams,
 }
 
 type YjsContextType = {
