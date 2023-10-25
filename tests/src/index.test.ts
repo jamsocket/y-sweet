@@ -1,6 +1,6 @@
 import { describe, expect, test, beforeAll, afterAll } from 'vitest'
 import { DocumentManager } from '@y-sweet/sdk'
-import { createYjsProvider as createYjsProvider_, WebsocketProviderParams } from '@y-sweet/react'
+import { createYjsProvider as createYjsProvider_, YSweetProviderParams } from '@y-sweet/react'
 import { WebSocket } from 'ws'
 import * as Y from 'yjs'
 import { Server, ServerConfiguration } from './server'
@@ -13,7 +13,7 @@ import { Server, ServerConfiguration } from './server'
 function createYjsProvider(
   doc: Y.Doc,
   clientToken: { url: string; doc: string; token?: string },
-  extraOptions: WebsocketProviderParams,
+  extraOptions: YSweetProviderParams,
 ) {
   extraOptions = {
     WebSocketPolyfill: require('ws'),

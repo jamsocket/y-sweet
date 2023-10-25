@@ -24,7 +24,7 @@ export const messageAuth = 2
 export type HandlerFunction = (
   encoder: encoding.Encoder,
   decoder: decoding.Decoder,
-  provider: WebsocketProvider,
+  provider: YSweetProvider,
   emitSynced: boolean,
   messageType: number,
 ) => void
@@ -73,11 +73,11 @@ messageHandlers[messageAuth] = (_encoder, decoder, provider, _emitSynced, _messa
 // @todo - this should depend on awareness.outdatedTime
 const messageReconnectTimeout = 30000
 
-const permissionDeniedHandler = (provider: WebsocketProvider, reason: string) =>
+const permissionDeniedHandler = (provider: YSweetProvider, reason: string) =>
   console.warn(`Permission denied to access ${provider.url}.\n${reason}`)
 
 const readMessage = (
-  provider: WebsocketProvider,
+  provider: YSweetProvider,
   buf: Uint8Array,
   emitSynced: boolean,
 ): encoding.Encoder => {
@@ -93,7 +93,7 @@ const readMessage = (
   return encoder
 }
 
-const setupWS = (provider: WebsocketProvider) => {
+const setupWS = (provider: YSweetProvider) => {
   if (provider.shouldConnect && provider.ws === null) {
     const websocket = new provider._WS(provider.url)
     websocket.binaryType = 'arraybuffer'
@@ -177,7 +177,7 @@ const setupWS = (provider: WebsocketProvider) => {
   }
 }
 
-const broadcastMessage = (provider: WebsocketProvider, buf: ArrayBuffer) => {
+const broadcastMessage = (provider: YSweetProvider, buf: ArrayBuffer) => {
   const ws = provider.ws
   if (provider.wsconnected && ws && ws.readyState === ws.OPEN) {
     ws.send(buf)
@@ -196,7 +196,7 @@ type WebSocketPolyfillType = {
   readonly OPEN: number
 }
 
-export type WebsocketProviderParams = {
+export type YSweetProviderParams = {
   connect?: boolean
   awareness?: awarenessProtocol.Awareness
   params?: {
@@ -214,14 +214,13 @@ export type WebsocketProviderParams = {
  * creates a websocket connection to http://localhost:1234/my-document-name
  *
  * @example
- *   import * as Y from 'yjs'
- *   import { WebsocketProvider } from 'y-websocket'
- *   const doc = new Y.Doc()
- *   const provider = new WebsocketProvider('http://localhost:1234', 'my-document-name', doc)
- *
+ * import * as Y from 'yjs'
+ * import { YSweetProvider } from 'y-websocket'
+ * const doc = new Y.Doc()
+ * const provider = new YSweetProvider('http://localhost:1234', 'my-document-name', doc)
  * @extends {Observable<string>}
  */
-export class WebsocketProvider extends Observable<string> {
+export class YSweetProvider extends Observable<string> {
   maxBackoffTime: number
   bcChannel: string
   url: string
@@ -271,7 +270,7 @@ export class WebsocketProvider extends Observable<string> {
       resyncInterval = -1,
       maxBackoffTime = 2500,
       disableBc = false,
-    }: WebsocketProviderParams = {},
+    }: YSweetProviderParams = {},
   ) {
     super()
     // ensure that url is always ends with /
