@@ -37,19 +37,20 @@ struct Opts {
 #[derive(Subcommand)]
 enum ServSubcommand {
     Serve {
+        #[clap(env = "Y_SWEET_STORE")]
         store: Option<String>,
 
-        #[clap(long, default_value = "8080")]
+        #[clap(long, default_value = "8080", env = "Y_SWEET_PORT")]
         port: u16,
-        #[clap(long)]
+        #[clap(long, env = "Y_SWEET_HOST")]
         host: Option<IpAddr>,
-        #[clap(long, default_value = "10")]
+        #[clap(long, default_value = "10", env = "Y_SWEET_CHECKPOINT_FREQ_SECONDS")]
         checkpoint_freq_seconds: u64,
 
-        #[clap(long)]
+        #[clap(long, env = "Y_SWEET_AUTH")]
         auth: Option<String>,
 
-        #[clap(long)]
+        #[clap(long, env = "Y_SWEET_URL_PREFIX")]
         url_prefix: Option<Url>,
 
         #[clap(long)]
@@ -159,7 +160,9 @@ async fn main() -> Result<()> {
             );
 
             let store = if let Some(store) = store {
-                Some(get_store_from_opts(store)?)
+                let store = get_store_from_opts(store)?;
+                store.init().await?;
+                Some(store)
             } else {
                 tracing::warn!("No store set. Documents will be stored in memory only.");
                 None
@@ -177,9 +180,21 @@ async fn main() -> Result<()> {
             )
             .await?;
 
-            tracing::info!(%addr, "Listening");
+            let handle = tokio::spawn(async move {
+                server.serve(&addr).await.unwrap();
+            });
 
-            server.serve(&addr).await?;
+            tracing::info!("Listening on ws://{}", addr);
+
+            tokio::signal::ctrl_c()
+                .await
+                .expect("Failed to install CTRL+C signal handler");
+
+            tracing::info!("Shutting down.");
+
+            // TODO: graceful shutdown; close connections and write everything.
+
+            handle.abort();
         }
         ServSubcommand::GenAuth { json } => {
             let auth = Authenticator::gen_key()?;

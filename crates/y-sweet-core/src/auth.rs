@@ -1,17 +1,58 @@
-use std::fmt::Display;
-
-use base64::{
-    alphabet::{STANDARD, URL_SAFE},
-    engine::{DecodePaddingMode, GeneralPurpose, GeneralPurposeConfig},
-    Engine,
-};
 use bincode::Options;
+use data_encoding::Encoding;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use std::fmt::Display;
 use thiserror::Error;
 
 const EXPIRATION_MILLIS: u64 = 1000 * 60 * 60; // 60 minutes
+
+/// This is a custom base64 encoder that is equivalent to BASE64URL_NOPAD for encoding,
+/// but is tolerant when decoding of the “standard” alphabet and also of padding.
+/// This is necessary for now because we used to use standard base64 encoding with padding,
+/// but we can eventually remove it.
+///
+/// ```
+/// use data_encoding::{Specification, BASE64URL_NOPAD, Translate};
+/// let spec = Specification {
+///     ignore: "=".to_string(),
+///     translate: Translate {
+///         from: "/+".to_string(),
+///         to: "_-".to_string(),
+///     },
+///     ..BASE64URL_NOPAD.specification()
+/// };
+/// use y_sweet_core::auth::BASE64_CUSTOM;
+/// assert_eq!(BASE64_CUSTOM, spec.encoding().unwrap());
+/// ```
+pub const BASE64_CUSTOM: Encoding = Encoding::internal_new(&[
+    65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88,
+    89, 90, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114,
+    115, 116, 117, 118, 119, 120, 121, 122, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 45, 95, 65, 66,
+    67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90,
+    97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115,
+    116, 117, 118, 119, 120, 121, 122, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 45, 95, 65, 66, 67,
+    68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 97,
+    98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116,
+    117, 118, 119, 120, 121, 122, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 45, 95, 65, 66, 67, 68,
+    69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 97, 98,
+    99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117,
+    118, 119, 120, 121, 122, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 45, 95, 128, 128, 128, 128,
+    128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128,
+    128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128,
+    128, 62, 128, 62, 128, 63, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 128, 128, 128, 129, 128,
+    128, 128, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
+    24, 25, 128, 128, 128, 128, 63, 128, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39,
+    40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 128, 128, 128, 128, 128, 128, 128, 128, 128,
+    128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128,
+    128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128,
+    128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128,
+    128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128,
+    128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128,
+    128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128,
+    128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 30, 0,
+]);
 
 #[derive(Error, Debug, PartialEq, Eq)]
 pub enum AuthError {
@@ -63,26 +104,13 @@ fn bincode_decode<'a, T: Deserialize<'a>>(bytes: &'a [u8]) -> Result<T, bincode:
 }
 
 fn b64_encode(bytes: &[u8]) -> String {
-    let config = GeneralPurposeConfig::new().with_encode_padding(false);
-    let engine = GeneralPurpose::new(&URL_SAFE, config);
-    let mut buf = String::new();
-    engine.encode_string(bytes, &mut buf);
-    buf
+    BASE64_CUSTOM.encode(bytes)
 }
 
-fn b64_decode(str: &str) -> Result<Vec<u8>, AuthError> {
-    let config =
-        GeneralPurposeConfig::new().with_decode_padding_mode(DecodePaddingMode::Indifferent);
-    let engine = GeneralPurpose::new(&STANDARD, config);
-
-    if let Ok(result) = engine.decode(str) {
-        return Ok(result);
-    }
-
-    // If we failed with STANDARD, try with URL_SAFE.
-    let engine = GeneralPurpose::new(&URL_SAFE, config);
-
-    engine.decode(str).map_err(|_| AuthError::InvalidToken)
+fn b64_decode(input: &str) -> Result<Vec<u8>, AuthError> {
+    BASE64_CUSTOM
+        .decode(input.as_bytes())
+        .map_err(|_| AuthError::InvalidToken)
 }
 
 mod b64 {

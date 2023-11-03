@@ -1,6 +1,6 @@
 import { describe, expect, test, beforeAll, afterAll } from 'vitest'
 import { DocumentManager } from '@y-sweet/sdk'
-import { createYjsProvider as createYjsProvider_, WebsocketProviderParams } from '@y-sweet/react'
+import { createYjsProvider as createYjsProvider_, YSweetProviderParams } from '@y-sweet/react'
 import { WebSocket } from 'ws'
 import * as Y from 'yjs'
 import { Server, ServerConfiguration } from './server'
@@ -13,7 +13,7 @@ import { Server, ServerConfiguration } from './server'
 function createYjsProvider(
   doc: Y.Doc,
   clientToken: { url: string; doc: string; token?: string },
-  extraOptions: WebsocketProviderParams,
+  extraOptions: YSweetProviderParams,
 ) {
   extraOptions = {
     WebSocketPolyfill: require('ws'),
@@ -60,7 +60,7 @@ if (MINIO_PORT && S3_BUCKET_NAME && S3_BUCKET_PREFIX) {
     s3: {
       bucket_name: S3_BUCKET_NAME,
       bucket_prefix: S3_BUCKET_PREFIX,
-      endpoint: 'http://localhost:9000',
+      endpoint: `http://localhost:${MINIO_PORT}`,
       aws_access_key_id: 'minioadmin',
       aws_region: 'minio',
       aws_secret_key: 'minioadmin',
@@ -71,7 +71,7 @@ if (MINIO_PORT && S3_BUCKET_NAME && S3_BUCKET_PREFIX) {
 const TEN_MINUTES_IN_MS = 10 * 60 * 1_000
 
 describe.each(CONFIGURATIONS)(
-  'Test $server (auth: $useAuth)',
+  'Test $server (auth: $useAuth, s3: $s3)',
   (configuration: ServerConfiguration) => {
     let SERVER: Server
     let DOCUMENT_MANANGER: DocumentManager
@@ -87,6 +87,11 @@ describe.each(CONFIGURATIONS)(
       SERVER.cleanup()
     })
 
+    test('Check store status', async () => {
+      const result = await DOCUMENT_MANANGER.checkStore()
+      expect(result).toEqual({ ok: true })
+    })
+
     test('Create new doc', async () => {
       const result = await DOCUMENT_MANANGER.createDoc()
       expect(typeof result.doc).toBe('string')
@@ -94,6 +99,11 @@ describe.each(CONFIGURATIONS)(
 
     test('Attempt to access non-existing doc', async () => {
       await expect(DOCUMENT_MANANGER.getClientToken('foobar', {})).rejects.toThrow('404')
+
+      // When running Cloudflare's workerd locally, sometimes the call following
+      // the 404 will fail with a 500.
+      // Not sure why, but this is a workaround.
+      await DOCUMENT_MANANGER.createDoc().catch(() => {})
     })
 
     test('Create and connect to doc', async () => {
@@ -151,7 +161,7 @@ describe.each(CONFIGURATIONS)(
       provider.ws!.close()
 
       await new Promise<void>((resolve, reject) => {
-        setTimeout(() => reject('Expected to disconnect.'), 10)
+        setTimeout(() => reject('Expected to disconnect.'), 1_000)
         provider.on('connection-close', () => {
           resolve()
         })

@@ -1,12 +1,16 @@
 use crate::sync::{
     self,
     awareness::{Awareness, Event},
-    DefaultProtocol, Message, Protocol, SyncMessage,
+    DefaultProtocol, Message, Protocol, SyncMessage, MSG_SYNC, MSG_SYNC_UPDATE,
 };
+use lib0::encoding::Write;
 use std::sync::{Arc, OnceLock, RwLock};
 use yrs::{
     block::ClientID,
-    updates::{decoder::Decode, encoder::Encode},
+    updates::{
+        decoder::Decode,
+        encoder::{Encode, Encoder, EncoderV1},
+    },
     ReadTxn, Subscription, Transact, Update, UpdateSubscription,
 };
 
@@ -28,6 +32,7 @@ pub struct DocConnection {
     #[allow(unused)] // acts as RAII guard
     awareness_subscription: AwarenessSubscription,
     callback: Callback,
+    closed: Arc<OnceLock<()>>,
 
     /// If the client sends an awareness state, this will be set to its client ID.
     /// It is used to clear the awareness state when a client disconnects.
@@ -52,6 +57,8 @@ impl DocConnection {
     }
 
     pub fn new_inner(awareness: Arc<RwLock<Awareness>>, callback: Callback) -> Self {
+        let closed = Arc::new(OnceLock::new());
+
         let (doc_subscription, awareness_subscription) = {
             let mut awareness = awareness.write().unwrap();
 
@@ -76,17 +83,29 @@ impl DocConnection {
             let doc_subscription = {
                 let doc = awareness.doc();
                 let callback = callback.clone();
+                let closed = closed.clone();
                 doc.observe_update_v1(move |_, event| {
-                    // TODO: avoid allocation: https://github.com/y-crdt/y-sync/blob/master/src/net/broadcast.rs#L48
-                    let msg = Message::Sync(SyncMessage::Update(event.update.clone()));
-                    let msg = msg.encode_v1();
+                    if closed.get().is_some() {
+                        return;
+                    }
+                    // https://github.com/y-crdt/y-sync/blob/56958e83acfd1f3c09f5dd67cf23c9c72f000707/src/net/broadcast.rs#L47-L52
+                    let mut encoder = EncoderV1::new();
+                    encoder.write_var(MSG_SYNC);
+                    encoder.write_var(MSG_SYNC_UPDATE);
+                    encoder.write_buf(&event.update);
+                    let msg = encoder.to_vec();
                     callback(&msg);
                 })
                 .unwrap()
             };
 
             let callback = callback.clone();
+            let closed = closed.clone();
             let awareness_subscription = awareness.on_update(move |awareness, e| {
+                if closed.get().is_some() {
+                    return;
+                }
+
                 // https://github.com/y-crdt/y-sync/blob/56958e83acfd1f3c09f5dd67cf23c9c72f000707/src/net/broadcast.rs#L59
                 let added = e.added();
                 let updated = e.updated();
@@ -111,6 +130,7 @@ impl DocConnection {
             awareness_subscription,
             callback,
             client_id: OnceLock::new(),
+            closed,
         }
     }
 
@@ -177,6 +197,8 @@ impl DocConnection {
 
 impl Drop for DocConnection {
     fn drop(&mut self) {
+        self.closed.set(()).unwrap();
+
         // If this client had an awareness state, remove it.
         if let Some(client_id) = self.client_id.get() {
             let mut awareness = self.awareness.write().unwrap();

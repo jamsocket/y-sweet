@@ -1,11 +1,11 @@
-import { WebsocketProvider, type WebsocketProviderParams } from './websocket'
+import { YSweetProvider, type YSweetProviderParams } from './provider'
 import * as Y from 'yjs'
 import { ClientToken } from '@y-sweet/sdk'
 
-export { WebsocketProvider, WebsocketProviderParams }
+export { YSweetProvider, YSweetProviderParams }
 
 /**
- * Given a {@link ClientToken}, create a {@link WebsocketProvider} for it.
+ * Given a {@link ClientToken}, create a {@link YSweetProvider} for it.
  *
  * @param doc
  * @param clientToken
@@ -15,11 +15,11 @@ export { WebsocketProvider, WebsocketProviderParams }
 export function createYjsProvider(
   doc: Y.Doc,
   clientToken: ClientToken,
-  extraOptions: Partial<WebsocketProviderParams> = {},
-): WebsocketProvider {
+  extraOptions: Partial<YSweetProviderParams> = {},
+): YSweetProvider {
   const params = clientToken.token ? { token: clientToken.token } : undefined
 
-  const provider = new WebsocketProvider(clientToken.url, clientToken.doc, doc, {
+  const provider = new YSweetProvider(clientToken.url, clientToken.doc, doc, {
     params,
     ...extraOptions,
   })

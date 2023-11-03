@@ -1,8 +1,6 @@
-use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use worker::Bucket;
-use y_sweet_core::store::Store;
-
+use y_sweet_core::store::{Result, Store, StoreError};
 pub struct R2Store {
     bucket: Bucket,
     path_prefix: Option<String>,
@@ -27,20 +25,26 @@ impl R2Store {
 
 #[async_trait(?Send)]
 impl Store for R2Store {
+    async fn init(&self) -> Result<()> {
+        Ok(())
+    }
+
     async fn get(&self, key: &str) -> Result<Option<Vec<u8>>> {
         let object = self
             .bucket
             .get(&self.prefixed_key(key))
             .execute()
             .await
-            .map_err(|_| anyhow!("Failed to get object"))?;
+            .map_err(|_| StoreError::ConnectionError("Failed to get object".into()))?;
         if let Some(object) = object {
             let bytes = object
                 .body()
-                .ok_or_else(|| anyhow!("Object does not have body."))?
+                .ok_or_else(|| StoreError::ConnectionError("Object does not have body.".into()))?
                 .bytes()
                 .await
-                .map_err(|e| anyhow!("Failed to get object bytes {e}"))?;
+                .map_err(|e| {
+                    StoreError::ConnectionError(format!("Failed to get object bytes {e}"))
+                })?;
             Ok(Some(bytes))
         } else {
             Ok(None)
@@ -52,7 +56,7 @@ impl Store for R2Store {
             .put(&self.prefixed_key(key), value)
             .execute()
             .await
-            .map_err(|e| anyhow!("Failed to put object {e}"))?;
+            .map_err(|e| StoreError::ConnectionError(format!("Failed to put object {e}")))?;
         Ok(())
     }
 
@@ -65,6 +69,6 @@ impl Store for R2Store {
             .head(&self.prefixed_key(key))
             .await
             .map(|r| r.is_some())
-            .map_err(|e| anyhow!("Failed to head object {e}"))
+            .map_err(|e| StoreError::ConnectionError(format!("Failed to head object {e}")))
     }
 }
