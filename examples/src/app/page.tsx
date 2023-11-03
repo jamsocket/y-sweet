@@ -45,11 +45,7 @@ export default async function Home({ searchParams }: HomeProps) {
           url="/voxels"
           description="A collaborative voxel drawing app."
         />
-        <ProjectLink
-          name="Live Cursors"
-          url="/presence"
-          description="Live directional cursors."
-        />
+        <ProjectLink name="Live Cursors" url="/presence" description="Live directional cursors." />
         <ProjectLink
           name="Whiteboard"
           url="/tldraw"
