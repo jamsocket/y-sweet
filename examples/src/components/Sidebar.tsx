@@ -48,7 +48,10 @@ function Nav({ curRoute, onClickLink }: { curRoute: string; onClickLink?: () => 
               To-do List
             </NavLink>
             <NavLink href="/text-editor" curRoute={curRoute}>
-              Text Editor
+              Quill Text Editor
+            </NavLink>
+            <NavLink href="/slate" curRoute={curRoute}>
+              Slate Text Editor
             </NavLink>
             <NavLink href="/code-editor" curRoute={curRoute}>
               Code Editor
@@ -58,6 +61,12 @@ function Nav({ curRoute, onClickLink }: { curRoute: string; onClickLink?: () => 
             </NavLink>
             <NavLink href="/voxels" curRoute={curRoute}>
               Voxel Draw
+            </NavLink>
+            <NavLink href="/whiteboard" curRoute={curRoute}>
+              Whiteboard
+            </NavLink>
+            <NavLink href="/presence" curRoute={curRoute}>
+              Live Cursors
             </NavLink>
           </ul>
           <h3 className="px-6 text-xs tracking-wide text-pink-100 mt-6 mb-2">LEARN</h3>

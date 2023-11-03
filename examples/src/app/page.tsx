@@ -55,11 +55,6 @@ export default async function Home({ searchParams }: HomeProps) {
           url="/tldraw"
           description="A collaborative whiteboard using tldraw."
         />
-        <ProjectLink
-          name="Whiteboard"
-          url="/presence"
-          description="A collaborative whiteboard using tldraw."
-        />
       </div>
     </div>
   )
