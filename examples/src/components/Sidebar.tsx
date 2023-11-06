@@ -153,7 +153,7 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
             </button>
           </div>
           {/* <main className="flex-1 p-8 relative z-0 h-full">{children}</main> */}
-          <div className="h-full lg:mt-2 lg:mb-2">{children}</div>
+          <div className="h-full lg:mt-2 lg:mb-2 overflow-hidden">{children}</div>
         </div>
       </div>
     </>

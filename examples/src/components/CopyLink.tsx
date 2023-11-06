@@ -23,7 +23,7 @@ export default function CopyLink() {
   }
 
   return (
-    <div className="text-left items-center text-neutral-500 border-2 border-yellow-200 rounded-lg bg-yellow-50 p-6 w-full">
+    <div className="mr-2 mb-2 text-left items-center text-neutral-500 border-2 border-yellow-200 rounded-lg bg-yellow-50 p-6 ">
       <div className="flex justify-between pb-2">
       <Title>How to collaborate on this document</Title>
       <button onClick={() => setHideCallout(true)}>

@@ -5,7 +5,6 @@ import { useCallback, useRef } from 'react'
 import type { CodemirrorBinding } from 'y-codemirror'
 import type { EditorFromTextArea } from 'codemirror'
 import Title from '@/components/Title'
-import CopyLink from '@/components/CopyLink'
 
 import 'codemirror/lib/codemirror.css'
 if (typeof navigator !== 'undefined') {
@@ -64,7 +63,6 @@ export function CodeEditor() {
       <div>
         <textarea ref={codeMirrorRef} />
       </div>
-      <CopyLink />
     </div>
   )
 }
