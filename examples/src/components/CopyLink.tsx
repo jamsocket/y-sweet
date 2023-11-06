@@ -1,33 +1,43 @@
 'use client'
 
 import { useState } from 'react'
-import { LinkIcon } from '@heroicons/react/24/outline'
+import { ArrowUpRightIcon, XMarkIcon } from '@heroicons/react/24/outline'
+
+import Title from '@/components/Title'
 
 export default function CopyLink() {
-  const [copied, setCopied] = useState(false)
+  const [hideCallout, setHideCallout] = useState(false)
 
-  const copyLinkToClipboard = () => {
+  const openLinkInNewTab = async () => {
     const currentPageURL = window.location.href
 
-    navigator.clipboard
-      .writeText(currentPageURL)
-      .then(() => {
-        setCopied(true)
-      })
-      .catch((error) => {
-        console.error('Failed to copy link: ', error)
-      })
+    try {
+      window.open(currentPageURL, '_blank');
+    } catch (err) {
+      console.error('Failed to copy: ', err);
+    }
+  }
+
+  if(hideCallout) {
+    return <></>
   }
 
   return (
-    <div className="pt-6 flex text-left items-center text-neutral-500">
-      <span className="pr-2">Share this document</span>
+    <div className="text-left items-center text-neutral-500 border-2 border-yellow-200 rounded-lg bg-yellow-50 p-6 w-full">
+      <div className="flex justify-between pb-2">
+      <Title>How to collaborate on this document</Title>
+      <button onClick={() => setHideCallout(true)}>
+        <XMarkIcon className="h-5 w-5 hover:text-black"/>
+      </button>
+      </div>
+      <span className="pr-2">To simulate another user appearing on this document, copy the link to this document and open it in a new window. When you interact on one screen, you should see the user action happens on another.
+      </span>
       <button
-        className="flex text-sm items-center gap-1 px-2 py-1 rounded-lg bg-neutral-50 border-white border transition-all hover:bg-white"
-        onClick={copyLinkToClipboard}
+        className="flex items-center gap-1 px-4 py-2 mt-4 rounded-lg bg-pink-950 text-white border transition-all "
+        onClick={openLinkInNewTab}
       >
-        <LinkIcon className="h-3 w-3" />
-        {copied ? 'Copied!' : 'Copy Link'}
+        Open link in a new tab
+        <ArrowUpRightIcon className="h-5 w-5 " />
       </button>
     </div>
   )
