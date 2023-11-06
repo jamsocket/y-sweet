@@ -21,9 +21,14 @@ export default async function Home({ searchParams }: HomeProps) {
           description="Create and edit items in a to do list."
         />
         <ProjectLink
-          name="Text Editor"
+          name="Text Editor with Quill"
           url="/text-editor"
           description="A collaborative text editor built on top of the open-source Quill package."
+        />
+        <ProjectLink
+          name="Text Editor with Slate"
+          url="/slate"
+          description="A collaborative text editor built on top of the open-source Slate package."
         />
         <ProjectLink
           name="Code Editor"
@@ -39,6 +44,12 @@ export default async function Home({ searchParams }: HomeProps) {
           name="Voxel Draw"
           url="/voxels"
           description="A collaborative voxel drawing app."
+        />
+        <ProjectLink name="Live Cursors" url="/presence" description="Live directional cursors." />
+        <ProjectLink
+          name="Whiteboard"
+          url="/tldraw"
+          description="A collaborative whiteboard using tldraw."
         />
       </div>
     </div>
