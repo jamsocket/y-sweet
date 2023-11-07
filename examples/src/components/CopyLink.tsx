@@ -1,13 +1,9 @@
 'use client'
-import { ArrowUpRightIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { ArrowUpRightIcon } from '@heroicons/react/24/outline'
 
 import Title from '@/components/Title'
 
-interface CopyLinkProps {
-  hidden: boolean
-}
-
-export default function CopyLink(props: CopyLinkProps) {
+export default function CopyLink() {
 
   const openLinkInNewTab = async () => {
     const currentPageURL = window.location.href
@@ -18,12 +14,7 @@ export default function CopyLink(props: CopyLinkProps) {
       console.error('Failed to copy: ', err)
     }
   }
-  //exclude from whiteboard, and toc
-  // make it so you cant x it out, reduce vertical space
 
-  if(props.hidden) {
-    return <></>
-  }
   return (
     <div className="mr-2 mb-2 text-left items-center text-neutral-500 border-2 border-yellow-200 rounded-lg bg-yellow-50 px-6 py-3">
       <div className="flex justify-between items-center pb-1">
