@@ -8,13 +8,10 @@ export const metadata: Metadata = {
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-
   return (
     <html lang="en">
       <body className="bg-[radial-gradient(at_bottom_left,_var(--tw-gradient-stops))] from-pink-50 to-pink-900">
-        <Sidebar>
-            {children}
-        </Sidebar>
+        <Sidebar>{children}</Sidebar>
       </body>
     </html>
   )

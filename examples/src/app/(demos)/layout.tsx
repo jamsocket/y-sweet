@@ -1,7 +1,6 @@
 import CopyLink from '@/components/CopyLink'
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-
   return (
     <>
       <CopyLink />
