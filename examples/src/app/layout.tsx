@@ -1,7 +1,6 @@
 import './globals.css'
 import type { Metadata } from 'next'
 import Sidebar from '@/components/Sidebar'
-import CopyLink from '@/components/CopyLink'
 
 export const metadata: Metadata = {
   title: 'y-sweet demos',
