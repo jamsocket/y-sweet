@@ -1,17 +1,21 @@
 'use client'
 import { ArrowUpRightIcon } from '@heroicons/react/24/outline'
+import { usePathname, useSearchParams } from 'next/navigation'
 
 import Title from '@/components/Title'
 
 export default function CopyLink() {
+  const pathname = usePathname()
+  const params = useSearchParams()
+
   return (
-    <div className="mr-2 mb-2 text-left items-center text-neutral-500 border-2 border-yellow-200 rounded-lg bg-yellow-50 px-6 py-3">
+    <div className="mb-2 text-left items-center text-neutral-500 border-2 border-yellow-200 rounded-lg bg-yellow-50 px-6 py-3">
       <div className="flex justify-between items-center pb-1">
         <Title>Collaborate on this document</Title>
         <div className="flex">
           <a
             className="text-sm flex items-center gap-1 px-3 py-1 rounded-lg bg-pink-950 text-white border transition-all "
-            href={window.location.href}
+            href={`${pathname}?doc=${params.get('doc')}`}
             target="_blank"
           >
             Open link in a new tab
