@@ -8,7 +8,7 @@ export default function TldrawExample() {
   const store = useYjsStore()
 
   return (
-    <div className="tldraw__editor h-full">
+    <div className="tldraw__editor h-full sm:mr-2 sm:rounded-lg overflow-hidden bg-white">
       <Tldraw autoFocus store={store} shareZone={<NameEditor />} />
     </div>
   )
