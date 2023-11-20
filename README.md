@@ -36,6 +36,12 @@ y-sweet is MIT-licensed, and was created by [Drifting in Space](https://drifting
 - [Y-Sweet Cloud (managed service) docs](https://y-sweet.cloud/quickstart)
 - [Self Hosting](/docs/running)
 
+## Examples
+
+Explore our [collaborative examples](https://github.com/drifting-in-space/y-sweet) to help you get started.
+
+All examples are open source and live in this repository, within [/examples](https://github.com/drifting-in-space/y-sweet/tree/main/examples).
+
 ## Packages
 
 ### Server

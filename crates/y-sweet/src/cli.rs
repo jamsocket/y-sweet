@@ -28,7 +28,7 @@ pub fn print_server_url(auth: Option<&Authenticator>, url_prefix: Option<&Url>, 
     println!();
     println!("For example, the y-sweet examples expect this connection string as an environment variable:");
     println!();
-    println!("    cd examples/");
+    println!("    cd examples/nextjs");
     println!(
         "    CONNECTION_STRING={} npm run dev",
         token.bright_purple()
