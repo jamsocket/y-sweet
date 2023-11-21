@@ -1,0 +1,12 @@
+{
+  "extends": "prettier",
+  "env": {
+    "browser": true,
+    "node": true,
+    "es2024": true
+  },
+  "parserOptions": {
+    "ecmaVersion": "latest",
+    "sourceType": "module"
+  }
+}

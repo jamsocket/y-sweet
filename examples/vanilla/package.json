@@ -1,0 +1,25 @@
+{
+  "name": "examples-vanilla",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite src --port 3000",
+    "server": "node src/server.js",
+    "lint": "eslint src",
+    "format": "prettier --write \"**/*.js\""
+  },
+  "dependencies": {
+    "@y-sweet/client": "0.0.9",
+    "@y-sweet/sdk": "0.0.9",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "yjs": "^13.6.7"
+  },
+  "devDependencies": {
+    "eslint": "8.45.0",
+    "eslint-config-prettier": "^9.0.0",
+    "prettier": "^3.0.0",
+    "vite": "^5.0.0"
+  }
+}
