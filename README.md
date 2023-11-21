@@ -34,7 +34,7 @@ y-sweet is MIT-licensed, and was created by [Drifting in Space](https://drifting
     - [React hooks](https://docs.y-sweet.dev/modules/_y_sweet_react.html)
     - [Document management SDK](https://docs.y-sweet.dev/modules/_y_sweet_sdk.html)
 - [Y-Sweet Cloud (managed service) docs](https://y-sweet.cloud/quickstart)
-- [Self Hosting](/docs/running)
+- [Self Hosting](/docs/running.md)
 
 ## Examples
 
