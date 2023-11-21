@@ -8,5 +8,5 @@ This demo requires a connection string for a running Y-Sweet server. You can get
 
 1. `npm install`
 2. `npm run dev`
-3. In another tab, `CONNECTION_STRING=<your-connection-string> npm run server`
+3. In another terminal, `CONNECTION_STRING=<your-connection-string> npm run server`
 4. Open [http://localhost:3000](http://localhost:3000) in your browser.
