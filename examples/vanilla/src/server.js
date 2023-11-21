@@ -5,7 +5,7 @@ import { getOrCreateDoc } from '@y-sweet/sdk'
 const app = express()
 app.use(cors())
 
-const PORT = 8080
+const PORT = 9090
 const CONNECTION_STRING = process.env.CONNECTION_STRING
 
 if (!CONNECTION_STRING) {

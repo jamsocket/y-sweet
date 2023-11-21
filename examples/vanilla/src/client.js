@@ -9,7 +9,7 @@ const QUERY_PARAM = 'doc'
 async function main() {
   // First, fetch a client token that can access the docId in the URL.
   // Or, if the URL does not contain a docId, get a client token for a new doc.
-  const url = new URL('http://localhost:8080/client-token')
+  const url = new URL('http://localhost:9090/client-token')
   const searchParams = new URLSearchParams(window.location.search)
   const docId = searchParams.get(QUERY_PARAM)
   if (docId) url.searchParams.set(QUERY_PARAM, docId)
