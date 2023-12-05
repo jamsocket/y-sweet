@@ -49,7 +49,7 @@ Check the [vanilla js example](/examples/vanilla/) for more details.
 ### On the server
 ``` js
 import { createDoc } from '@y-sweet/sdk'
-// Get the client token from the y-sweet server. This is basically the user's "password" to edit the "myDoc123" doc.
+// Get the client token from the y-sweet server. The client token is like the user's "password" to edit the "myDoc123" doc.
 const clientToken = await createDoc('myDoc123')
 ```
 
