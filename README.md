@@ -42,6 +42,46 @@ Explore our [collaborative examples](https://github.com/drifting-in-space/y-swee
 
 All examples are open source and live in this repository, within [/examples](https://github.com/drifting-in-space/y-sweet/tree/main/examples).
 
+## Usage
+
+Check the [vanilla js example](/examples/vanilla/) for more details.
+
+### On the server
+``` js
+import { createDoc } from '@y-sweet/sdk'
+
+// Pass in a CONNECTION_STRING, which you can get from running npx y-sweet@latest serve locally or from y-sweet cloud
+const manager = new DocumentManager(CONNECTION_STRING)
+
+// Create a doc
+const { doc } = await manager.createDoc({doc: 'myDoc123'})
+
+// Get the client token from the y-sweet server. The client token is like the user's "password" to edit the "myDoc123" doc.
+const clientToken = await manager.getClientToken(doc, {})
+```
+
+### On the client
+``` js
+import * as Y from 'yjs';
+import { createYjsProvider } from '@y-sweet/client';
+
+// Create the yjs doc and link it to the y-sweet server:
+const doc = new Y.Doc();
+createYjsProvider(doc, clientToken);
+
+// Now use the doc like a normal yjs doc!
+let mySharedMap = doc.getMap('thing');
+mySharedMap.set("foo", 123);
+
+// Update your UI based on `mySharedMap` changes like this, for example:
+mySharedMap.observe((event) => {
+  event.keysChanged.forEach((key) => {
+    // do whatever you want based on the detected change:
+    yourUpdateFunction(key, mySharedMap.get(key));
+  });
+});
+```
+
 ## Packages
 
 ### Server
