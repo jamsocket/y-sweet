@@ -48,12 +48,10 @@ Check the [vanilla js example](/examples/vanilla/) for more details.
 
 ### On the server
 ``` js
-import {createDoc } from '@y-sweet/sdk'
+import { createDoc } from '@y-sweet/sdk'
 // Get the client token from the y-sweet server. This is basically the user's "password" to edit the "myDoc123" doc.
-// A connection string is the bridge between your server and y-sweet. You can think of it as an API key and auth combined.
 app.get('/client-token', async (req, res) => {
-  const docId = req.query.doc ?? undefined
-  const clientToken = await getOrCreateDoc(docId, CONNECTION_STRING)
+  const clientToken = await createDoc('myDoc123')
   res.send(clientToken)
 })
 ```
