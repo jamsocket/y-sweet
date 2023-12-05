@@ -50,19 +50,13 @@ Check the [vanilla js example](/examples/vanilla/) for more details.
 ``` js
 import { createDoc } from '@y-sweet/sdk'
 // Get the client token from the y-sweet server. This is basically the user's "password" to edit the "myDoc123" doc.
-app.get('/client-token', async (req, res) => {
-  const clientToken = await createDoc('myDoc123')
-  res.send(clientToken)
-})
+const clientToken = await createDoc('myDoc123')
 ```
 
 ### On the client
 ``` js
 import * as Y from 'yjs';
 import { createYjsProvider } from '@y-sweet/client';
-
-// First, fetch a client token that can access the docId in the URL.
-const clientToken = await fetch("http://localhost:9090/client-token").then(r => r.json())
 
 // Create the yjs doc and link it to the y-sweet server:
 const doc = new Y.Doc();
