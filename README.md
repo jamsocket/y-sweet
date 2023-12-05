@@ -42,18 +42,29 @@ Explore our [collaborative examples](https://github.com/drifting-in-space/y-swee
 
 All examples are open source and live in this repository, within [/examples](https://github.com/drifting-in-space/y-sweet/tree/main/examples).
 
-### From our [vanilla js](/examples/vanilla/) demo
+## Usage
 
+Check the [vanilla js example](/examples/vanilla/) for more details.
+
+### On the server
 ``` js
-// Run this command to start the Y-Sweet server: npx y-sweet@latest serve
-// Run this server with the connection string form the above command: https://github.com/drifting-in-space/y-sweet/blob/main/examples/vanilla/src/server.js
+import {createDoc } from '@y-sweet/sdk'
+// Get the client token from the y-sweet server. This is basically the user's "password" to edit the "myDoc123" doc.
+// A connection string is the bridge between your server and y-sweet. You can think of it as an API key and auth combined.
+app.get('/client-token', async (req, res) => {
+  const docId = req.query.doc ?? undefined
+  const clientToken = await getOrCreateDoc(docId, CONNECTION_STRING)
+  res.send(clientToken)
+})
+```
 
-// Add this JS code to an index.html
+### On the client
+``` js
 import * as Y from 'yjs';
 import { createYjsProvider } from '@y-sweet/client';
 
-// Get the client token from the y-sweet server. This is basically the user's "password" to edit the "myDoc123" doc.
-let clientToken = await fetch("http://localhost:9090/client-token?doc=myDoc123").then(r => r.json());
+// First, fetch a client token that can access the docId in the URL.
+const clientToken = await fetch("http://localhost:9090/client-token").then(r => r.json())
 
 // Create the yjs doc and link it to the y-sweet server:
 const doc = new Y.Doc();
