@@ -49,8 +49,15 @@ Check the [vanilla js example](/examples/vanilla/) for more details.
 ### On the server
 ``` js
 import { createDoc } from '@y-sweet/sdk'
+
+// Pass in a CONNECTION_STRING, which you can get from running npx y-sweet@latest serve locally or from y-sweet cloud
+const manager = new DocumentManager(CONNECTION_STRING)
+
+// Create a doc
+const { doc } = await manager.createDoc('myDoc123')
+
 // Get the client token from the y-sweet server. The client token is like the user's "password" to edit the "myDoc123" doc.
-const clientToken = await createDoc('myDoc123')
+const clientToken = await manager.getClientToken(doc, {})
 ```
 
 ### On the client
