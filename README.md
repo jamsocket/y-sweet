@@ -54,7 +54,7 @@ import { createDoc } from '@y-sweet/sdk'
 const manager = new DocumentManager(CONNECTION_STRING)
 
 // Create a doc
-const { doc } = await manager.createDoc('myDoc123')
+const { doc } = await manager.createDoc({doc: 'myDoc123'})
 
 // Get the client token from the y-sweet server. The client token is like the user's "password" to edit the "myDoc123" doc.
 const clientToken = await manager.getClientToken(doc, {})
@@ -67,7 +67,7 @@ import { createYjsProvider } from '@y-sweet/client';
 
 // Create the yjs doc and link it to the y-sweet server:
 const doc = new Y.Doc();
-createYjsProvider(doc, clientToken, { disableBc: true });
+createYjsProvider(doc, clientToken);
 
 // Now use the doc like a normal yjs doc!
 let mySharedMap = doc.getMap('thing');
