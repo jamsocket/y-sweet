@@ -96,7 +96,7 @@ async fn new_doc(
         .await
         .map_err(|_| Error::BadRequest)?;
 
-    let doc_id = body.doc.unwrap_or_else(|| nanoid::nanoid!());
+    let doc_id = body.doc_id.unwrap_or_else(|| nanoid::nanoid!());
 
     if !validate_doc_name(&doc_id) {
         return Err(Error::InvalidDocName);
@@ -107,7 +107,7 @@ async fn new_doc(
 
     dwskv.sync_kv().persist().await.unwrap();
 
-    let response = NewDocResponse { doc: doc_id };
+    let response = NewDocResponse { doc_id };
 
     Ok(response)
 }
@@ -203,7 +203,7 @@ async fn auth_doc(
 
     Ok(ClientToken {
         url,
-        doc: doc_id.to_string(),
+        doc_id: doc_id.to_string(),
         token,
     })
 }
