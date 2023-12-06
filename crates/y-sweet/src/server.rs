@@ -172,7 +172,7 @@ impl Server {
 
         let app = Router::new()
             .route("/check_store", get(check_store))
-            .route("/doc/ws/:doc_id", get(handler))
+            .route("/doc/ws/:doc_id", get(handle_socket_upgrade))
             .route("/doc/new", post(new_doc))
             .route("/doc/:doc_id/auth", post(auth_doc))
             .with_state(server_state);
@@ -191,7 +191,7 @@ struct HandlerParams {
     token: Option<String>,
 }
 
-async fn handler(
+async fn handle_socket_upgrade(
     ws: WebSocketUpgrade,
     Path(doc_id): Path<String>,
     Query(params): Query<HandlerParams>,
