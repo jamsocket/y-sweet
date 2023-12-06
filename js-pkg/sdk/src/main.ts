@@ -253,7 +253,7 @@ export class DocumentManager {
    * client.
    *
    * @param docId The ID of the document to get a token for.
-   * @returns
+   * @returns A {@link ClientToken} object containing the URL and token needed to connect to the document.
    */
   public async getClientToken(docId: string | DocCreationResult): Promise<ClientToken> {
     if (typeof docId !== 'string') {
@@ -267,15 +267,27 @@ export class DocumentManager {
     const responseBody = (await result.json()) as ClientToken
     return responseBody
   }
+
+  /**
+   * A convenience wrapper around {@link DocumentManager.createDoc} and {@link DocumentManager.getClientToken} for
+   * getting a client token for a document. If a docId is provided, ensures that a document exists with that ID or
+   * that one is created. If no docId is provided, a new document is created with a random ID.
+   *
+   * @param docId The ID of the document to get or create. If not provided, a new document with a random ID will be created.
+   * @returns A {@link ClientToken} object containing the URL and token needed to connect to the document.
+   */
+  public async getOrCreateDocAndToken(docId?: string): Promise<ClientToken> {
+    const result = await this.createDoc(docId)
+    return await this.getClientToken(result)
+  }
 }
 
 /**
- * A convenience wrapper around {@link DocumentManager.createDoc} and {@link DocumentManager.getClientToken} for
- * getting a client token for a document, given a value which may be a
- * document ID or `undefined`.
+ * A convenience wrapper around {@link DocumentManager.getOrCreateDocAndToken} for getting or creating a document
+ * with the given ID and returning a client token for accessing it.
  *
  * @param connectionString A connection string (starting with `ys://` or `yss://`) referring to a y-sweet server.
- * @param docId The ID of the document to get a token for. If `undefined`, a new doc is created.
+ * @param docId The ID of the document to get or create. If not provided, a new document with a random ID will be created.
  * @returns A {@link ClientToken} object containing the URL and token needed to connect to the document.
  */
 export async function getOrCreateDocAndToken(
@@ -283,8 +295,7 @@ export async function getOrCreateDocAndToken(
   docId?: string,
 ): Promise<ClientToken> {
   const manager = new DocumentManager(connectionString)
-  const result = await manager.createDoc(docId)
-  return await manager.getClientToken(result)
+  return await manager.getOrCreateDocAndToken(docId)
 }
 
 /**
