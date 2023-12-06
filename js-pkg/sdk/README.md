@@ -38,7 +38,7 @@ of the same. This makes it easy to store the server token in a secret store, and
 
 ``` tsx filename="Home.tsx"
 import { YDocProvider } from '@y-sweet/react'
-import { getOrCreateDoc } from '@y-sweet/sdk'
+import { getOrCreateDocAndToken } from '@y-sweet/sdk'
 
 type HomeProps = {
   searchParams: Record<string, string>
@@ -46,9 +46,9 @@ type HomeProps = {
 
 export default async function Home({ searchParams }: HomeProps) {
     // Point to a local or production y-sweet server.
-    const apiEndpoint = "http://localhost:8080"
+    const connectionString = "ys://localhost:8080"
 
-    const clientToken = await getOrCreateDoc(searchParams.doc, apiEndpoint)
+    const clientToken = await getOrCreateDocAndToken(connectionString, searchParams.doc)
 
     return (
         <YDocProvider clientToken={clientToken} setQueryParam="doc">
