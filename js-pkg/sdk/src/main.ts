@@ -1,16 +1,11 @@
 import crypto from 'crypto'
 
-export type DocCreationRequest = {
-  /** The ID of the document to create. If not provided, a random ID will be generated. */
-  doc?: string
-}
-
 /**
  * Schema of object returned after a successful document creation.
  */
 export type DocCreationResult = {
   /** A unique identifier for the created document. */
-  doc: string
+  docId: string
 }
 
 /**
@@ -25,7 +20,7 @@ export type ClientToken = {
   url: string
 
   /** A unique identifier for the document that the token connects to. */
-  doc: string
+  docId: string
 
   /** A string that grants the bearer access to the document. By default, the development server does not require a token. */
   token?: string
@@ -140,8 +135,8 @@ export class DocumentManager {
    *
    * @param serverToken A connection string (starting with `ys://` or `yss://`) referring to a y-sweet server.
    */
-  constructor(connectionString?: string) {
-    const parsedUrl = new URL(connectionString || 'http://127.0.0.1:8080')
+  constructor(connectionString: string) {
+    const parsedUrl = new URL(connectionString)
 
     let token
     if (parsedUrl.username) {
@@ -234,16 +229,20 @@ export class DocumentManager {
   }
 
   /**
-   * Create a new, empty document on the y-sweet server.
+   * Creates a new document on the y-sweet server given an optional docId. If a document with given
+   * ID already exists, this is a no-op.
    *
+   * @param docId The ID of the document to be created. If not provided, a random ID will be generated.
    * @returns A {@link DocCreationResult} object containing the ID of the created document.
    */
-  public async createDoc(request?: DocCreationRequest): Promise<DocCreationResult> {
-    const result = await this.doFetch('doc/new', 'POST', request || {})
+  public async createDoc(docId?: string): Promise<DocCreationResult> {
+    const body = docId ? { docId } : {}
+    const result = await this.doFetch('doc/new', 'POST', body)
     if (!result.ok) {
       throw new Error(`Failed to create doc: ${result.status} ${result.statusText}`)
     }
-    return result.json()
+    const responseBody = (await result.json()) as DocCreationResult
+    return responseBody
   }
 
   /**
@@ -254,30 +253,20 @@ export class DocumentManager {
    * client.
    *
    * @param docId The ID of the document to get a token for.
-   * @param request Metadata associated with the request.
    * @returns
    */
-  public async getClientToken(
-    docId: string | DocCreationResult,
-    request: AuthDocRequest,
-  ): Promise<ClientToken> {
+  public async getClientToken(docId: string | DocCreationResult): Promise<ClientToken> {
     if (typeof docId !== 'string') {
-      docId = docId.doc
+      docId = docId.docId
     }
 
-    const result = await this.doFetch(`doc/${docId}/auth`, 'POST', request)
+    const result = await this.doFetch(`doc/${docId}/auth`, 'POST', {})
     if (!result.ok) {
       throw new Error(`Failed to auth doc ${docId}: ${result.status} ${result.statusText}`)
     }
-    return result.json()
+    const responseBody = (await result.json()) as ClientToken
+    return responseBody
   }
-}
-
-/** Request to authorize a document. Currently ignored by y-sweet server. */
-export type AuthDocRequest = {
-  // authorization?: 'none' | 'readonly' | 'full'
-  // user_id?: string
-  // metadata?: Record<string, any>
 }
 
 /**
@@ -285,50 +274,48 @@ export type AuthDocRequest = {
  * getting a client token for a document, given a value which may be a
  * document ID or `undefined`.
  *
- * @param docId The ID of the document to get a token for. If `undefined`, a new doc is created.
  * @param connectionString A connection string (starting with `ys://` or `yss://`) referring to a y-sweet server.
+ * @param docId The ID of the document to get a token for. If `undefined`, a new doc is created.
  * @returns A {@link ClientToken} object containing the URL and token needed to connect to the document.
  */
-export async function getOrCreateDoc(
+export async function getOrCreateDocAndToken(
+  connectionString: string,
   docId?: string,
-  connectionString?: string,
 ): Promise<ClientToken> {
   const manager = new DocumentManager(connectionString)
-
-  if (!docId) {
-    const result = await manager.createDoc()
-    docId = result.doc
-  }
-
-  return await manager.getClientToken(docId, {})
+  const result = await manager.createDoc(docId)
+  return await manager.getClientToken(result)
 }
 
 /**
  * A convenience wrapper around {@link DocumentManager.getClientToken} for getting a client token for a document.
  *
- * @param docId The ID of the document to get a token for.
- * @param request Metadata associated with the request (currently ignored by y-sweet server).
  * @param connectionString A connection string (starting with `ys://` or `yss://`) referring to a y-sweet server.
+ * @param docId The ID of the document to get a token for.
  * @returns A {@link ClientToken} object containing the URL and token needed to connect to the document.
  */
 export async function getClientToken(
+  connectionString: string,
   docId: string | DocCreationResult,
-  request: AuthDocRequest,
-  connectionString?: string,
 ): Promise<ClientToken> {
   const manager = new DocumentManager(connectionString)
-  return await manager.getClientToken(docId, request)
+  return await manager.getClientToken(docId)
 }
 
 /**
- * A convenience wrapper around {@link DocumentManager.createDoc} for creating a new document.
+ * A convenience wrapper around {@link DocumentManager.createDoc} for creating a new document. If a document with the
+ * given ID already exists, this is a no-op.
  *
  * @param connectionString A connection string (starting with `ys://` or `yss://`) referring to a y-sweet server.
+ * @param docId The ID of the document to create. If not provided, a random ID will be generated.
  * @returns A {@link DocCreationResult} object containing the ID of the created document.
  */
-export async function createDoc(connectionString?: string): Promise<DocCreationResult> {
+export async function createDoc(
+  connectionString: string,
+  docId?: string,
+): Promise<DocCreationResult> {
   const manager = new DocumentManager(connectionString)
-  return await manager.createDoc()
+  return await manager.createDoc(docId)
 }
 
 function stringToBase64(input: string) {

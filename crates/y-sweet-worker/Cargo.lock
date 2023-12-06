@@ -1587,7 +1587,7 @@ dependencies = [
 
 [[package]]
 name = "y-sweet-core"
-version = "0.0.12"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1611,7 +1611,7 @@ dependencies = [
 
 [[package]]
 name = "y-sweet-worker"
-version = "0.0.9"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",

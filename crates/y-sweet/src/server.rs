@@ -172,7 +172,7 @@ impl Server {
 
         let app = Router::new()
             .route("/check_store", get(check_store))
-            .route("/doc/ws/:doc_id", get(handler))
+            .route("/doc/ws/:doc_id", get(handle_socket_upgrade))
             .route("/doc/new", post(new_doc))
             .route("/doc/:doc_id/auth", post(auth_doc))
             .with_state(server_state);
@@ -191,7 +191,7 @@ struct HandlerParams {
     token: Option<String>,
 }
 
-async fn handler(
+async fn handle_socket_upgrade(
     ws: WebSocketUpgrade,
     Path(doc_id): Path<String>,
     Query(params): Query<HandlerParams>,
@@ -273,7 +273,7 @@ async fn new_doc(
 ) -> Result<Json<NewDocResponse>, StatusCode> {
     server_state.check_auth(authorization)?;
 
-    let doc_id = if let Some(doc_id) = body.doc {
+    let doc_id = if let Some(doc_id) = body.doc_id {
         if !validate_doc_name(doc_id.as_str()) {
             return Err(StatusCode::BAD_REQUEST);
         }
@@ -294,7 +294,7 @@ async fn new_doc(
         })?
     };
 
-    Ok(Json(NewDocResponse { doc: doc_id }))
+    Ok(Json(NewDocResponse { doc_id }))
 }
 
 async fn auth_doc(
@@ -327,9 +327,5 @@ async fn auth_doc(
         format!("ws://{host}/doc/ws")
     };
 
-    Ok(Json(ClientToken {
-        url,
-        doc: doc_id,
-        token,
-    }))
+    Ok(Json(ClientToken { url, doc_id, token }))
 }

@@ -201,15 +201,15 @@ export function YDocProvider(props: YDocProviderProps) {
       provider.destroy()
       doc.destroy()
     }
-  }, [clientToken.token, clientToken.url, clientToken.doc])
+  }, [clientToken.token, clientToken.url, clientToken.docId])
 
   useEffect(() => {
     if (props.setQueryParam) {
       const url = new URL(window.location.href)
-      url.searchParams.set(props.setQueryParam, clientToken.doc)
+      url.searchParams.set(props.setQueryParam, clientToken.docId)
       window.history.replaceState({}, '', url.toString())
     }
-  }, [props.setQueryParam, clientToken.doc])
+  }, [props.setQueryParam, clientToken.docId])
 
   if (ctx === null) return null
 
