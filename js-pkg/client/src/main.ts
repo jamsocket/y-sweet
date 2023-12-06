@@ -19,7 +19,7 @@ export function createYjsProvider(
 ): YSweetProvider {
   const params = clientToken.token ? { token: clientToken.token } : undefined
 
-  const provider = new YSweetProvider(clientToken.url, clientToken.doc, doc, {
+  const provider = new YSweetProvider(clientToken.url, clientToken.docId, doc, {
     params,
     ...extraOptions,
   })
