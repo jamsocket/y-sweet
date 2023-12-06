@@ -229,7 +229,7 @@ export class DocumentManager {
   }
 
   /**
-   * Creates a new document on the y-sweet server given an optional docId. If document with given
+   * Creates a new document on the y-sweet server given an optional docId. If a document with given
    * ID already exists, this is a no-op.
    *
    * @param docId The ID of the document to be created. If not provided, a random ID will be generated.
