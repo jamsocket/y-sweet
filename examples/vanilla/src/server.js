@@ -1,6 +1,6 @@
 import express from 'express'
 import cors from 'cors'
-import { getOrCreateDoc } from '@y-sweet/sdk'
+import { getOrCreateDocAndToken } from '@y-sweet/sdk'
 
 const app = express()
 app.use(cors())
@@ -30,7 +30,7 @@ app.get('/client-token', async (req, res) => {
   } else {
     console.log('Received client token request for new doc')
   }
-  const clientToken = await getOrCreateDoc(docId, CONNECTION_STRING)
+  const clientToken = await getOrCreateDocAndToken(CONNECTION_STRING, docId)
   res.send(clientToken)
 })
 
