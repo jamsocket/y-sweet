@@ -48,7 +48,10 @@ function Nav({ curRoute, onClickLink }: { curRoute: string; onClickLink?: () => 
               To-do List
             </NavLink>
             <NavLink href="/text-editor" curRoute={curRoute}>
-              Text Editor
+              Quill Text Editor
+            </NavLink>
+            <NavLink href="/slate" curRoute={curRoute}>
+              Slate Text Editor
             </NavLink>
             <NavLink href="/code-editor" curRoute={curRoute}>
               Code Editor
@@ -58,6 +61,12 @@ function Nav({ curRoute, onClickLink }: { curRoute: string; onClickLink?: () => 
             </NavLink>
             <NavLink href="/voxels" curRoute={curRoute}>
               Voxel Draw
+            </NavLink>
+            <NavLink href="/tldraw" curRoute={curRoute}>
+              Whiteboard
+            </NavLink>
+            <NavLink href="/presence" curRoute={curRoute}>
+              Live Cursors
             </NavLink>
           </ul>
           <h3 className="px-6 text-xs tracking-wide text-pink-100 mt-6 mb-2">LEARN</h3>
@@ -152,8 +161,7 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
               <Bars3Icon className="h-6 w-6" aria-hidden="true" />
             </button>
           </div>
-          {/* <main className="flex-1 p-8 relative z-0 h-full">{children}</main> */}
-          <div className="h-full lg:mt-2 lg:mb-2">{children}</div>
+          <div className="h-full lg:mt-2 lg:mb-2 ml-2 mr-2 lg:ml-0 overflow-y-auto">{children}</div>
         </div>
       </div>
     </>

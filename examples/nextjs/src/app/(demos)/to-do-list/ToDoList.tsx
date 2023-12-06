@@ -4,7 +4,6 @@ import { useArray } from '@y-sweet/react'
 import { useCallback, useState } from 'react'
 import * as Y from 'yjs'
 import Title from '@/components/Title'
-import CopyLink from '@/components/CopyLink'
 
 type ToDoItem = {
   text: string
@@ -119,7 +118,6 @@ export function ToDoList() {
       >
         Clear Completed
       </button>
-      <CopyLink />
     </div>
   )
 }

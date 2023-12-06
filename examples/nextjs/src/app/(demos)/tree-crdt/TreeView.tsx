@@ -5,7 +5,6 @@ import { LayoutNode, NodeBox, Point } from './tree_layout'
 import { ROOT_ID, YTree, YTreeNode } from './ytree'
 import { useMap } from '@y-sweet/react'
 import * as Y from 'yjs'
-import CopyLink from '@/components/CopyLink'
 import Paragraph from '@/components/Paragraph'
 import { Link } from '@/components/Link'
 
@@ -221,7 +220,6 @@ export function TreeView() {
         it.
       </Paragraph>
       {tree && <Tree root={tree} />}
-      <CopyLink />
     </div>
   )
 }

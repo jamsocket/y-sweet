@@ -9,7 +9,7 @@ npm install
 To develop on examples, run from repo root:
 
 ```
-npm run dev -w examples
+npm run dev -w examples/nextjs
 ```
 
 To develop on JS packages, run in two tabs from repo root:
