@@ -52,7 +52,7 @@ import { getOrCreateDocAndToken } from '@y-sweet/sdk'
 
 // Get the client token from the y-sweet server. The client token is like the user's "password" to edit the "myDoc123" doc.
 // Pass in a CONNECTION_STRING, which you can get from running npx y-sweet@latest serve locally or from y-sweet cloud
-const clientToken = await getOrCreateDocAndToken(CONNECTION_STRING)
+const clientToken = await getOrCreateDocAndToken(CONNECTION_STRING, 'myDoc123')
 ```
 
 ### On the client
