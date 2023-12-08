@@ -3,7 +3,6 @@ use crate::sync::{
     awareness::{Awareness, Event},
     DefaultProtocol, Message, Protocol, SyncMessage, MSG_SYNC, MSG_SYNC_UPDATE,
 };
-use lib0::encoding::Write;
 use std::sync::{Arc, OnceLock, RwLock};
 use yrs::{
     block::ClientID,
@@ -11,7 +10,7 @@ use yrs::{
         decoder::Decode,
         encoder::{Encode, Encoder, EncoderV1},
     },
-    ReadTxn, Subscription, Transact, Update, UpdateSubscription,
+    ReadTxn, Subscription, Transact, Update, UpdateSubscription, encoding::write::Write,
 };
 
 // TODO: this is an implementation detail and should not be exposed.
