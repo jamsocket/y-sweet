@@ -27,8 +27,8 @@ function createYjsProvider(
 const CONFIGURATIONS: ServerConfiguration[] = [
   { useAuth: false, server: 'native' },
   { useAuth: true, server: 'native' },
-  { useAuth: false, server: 'worker' },
-  { useAuth: true, server: 'worker' },
+  // { useAuth: false, server: 'worker' },
+  // { useAuth: true, server: 'worker' },
 ]
 
 let S3_ACCESS_KEY_ID = process.env.Y_SWEET_S3_ACCESS_KEY_ID
@@ -40,7 +40,7 @@ let S3_BUCKET_NAME = process.env.Y_SWEET_S3_BUCKET_NAME
 if (S3_ACCESS_KEY_ID && S3_REGION && S3_SECRET_KEY && S3_BUCKET_PREFIX && S3_BUCKET_NAME) {
   CONFIGURATIONS.push({
     useAuth: true,
-    server: 'worker',
+    server: 'native',
     s3: {
       bucket_name: S3_BUCKET_NAME,
       bucket_prefix: S3_BUCKET_PREFIX,
