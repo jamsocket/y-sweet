@@ -6,11 +6,12 @@ use crate::sync::{
 use std::sync::{Arc, OnceLock, RwLock};
 use yrs::{
     block::ClientID,
+    encoding::write::Write,
     updates::{
         decoder::Decode,
         encoder::{Encode, Encoder, EncoderV1},
     },
-    ReadTxn, Subscription, Transact, Update, UpdateSubscription, encoding::write::Write,
+    ReadTxn, Subscription, Transact, Update, UpdateSubscription,
 };
 
 // TODO: this is an implementation detail and should not be exposed.

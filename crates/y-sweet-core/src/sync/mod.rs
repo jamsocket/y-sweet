@@ -329,8 +329,8 @@ mod test {
     use super::{Message, SyncMessage};
     use crate::sync::awareness::Awareness;
     use crate::sync::{DefaultProtocol, MessageReader, Protocol};
-    use lib0::decoding::Cursor;
     use std::collections::HashMap;
+    use yrs::encoding::read::Cursor;
     use yrs::updates::decoder::{Decode, DecoderV1};
     use yrs::updates::encoder::{Encode, Encoder, EncoderV1};
     use yrs::{Doc, GetString, ReadTxn, StateVector, Text, Transact, Update};
