@@ -3,10 +3,10 @@ use crate::sync::{
     awareness::{Awareness, Event},
     DefaultProtocol, Message, Protocol, SyncMessage, MSG_SYNC, MSG_SYNC_UPDATE,
 };
-use lib0::encoding::Write;
 use std::sync::{Arc, OnceLock, RwLock};
 use yrs::{
     block::ClientID,
+    encoding::write::Write,
     updates::{
         decoder::Decode,
         encoder::{Encode, Encoder, EncoderV1},

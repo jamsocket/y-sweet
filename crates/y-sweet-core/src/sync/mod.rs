@@ -186,7 +186,7 @@ impl Encode for Message {
 }
 
 impl Decode for Message {
-    fn decode<D: Decoder>(decoder: &mut D) -> Result<Self, lib0::error::Error> {
+    fn decode<D: Decoder>(decoder: &mut D) -> Result<Self, yrs::encoding::read::Error> {
         let tag: u8 = decoder.read_var()?;
         match tag {
             MSG_SYNC => {
@@ -249,7 +249,7 @@ impl Encode for SyncMessage {
 }
 
 impl Decode for SyncMessage {
-    fn decode<D: Decoder>(decoder: &mut D) -> Result<Self, lib0::error::Error> {
+    fn decode<D: Decoder>(decoder: &mut D) -> Result<Self, yrs::encoding::read::Error> {
         let tag: u8 = decoder.read_var()?;
         match tag {
             MSG_SYNC_STEP_1 => {
@@ -265,7 +265,7 @@ impl Decode for SyncMessage {
                 let buf = decoder.read_buf()?;
                 Ok(SyncMessage::Update(buf.into()))
             }
-            _ => Err(lib0::error::Error::UnexpectedValue),
+            _ => Err(yrs::encoding::read::Error::UnexpectedValue),
         }
     }
 }
@@ -275,7 +275,7 @@ impl Decode for SyncMessage {
 pub enum Error {
     /// Incoming Y-protocol message couldn't be deserialized.
     #[error("failed to deserialize message: {0}")]
-    DecodingError(#[from] lib0::error::Error),
+    EncodingError(#[from] yrs::encoding::read::Error),
 
     /// Applying incoming Y-protocol awareness update has failed.
     #[error("failed to process awareness update: {0}")]
@@ -301,12 +301,6 @@ impl From<tokio::task::JoinError> for Error {
     }
 }
 
-impl From<std::io::Error> for Error {
-    fn from(value: std::io::Error) -> Self {
-        Error::DecodingError(lib0::error::Error::IO(value))
-    }
-}
-
 /// Since y-sync protocol enables for a multiple messages to be packed into a singe byte payload,
 /// [MessageReader] can be used over the decoder to read these messages one by one in iterable
 /// fashion.
@@ -319,12 +313,12 @@ impl<'a, D: Decoder> MessageReader<'a, D> {
 }
 
 impl<'a, D: Decoder> Iterator for MessageReader<'a, D> {
-    type Item = Result<Message, lib0::error::Error>;
+    type Item = Result<Message, yrs::encoding::read::Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match Message::decode(self.0) {
             Ok(msg) => Some(Ok(msg)),
-            Err(lib0::error::Error::EndOfBuffer(_)) => None,
+            Err(yrs::encoding::read::Error::EndOfBuffer(_)) => None,
             Err(error) => Some(Err(error)),
         }
     }
@@ -335,8 +329,8 @@ mod test {
     use super::{Message, SyncMessage};
     use crate::sync::awareness::Awareness;
     use crate::sync::{DefaultProtocol, MessageReader, Protocol};
-    use lib0::decoding::Cursor;
     use std::collections::HashMap;
+    use yrs::encoding::read::Cursor;
     use yrs::updates::decoder::{Decode, DecoderV1};
     use yrs::updates::encoder::{Encode, Encoder, EncoderV1};
     use yrs::{Doc, GetString, ReadTxn, StateVector, Text, Transact, Update};
