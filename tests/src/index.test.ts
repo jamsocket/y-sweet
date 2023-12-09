@@ -30,10 +30,7 @@ const CONFIGURATIONS: ServerConfiguration[] = [
 ]
 
 if (process.env.GITHUB_ACTIONS !== 'true') {
-  CONFIGURATIONS.push(
-    { useAuth: false, server: 'worker' },
-    { useAuth: true, server: 'worker' },
-  )
+  CONFIGURATIONS.push({ useAuth: false, server: 'worker' }, { useAuth: true, server: 'worker' })
 }
 
 let S3_ACCESS_KEY_ID = process.env.Y_SWEET_S3_ACCESS_KEY_ID
