@@ -27,9 +27,14 @@ function createYjsProvider(
 const CONFIGURATIONS: ServerConfiguration[] = [
   { useAuth: false, server: 'native' },
   { useAuth: true, server: 'native' },
-  // { useAuth: false, server: 'worker' },
-  // { useAuth: true, server: 'worker' },
 ]
+
+if (process.env.GITHUB_ACTIONS !== 'true') {
+  CONFIGURATIONS.push(
+    { useAuth: false, server: 'worker' },
+    { useAuth: true, server: 'worker' },
+  )
+}
 
 let S3_ACCESS_KEY_ID = process.env.Y_SWEET_S3_ACCESS_KEY_ID
 let S3_SECRET_KEY = process.env.Y_SWEET_S3_SECRET_KEY
