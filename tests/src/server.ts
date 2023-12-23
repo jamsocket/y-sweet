@@ -111,7 +111,7 @@ export class Server {
         vars['BUCKET_KIND'] = 'S3'
       }
 
-      let command = `npx --yes wrangler dev --persist-to ${this.dataDir} --port ${this.port} --env test`
+      let command = `npx --yes wrangler dev --persist-to ${this.dataDir} --port ${this.port} --env test --live-reload false`
 
       if (Object.entries(vars).length > 0) {
         command += ' --var'
