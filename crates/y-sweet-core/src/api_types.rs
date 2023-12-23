@@ -5,7 +5,8 @@ use serde_json::Value;
 
 #[derive(Serialize)]
 pub struct NewDocResponse {
-    pub doc: String,
+    #[serde(rename = "docId")]
+    pub doc_id: String,
 }
 
 #[derive(Deserialize)]
@@ -29,6 +30,7 @@ impl Authorization {
 pub struct AuthDocRequest {
     #[serde(default = "Authorization::full")]
     authorization: Authorization,
+    #[serde(rename = "userId")]
     user_id: Option<String>,
     #[serde(default)]
     metadata: HashMap<String, Value>,
@@ -37,7 +39,8 @@ pub struct AuthDocRequest {
 #[derive(Serialize)]
 pub struct ClientToken {
     pub url: String,
-    pub doc: String,
+    #[serde(rename = "docId")]
+    pub doc_id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub token: Option<String>,
 }
@@ -45,8 +48,8 @@ pub struct ClientToken {
 #[derive(Deserialize, Debug)]
 pub struct DocCreationRequest {
     /// The ID of the document to create. If not provided, a random ID will be generated.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub doc: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", rename = "docId")]
+    pub doc_id: Option<String>,
 }
 
 /// Validate that the document name contains only alphanumeric characters, dashes, and underscores.

@@ -516,15 +516,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "lib0"
-version = "0.16.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "29dc19a026a0d45fc391898c6d4a6d0a5aab5ae6a826ebddc0f33572ffdae8dc"
-dependencies = [
- "thiserror",
-]
-
-[[package]]
 name = "libc"
 version = "0.2.147"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -718,9 +709,9 @@ dependencies = [
 
 [[package]]
 name = "quick-xml"
-version = "0.27.1"
+version = "0.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ffc053f057dd768a56f62cd7e434c42c831d296968997e9ac1f76ea7c2d14c41"
+checksum = "eff6510e86862b57b210fd8cbe8ed3f0d7d600b9c2863cd4549a2e033c66e956"
 dependencies = [
  "memchr",
  "serde",
@@ -928,9 +919,9 @@ dependencies = [
 
 [[package]]
 name = "rusty-s3"
-version = "0.4.1"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c92776b0db0fea6d7cc3abb9d0d745814c71124471a3bfd84b1265a28c06130"
+checksum = "31aa883f1b986a5249641e574ca0e11ac4fb9970b009c6fbb96fedaf4fa78db8"
 dependencies = [
  "base64",
  "hmac",
@@ -1043,9 +1034,9 @@ dependencies = [
 
 [[package]]
 name = "smallstr"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e922794d168678729ffc7e07182721a14219c65814e66e91b839a272fe5ae4f"
+checksum = "63b1aefdf380735ff8ded0b15f31aab05daf1f70216c01c02a12926badd1df9d"
 dependencies = [
  "smallvec",
 ]
@@ -1587,7 +1578,7 @@ dependencies = [
 
 [[package]]
 name = "y-sweet-core"
-version = "0.0.12"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1595,7 +1586,6 @@ dependencies = [
  "bytes",
  "data-encoding",
  "getrandom 0.2.10",
- "lib0",
  "rand 0.8.5",
  "reqwest",
  "rusty-s3",
@@ -1611,7 +1601,7 @@ dependencies = [
 
 [[package]]
 name = "y-sweet-worker"
-version = "0.0.9"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1632,13 +1622,14 @@ dependencies = [
 
 [[package]]
 name = "yrs"
-version = "0.16.10"
+version = "0.17.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c48071f2693893c866cffdad3e6a931aefcd14e4400d45353a0e3f91a96e80b"
+checksum = "68aea14c6c33f2edd8a5ff9415360cfa5b98d90cce30c5ee3be59a8419fb15a9"
 dependencies = [
  "atomic_refcell",
- "lib0",
  "rand 0.7.3",
+ "serde",
+ "serde_json",
  "smallstr",
  "smallvec",
  "thiserror",
@@ -1646,11 +1637,10 @@ dependencies = [
 
 [[package]]
 name = "yrs-kvstore"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be867aba0de4ae4c1f1d044ff56866a46ceff27ff3b1a2cfa1224d1bf0de1fc3"
+checksum = "0ed7183211b34821bbf2144ffeec051d930b49e80c1065121245fedaa8bb3356"
 dependencies = [
- "lib0",
  "smallvec",
  "thiserror",
  "yrs",

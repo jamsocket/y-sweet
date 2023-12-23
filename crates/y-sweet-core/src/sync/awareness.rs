@@ -296,7 +296,7 @@ impl Encode for AwarenessUpdate {
 }
 
 impl Decode for AwarenessUpdate {
-    fn decode<D: Decoder>(decoder: &mut D) -> Result<Self, lib0::error::Error> {
+    fn decode<D: Decoder>(decoder: &mut D) -> Result<Self, yrs::encoding::read::Error> {
         let len: usize = decoder.read_var()?;
         let mut clients = HashMap::with_capacity(len);
         for _ in 0..len {

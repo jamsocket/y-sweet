@@ -12,7 +12,7 @@ import { Server, ServerConfiguration } from './server'
  */
 function createYjsProvider(
   doc: Y.Doc,
-  clientToken: { url: string; doc: string; token?: string },
+  clientToken: { url: string; docId: string; token?: string },
   extraOptions: YSweetProviderParams,
 ) {
   extraOptions = {
@@ -27,9 +27,11 @@ function createYjsProvider(
 const CONFIGURATIONS: ServerConfiguration[] = [
   { useAuth: false, server: 'native' },
   { useAuth: true, server: 'native' },
-  { useAuth: false, server: 'worker' },
-  { useAuth: true, server: 'worker' },
 ]
+
+if (process.env.GITHUB_ACTIONS !== 'true') {
+  CONFIGURATIONS.push({ useAuth: false, server: 'worker' }, { useAuth: true, server: 'worker' })
+}
 
 let S3_ACCESS_KEY_ID = process.env.Y_SWEET_S3_ACCESS_KEY_ID
 let S3_SECRET_KEY = process.env.Y_SWEET_S3_SECRET_KEY
@@ -40,7 +42,7 @@ let S3_BUCKET_NAME = process.env.Y_SWEET_S3_BUCKET_NAME
 if (S3_ACCESS_KEY_ID && S3_REGION && S3_SECRET_KEY && S3_BUCKET_PREFIX && S3_BUCKET_NAME) {
   CONFIGURATIONS.push({
     useAuth: true,
-    server: 'worker',
+    server: 'native',
     s3: {
       bucket_name: S3_BUCKET_NAME,
       bucket_prefix: S3_BUCKET_PREFIX,
@@ -94,11 +96,11 @@ describe.each(CONFIGURATIONS)(
 
     test('Create new doc', async () => {
       const result = await DOCUMENT_MANANGER.createDoc()
-      expect(typeof result.doc).toBe('string')
+      expect(typeof result.docId).toBe('string')
     })
 
     test('Attempt to access non-existing doc', async () => {
-      await expect(DOCUMENT_MANANGER.getClientToken('foobar', {})).rejects.toThrow('404')
+      await expect(DOCUMENT_MANANGER.getClientToken('foobar')).rejects.toThrow('404')
 
       // When running Cloudflare's workerd locally, sometimes the call following
       // the 404 will fail with a 500.
@@ -108,7 +110,7 @@ describe.each(CONFIGURATIONS)(
 
     test('Create and connect to doc', async () => {
       const docResult = await DOCUMENT_MANANGER.createDoc()
-      const key = await DOCUMENT_MANANGER.getClientToken(docResult, {})
+      const key = await DOCUMENT_MANANGER.getClientToken(docResult)
 
       if (configuration.useAuth) {
         expect(key.token).toBeDefined()
@@ -126,24 +128,18 @@ describe.each(CONFIGURATIONS)(
     })
 
     test('Create a doc by specifying a name', async () => {
-      const docResult = await DOCUMENT_MANANGER.createDoc({
-        doc: 'mydoc123',
-      })
+      const docResult = await DOCUMENT_MANANGER.createDoc('mydoc123')
 
-      expect(docResult.doc).toBe('mydoc123')
+      expect(docResult.docId).toBe('mydoc123')
     })
 
     test('Reject invalid doc name', async () => {
-      await expect(
-        DOCUMENT_MANANGER.createDoc({
-          doc: 'mydoc123!',
-        }),
-      ).rejects.toThrow('400')
+      await expect(DOCUMENT_MANANGER.createDoc('mydoc123!')).rejects.toThrow('400')
     })
 
     test('Offline changes are synced to doc', async () => {
       const docResult = await DOCUMENT_MANANGER.createDoc()
-      const key = await DOCUMENT_MANANGER.getClientToken(docResult, {})
+      const key = await DOCUMENT_MANANGER.getClientToken(docResult)
 
       const doc = new Y.Doc()
 
@@ -196,7 +192,7 @@ describe.each(CONFIGURATIONS)(
       const doc2 = new Y.Doc()
 
       // Connect to the doc.
-      const key2 = await DOCUMENT_MANANGER.getClientToken(docResult, {})
+      const key2 = await DOCUMENT_MANANGER.getClientToken(docResult)
       const provider2 = createYjsProvider(doc2, key2, { WebSocketPolyfill: require('ws') })
 
       expect(doc2.getMap('test').get('foo')).toBeUndefined()
@@ -214,12 +210,12 @@ describe.each(CONFIGURATIONS)(
     if (configuration.useAuth) {
       test('Attempting to connect to a document without auth should fail', async () => {
         const docResult = await DOCUMENT_MANANGER.createDoc()
-        const key = await DOCUMENT_MANANGER.getClientToken(docResult, {})
+        const key = await DOCUMENT_MANANGER.getClientToken(docResult)
 
         expect(key.token).toBeDefined()
         delete key.token
 
-        let ws = new WebSocket(`${key.url}/${key.doc}`)
+        let ws = new WebSocket(`${key.url}/${key.docId}`)
         let result = new Promise<void>((resolve, reject) => {
           ws.addEventListener('open', () => {
             resolve()
