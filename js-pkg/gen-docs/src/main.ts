@@ -13,6 +13,8 @@ async function generateDocumentationForProject(
     json: tempFileName, // output file
     basePath,
     tsconfig: path.join(basePath, 'tsconfig.json'),
+    sourceLinkTemplate:
+      'https://github.com/drifting-in-space/y-sweet/blob/{gitRevision}/{path}#L{line}',
   })
 
   const project = await app.convert()
