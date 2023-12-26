@@ -1,12 +1,17 @@
 'use client'
 
-import { YSweetProvider, YSweetProviderParams, createYjsProvider } from '@y-sweet/client'
-import { ClientToken, encodeClientToken } from '@y-sweet/sdk'
+import {
+  YSweetProvider,
+  YSweetProviderParams,
+  createYjsProvider,
+  debuggerUrl,
+} from '@y-sweet/client'
+import { ClientToken } from '@y-sweet/sdk'
 import type { ReactNode } from 'react'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
-export { createYjsProvider, YSweetProvider, type YSweetProviderParams }
+export { createYjsProvider, YSweetProvider, debuggerUrl, type YSweetProviderParams }
 
 type YjsContextType = {
   doc: Y.Doc
@@ -46,17 +51,6 @@ export function useYDoc(options?: YDocOptions): Y.Doc {
     throw new Error('Yjs hooks must be used within a YDocProvider')
   }
   return yjsCtx.doc
-}
-
-/**
- * Get a URL to open the Y-Sweet Debugger for the given client token.
- *
- * @param clientToken The client token to open the debugger for.
- * @returns A debugger URL as a string.
- */
-export function debuggerUrl(clientToken: ClientToken): string {
-  const payload = encodeClientToken(clientToken)
-  return `https://debugger.y-sweet.dev/?payload=${payload}`
 }
 
 /**

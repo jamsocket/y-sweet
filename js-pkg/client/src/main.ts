@@ -1,7 +1,6 @@
 import { YSweetProvider, type YSweetProviderParams } from './provider'
 import * as Y from 'yjs'
-import { ClientToken } from '@y-sweet/sdk'
-
+import { ClientToken, encodeClientToken } from '@y-sweet/sdk'
 export { YSweetProvider, YSweetProviderParams }
 
 /**
@@ -25,4 +24,15 @@ export function createYjsProvider(
   })
 
   return provider
+}
+
+/**
+ * Get a URL to open the Y-Sweet Debugger for the given client token.
+ *
+ * @param clientToken The client token to open the debugger for.
+ * @returns A debugger URL as a string.
+ */
+export function debuggerUrl(clientToken: ClientToken): string {
+  const payload = encodeClientToken(clientToken)
+  return `https://debugger.y-sweet.dev/?payload=${payload}`
 }
