@@ -48,7 +48,7 @@ Check the [vanilla js example](/examples/vanilla/) for more details.
 
 ### On the server
 ``` js
-import { getOrCreateDocAndToken, DocumentManager } from '@y-sweet/sdk'
+import { DocumentManager } from '@y-sweet/sdk'
 
 // Pass in a CONNECTION_STRING, which you can get from running npx y-sweet@latest serve locally or from y-sweet cloud
 const manager = new DocumentManager(CONNECTION_STRING)
