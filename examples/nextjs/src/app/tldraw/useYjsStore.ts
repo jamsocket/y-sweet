@@ -42,7 +42,7 @@ export function useYjsStore() {
     const yStore = new YKeyValue(yArr)
 
     return yStore
-  }, [])
+  }, [yDoc])
 
   useEffect(() => {
     setStoreWithStatus({ status: 'loading' })
