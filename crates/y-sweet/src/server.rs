@@ -12,7 +12,7 @@ use axum::{
 };
 use dashmap::{mapref::one::MappedRef, DashMap};
 use futures::{SinkExt, StreamExt};
-use serde::Deserialize;
+use serde::{Serialize, Deserialize};
 use serde_json::{json, Value};
 use std::{
     net::SocketAddr,
@@ -31,6 +31,7 @@ use y_sweet_core::{
     doc_sync::DocWithSyncKv,
     store::Store,
     sync::awareness::Awareness,
+    api_types::GetDocContentResponse
 };
 
 fn current_time_epoch_millis() -> u64 {
@@ -90,7 +91,7 @@ impl Server {
         let dwskv = DocWithSyncKv::new(doc_id, self.store.clone(), move || {
             send.try_send(()).unwrap();
         })
-        .await?;
+            .await?;
 
         dwskv
             .sync_kv()
@@ -125,7 +126,7 @@ impl Server {
 
                     tracing::info!("Terminating loop.");
                 }
-                .instrument(span!(Level::INFO, "save_loop", doc_id=?doc_id)),
+                    .instrument(span!(Level::INFO, "save_loop", doc_id=?doc_id)),
             );
         }
 
@@ -148,6 +149,39 @@ impl Server {
             .expect("Doc should exist, we just created it.")
             .map(|d| d))
     }
+
+    pub async fn get_or_create_doc_content(
+        &self,
+        doc_id: &str,
+    ) -> Result<String> {
+
+        let doc_content = self.docs.get(doc_id)
+            .expect("Doc should exist, we just created it.")
+            .get_content().await?; // Assuming get_content returns a String directly.
+
+        Ok(doc_content.to_string())
+    }
+
+    async fn get_doc(
+        authorization: Option<TypedHeader<headers::Authorization<Bearer>>>,
+        State(server_state): State<Arc<Server>>,
+        Path(path_doc_id): Path<String>,
+    ) -> Result<Json<GetDocContentResponse>, StatusCode> {
+        server_state.check_auth(authorization)?;
+
+        tracing::info!("Received doc_id: {:?}", path_doc_id);
+
+        let doc_content = server_state
+            .get_or_create_doc_content(path_doc_id.as_str())
+            .await
+            .map_err(|e| {
+                tracing::error!(?e, "Failed to create or retrieve doc content");
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
+
+        Ok(Json(GetDocContentResponse { doc_content }))
+    }
+
 
     pub fn check_auth(
         &self,
@@ -175,6 +209,7 @@ impl Server {
             .route("/doc/ws/:doc_id", get(handle_socket_upgrade))
             .route("/doc/new", post(new_doc))
             .route("/doc/:doc_id/auth", post(auth_doc))
+            .route("/doc/:doc_id", get(get_doc))
             .with_state(server_state);
 
         axum::Server::try_bind(addr)?
@@ -329,3 +364,30 @@ async fn auth_doc(
 
     Ok(Json(ClientToken { url, doc_id, token }))
 }
+
+#[derive(Serialize, Deserialize)]
+struct DocResponse {
+    doc_id: String,
+    content: serde_json::Value, // Adjust the type according to your actual document content
+}
+
+async fn get_doc(
+    authorization: Option<TypedHeader<headers::Authorization<Bearer>>>,
+    State(server_state): State<Arc<Server>>,
+    Path(path_doc_id): Path<String>,
+) -> Result<Json<GetDocContentResponse>, StatusCode> {
+    server_state.check_auth(authorization)?;
+
+    tracing::info!("Received doc_id: {:?}", path_doc_id);
+
+    let doc_content = server_state
+        .get_or_create_doc_content(path_doc_id.as_str())
+        .await
+        .map_err(|e| {
+            tracing::error!(?e, "Failed to create or retrieve doc content");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    Ok(Json(GetDocContentResponse { doc_content }))
+}
+

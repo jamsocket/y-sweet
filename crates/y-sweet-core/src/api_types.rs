@@ -9,6 +9,12 @@ pub struct NewDocResponse {
     pub doc_id: String,
 }
 
+#[derive(Serialize)]
+pub struct GetDocContentResponse {
+    #[serde(rename = "docContent")]
+    pub doc_content: String,
+}
+
 #[derive(Deserialize)]
 pub enum Authorization {
     #[serde(rename = "none")]

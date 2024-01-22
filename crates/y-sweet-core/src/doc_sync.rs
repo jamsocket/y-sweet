@@ -1,7 +1,9 @@
 use crate::{doc_connection::DOC_NAME, store::Store, sync::awareness::Awareness, sync_kv::SyncKv};
 use anyhow::{anyhow, Context, Result};
 use std::sync::{Arc, RwLock};
-use yrs::{Doc, Options, Transact, UpdateSubscription};
+use serde_json::json;
+use yrs::{Doc, Options, ReadTxn, Text, TextRef, Transact, UpdateSubscription};
+
 use yrs_kvstore::DocOps;
 
 pub struct DocWithSyncKv {
@@ -25,8 +27,8 @@ impl DocWithSyncKv {
         store: Option<Arc<Box<dyn Store>>>,
         dirty_callback: F,
     ) -> Result<Self>
-    where
-        F: Fn() + Send + Sync + 'static,
+        where
+            F: Fn() + Send + Sync + 'static,
     {
         let sync_kv = SyncKv::new(store, key, dirty_callback)
             .await
@@ -50,7 +52,7 @@ impl DocWithSyncKv {
                     .flush_doc_with(DOC_NAME, Options::default())
                     .unwrap();
             })
-            .map_err(|_| anyhow!("Failed to subscribe to updates"))?
+                .map_err(|_| anyhow!("Failed to subscribe to updates"))?
         };
 
         let awareness = Arc::new(RwLock::new(Awareness::new(doc)));
@@ -59,5 +61,17 @@ impl DocWithSyncKv {
             sync_kv,
             subscription,
         })
+    }
+
+    pub async fn get_content(&self) -> Result<serde_json::Value> {
+        // Access the Yjs Doc (yrs::Doc)
+        let awareness = self.awareness.read().unwrap();
+        let doc = awareness.doc();
+        // Begin a read transaction on the document
+        let txn = doc.transact();
+        let store_string = txn.store().to_string();
+        println!("store_string: {:?}", store_string);
+        let json_content = json!( store_string);
+        Ok(json_content)
     }
 }
