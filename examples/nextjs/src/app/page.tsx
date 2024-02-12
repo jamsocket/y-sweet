@@ -47,7 +47,7 @@ export default async function Home({ searchParams }: HomeProps) {
         />
         <ProjectLink name="Live Cursors" url="/presence" description="Live directional cursors." />
         <ProjectLink
-          name="Whiteboard"
+          name="tldraw"
           url="/tldraw"
           description="A collaborative whiteboard using tldraw."
         />

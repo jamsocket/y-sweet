@@ -63,7 +63,7 @@ function Nav({ curRoute, onClickLink }: { curRoute: string; onClickLink?: () => 
               Voxel Draw
             </NavLink>
             <NavLink href="/tldraw" curRoute={curRoute}>
-              Whiteboard
+              tldraw
             </NavLink>
             <NavLink href="/presence" curRoute={curRoute}>
               Live Cursors
