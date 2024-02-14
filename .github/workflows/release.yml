@@ -6,6 +6,10 @@ on:
       version:
         description: 'Release Version'
         required: true
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - ".github/workflows/release.yml"
 
 jobs:
   build-macos-arm64:
@@ -125,6 +129,7 @@ jobs:
   release:
     needs: [build-linux, build-macos-arm64, build-macos-x64, build-windows]
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
     steps:
     - name: Download artifacts
       uses: actions/download-artifact@v2
