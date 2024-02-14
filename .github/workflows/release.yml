@@ -113,6 +113,9 @@ jobs:
 
     - name: Build for Linux
       uses: actions-rs/cargo@v1
+      env:
+        CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: aarch64-linux-gnu-gcc
+        CC: aarch64-linux-gnu-gcc
       with:
         command: build
         args: --release --target aarch64-unknown-linux-musl --manifest-path=crates/Cargo.toml
