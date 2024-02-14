@@ -111,6 +111,8 @@ jobs:
     - name: Install musl-tools 
       run: sudo apt-get install -y musl-tools
 
+    - run: sudo apt-get install gcc-aarch64-linux-gnu
+
     - name: Build for Linux
       uses: actions-rs/cargo@v1
       env:
