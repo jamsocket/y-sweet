@@ -35,7 +35,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: macos-binary-arm64
-        path: ./crates/target/aarch64-apple-darwin/debug/y-sweet 
+        path: ./crates/target/aarch64-apple-darwin/debug/y-sweet
 
   build-macos-x64:
     runs-on: macos-latest
@@ -91,6 +91,34 @@ jobs:
         name: linux-binary
         path: ./crates/target/x86_64-unknown-linux-musl/release/y-sweet 
 
+  build-linux-arm64:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+      
+    - name: Setup Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        target: aarch64-unknown-linux-musl
+        override: true
+        
+    - name: Install musl-tools 
+      run: sudo apt-get install -y musl-tools
+
+    - name: Build for Linux
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
+        args: --release --target aarch64-unknown-linux-musl --manifest-path=crates/Cargo.toml
+        
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: linux-binary-arm64
+        path: ./crates/target/aarch64-unknown-linux-musl/release/y-sweet 
+
   build-windows:
     runs-on: ubuntu-latest
     steps:
@@ -123,7 +151,7 @@ jobs:
         path: ./crates/target/x86_64-pc-windows-gnu/release/y-sweet.exe
 
   release:
-    needs: [build-linux, build-macos-arm64, build-macos-x64, build-windows]
+    needs: [build-linux, build-macos-arm64, build-macos-x64, build-windows, build-linux-arm64]
     runs-on: ubuntu-latest
     steps:
     - name: Download artifacts
@@ -135,6 +163,7 @@ jobs:
         linux-binary/y-sweet
         macos-binary-x64/y-sweet
         macos-binary-arm64/y-sweet
+        linux-binary-arm64/y-sweet
     - name: ls
       run: ls -la
     - name: rename and move
@@ -142,7 +171,8 @@ jobs:
         mv windows-binary/y-sweet.exe.gz y-sweet-win-x64.exe.gz &&
         mv linux-binary/y-sweet.gz y-sweet-linux-x64.gz &&
         mv macos-binary-x64/y-sweet.gz y-sweet-macos-x64.gz &&
-        mv macos-binary-arm64/y-sweet.gz y-sweet-macos-arm64.gz
+        mv macos-binary-arm64/y-sweet.gz y-sweet-macos-arm64.gz &&
+        mv linux-binary-arm64/y-sweet.gz y-sweet-linux-arm64.gz
     - name: Release
       uses: softprops/action-gh-release@v1
       with:
@@ -153,3 +183,4 @@ jobs:
             y-sweet-linux-x64.gz
             y-sweet-macos-x64.gz
             y-sweet-macos-arm64.gz
+            y-sweet-linux-arm64.gz
