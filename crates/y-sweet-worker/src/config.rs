@@ -105,7 +105,7 @@ impl TryFrom<&Env> for Configuration {
             auth_key_id: None,
             bucket: BUCKET.to_string(),
             s3_store_config: s3_config,
-            bucket_prefix: None,
+            bucket_prefix: env.var(S3_BUCKET_PREFIX).map(|s| s.to_string()).ok(),
             url_prefix: None,
             timeout_interval,
         })
