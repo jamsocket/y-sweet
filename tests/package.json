@@ -14,7 +14,7 @@
     "typescript": "^5.1.6",
     "vitest": "^0.34.4",
     "ws": "^8.13.0",
-    "yjs": "file:../node_modules/yjs"
+    "yjs": "^13.6.7"
   },
   "dependencies": {
     "@y-sweet/react": "0.1.0",
