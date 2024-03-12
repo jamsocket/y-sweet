@@ -3,7 +3,6 @@ use crate::store::Store;
 use async_trait::async_trait;
 use bytes::Bytes;
 use reqwest::{Client, Method, Response, StatusCode, Url};
-use rusty_s3::actions::ListObjectsV2;
 use rusty_s3::{Bucket, Credentials, S3Action};
 use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
@@ -110,7 +109,7 @@ impl S3Store {
         let action = self.bucket.head_bucket(Some(&self.credentials));
         let result = self.store_request(Method::HEAD, action, None).await;
 
-        let response = match result {
+        match result {
             // Normally a 404 indicates that we are attempting to fetch an object that does
             // not exist, but we have only attempted to retrieve a bucket, so here it
             // indicates that the bucket does not exist.
@@ -122,13 +121,6 @@ impl S3Store {
             Err(e) => return Err(e),
             Ok(response) => response,
         };
-
-        let body = response.text().await.map_err(|_| {
-            StoreError::ConnectionError("Response did not contain text body.".to_string())
-        })?;
-        let _ = ListObjectsV2::parse_response(&body).map_err(|_| {
-            StoreError::ConnectionError("Response could not be parsed as ListObjectsV2".to_string())
-        })?;
 
         self._bucket_checked.set(()).unwrap();
         Ok(())

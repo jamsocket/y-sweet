@@ -10,17 +10,21 @@ pub fn print_server_url(auth: Option<&Authenticator>, url_prefix: Option<&Url>, 
         Url::parse(&format!("ys://{}", addr)).unwrap()
     };
 
-    if url.scheme() == "http" {
-        url.set_scheme("ys").unwrap();
-    } else if url.scheme() == "https" {
-        url.set_scheme("yss").unwrap();
-    }
-
     if let Some(auth) = auth {
         url.set_username(&auth.server_token()).unwrap();
     }
 
     let token = url.to_string();
+
+    // Note: we need to change the scheme in string form, because changing the scheme of
+    // certain Url objects is an error (https://docs.rs/url/latest/url/struct.Url.html#method.set_scheme).
+    let token = if let Some(rest) = token.strip_prefix("http://") {
+        format!("ys://{}", rest)
+    } else if let Some(rest) = token.strip_prefix("https://") {
+        format!("yss://{}", rest)
+    } else {
+        token
+    };
 
     println!("Use the following connection string to connect to y-sweet:");
     println!();
