@@ -109,7 +109,7 @@ impl S3Store {
         let action = self.bucket.head_bucket(Some(&self.credentials));
         let result = self.store_request(Method::HEAD, action, None).await;
 
-        let response = match result {
+        match result {
             // Normally a 404 indicates that we are attempting to fetch an object that does
             // not exist, but we have only attempted to retrieve a bucket, so here it
             // indicates that the bucket does not exist.
