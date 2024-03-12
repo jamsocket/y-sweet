@@ -3,7 +3,6 @@ use crate::store::Store;
 use async_trait::async_trait;
 use bytes::Bytes;
 use reqwest::{Client, Method, Response, StatusCode, Url};
-use rusty_s3::actions::ListObjectsV2;
 use rusty_s3::{Bucket, Credentials, S3Action};
 use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
