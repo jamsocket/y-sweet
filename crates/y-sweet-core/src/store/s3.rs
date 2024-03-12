@@ -123,13 +123,6 @@ impl S3Store {
             Ok(response) => response,
         };
 
-        let body = response.text().await.map_err(|_| {
-            StoreError::ConnectionError("Response did not contain text body.".to_string())
-        })?;
-        let _ = ListObjectsV2::parse_response(&body).map_err(|_| {
-            StoreError::ConnectionError("Response could not be parsed as ListObjectsV2".to_string())
-        })?;
-
         self._bucket_checked.set(()).unwrap();
         Ok(())
     }
