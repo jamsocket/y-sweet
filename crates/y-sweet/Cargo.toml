@@ -10,11 +10,13 @@ repository = "https://github.com/drifting-in-space/y-sweet"
 [dependencies]
 anyhow = "1.0.72"
 async-trait = "0.1.71"
-axum = { version = "0.6.19", features = ["ws", "headers"] }
+axum = { version = "0.7.4", features = ["ws"] }
+axum-extra = { version = "0.9.2", features = ["typed-header"] }
 clap = { version = "4.3.12", features = ["derive", "env"] }
 colored = "2.0.4"
 dashmap = "5.5.0"
 futures = "0.3.28"
+headers = "0.4.0"
 lib0 = "0.16.9"
 nanoid = "0.4.0"
 serde = { version = "1.0.171", features = ["derive"] }
@@ -25,5 +27,5 @@ tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter", "fmt"] }
 url = "2.4.0"
 y-sweet-core = { version="0.1.0", path = "../y-sweet-core" }
-yrs = "0.16.9"
+yrs = "0.17.4"
 yrs-kvstore = "0.1.0"
