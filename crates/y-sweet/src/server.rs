@@ -4,12 +4,12 @@ use axum::{
         ws::{Message, WebSocket},
         Path, Query, State, WebSocketUpgrade,
     },
-    headers::{self, authorization::Bearer},
     http::StatusCode,
     response::Response,
     routing::{get, post},
-    Json, Router, TypedHeader,
+    Json, Router,
 };
+use axum_extra::typed_header::TypedHeader;
 use dashmap::{mapref::one::MappedRef, DashMap};
 use futures::{SinkExt, StreamExt};
 use serde::Deserialize;
@@ -19,7 +19,7 @@ use std::{
     sync::{Arc, RwLock},
     time::Duration,
 };
-use tokio::sync::mpsc::channel;
+use tokio::{net::TcpListener, sync::mpsc::channel};
 use tracing::{span, Instrument, Level};
 use url::Url;
 use y_sweet_core::{
@@ -151,7 +151,7 @@ impl Server {
 
     pub fn check_auth(
         &self,
-        header: Option<TypedHeader<headers::Authorization<Bearer>>>,
+        header: Option<TypedHeader<headers::Authorization<headers::authorization::Bearer>>>,
     ) -> Result<(), StatusCode> {
         if let Some(auth) = &self.authenticator {
             if let Some(TypedHeader(headers::Authorization(bearer))) = header {
@@ -168,6 +168,7 @@ impl Server {
     }
 
     pub async fn serve(self, addr: &SocketAddr) -> Result<()> {
+        let listnener = TcpListener::bind(addr).await?;
         let server_state = Arc::new(self);
 
         let app = Router::new()
@@ -177,8 +178,7 @@ impl Server {
             .route("/doc/:doc_id/auth", post(auth_doc))
             .with_state(server_state);
 
-        axum::Server::try_bind(addr)?
-            .serve(app.into_make_service())
+        axum::serve(listnener, app.into_make_service())
             .await
             .map_err(|_| anyhow!("Failed to serve"))?;
 
@@ -252,7 +252,7 @@ async fn handle_socket(socket: WebSocket, awareness: Arc<RwLock<Awareness>>) {
 }
 
 async fn check_store(
-    authorization: Option<TypedHeader<headers::Authorization<Bearer>>>,
+    authorization: Option<TypedHeader<headers::Authorization<headers::authorization::Bearer>>>,
     State(server_state): State<Arc<Server>>,
 ) -> Result<Json<Value>, StatusCode> {
     server_state.check_auth(authorization)?;
@@ -267,7 +267,7 @@ async fn check_store(
 }
 
 async fn new_doc(
-    authorization: Option<TypedHeader<headers::Authorization<Bearer>>>,
+    authorization: Option<TypedHeader<headers::Authorization<headers::authorization::Bearer>>>,
     State(server_state): State<Arc<Server>>,
     Json(body): Json<DocCreationRequest>,
 ) -> Result<Json<NewDocResponse>, StatusCode> {
@@ -298,7 +298,7 @@ async fn new_doc(
 }
 
 async fn auth_doc(
-    authorization: Option<TypedHeader<headers::Authorization<Bearer>>>,
+    authorization: Option<TypedHeader<headers::Authorization<headers::authorization::Bearer>>>,
     TypedHeader(host): TypedHeader<headers::Host>,
     State(server_state): State<Arc<Server>>,
     Path(doc_id): Path<String>,
