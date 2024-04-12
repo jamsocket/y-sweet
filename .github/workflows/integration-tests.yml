@@ -19,6 +19,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+    - name: Install latest rust toolchain
+      run: rustup update
     - name: Test deps
       run: npm ci
       working-directory: tests
