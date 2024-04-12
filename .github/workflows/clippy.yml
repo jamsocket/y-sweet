@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install latest rust toolchain
-        run: rustup update && rustup component add clippy
+        run: rustup update && rustup component add clippy && rustup target add wasm32-unknown-unknown
       - uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
