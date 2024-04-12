@@ -2127,6 +2127,7 @@ dependencies = [
  "dashmap",
  "futures",
  "headers",
+ "http 1.1.0",
  "lib0",
  "nanoid",
  "serde",
