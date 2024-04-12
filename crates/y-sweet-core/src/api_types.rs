@@ -29,11 +29,11 @@ impl Authorization {
 #[allow(unused)]
 pub struct AuthDocRequest {
     #[serde(default = "Authorization::full")]
-    authorization: Authorization,
+    pub authorization: Authorization,
     #[serde(rename = "userId")]
-    user_id: Option<String>,
+    pub user_id: Option<String>,
     #[serde(default)]
-    metadata: HashMap<String, Value>,
+    pub metadata: HashMap<String, Value>,
 }
 
 #[derive(Serialize)]

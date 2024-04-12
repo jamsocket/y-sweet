@@ -29,3 +29,6 @@ url = "2.4.0"
 y-sweet-core = { version="0.1.0", path = "../y-sweet-core" }
 yrs = "0.17.4"
 yrs-kvstore = "0.1.0"
+
+[dev-dependencies]
+http = "1.1.0"

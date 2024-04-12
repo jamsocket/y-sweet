@@ -321,11 +321,77 @@ async fn auth_doc(
         let mut url = url_prefix.clone();
         let scheme = if url.scheme() == "https" { "wss" } else { "ws" };
         url.set_scheme(scheme).unwrap();
-        url.join("/doc/ws").unwrap().to_string();
+        url = url.join("/doc/ws").unwrap();
         url.to_string()
     } else {
         format!("ws://{host}/doc/ws")
     };
 
     Ok(Json(ClientToken { url, doc_id, token }))
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use std::collections::HashMap;
+    use y_sweet_core::api_types::Authorization;
+
+    #[tokio::test]
+    async fn test_auth_doc() {
+        let server_state = Server::new(None, Duration::from_secs(60), None, None)
+            .await
+            .unwrap();
+
+        let doc_id = server_state.create_doc().await.unwrap();
+
+        let token = auth_doc(
+            None,
+            TypedHeader(headers::Host::from(http::uri::Authority::from_static(
+                "localhost",
+            ))),
+            State(Arc::new(server_state)),
+            Path(doc_id.clone()),
+            Json(AuthDocRequest {
+                authorization: Authorization::Full,
+                user_id: None,
+                metadata: HashMap::new(),
+            }),
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(token.url, "ws://localhost/doc/ws");
+        assert_eq!(token.doc_id, doc_id);
+        assert!(token.token.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_auth_doc_with_prefix() {
+        let prefix: Url = "https://foo.bar".parse().unwrap();
+        let server_state = Server::new(None, Duration::from_secs(60), None, Some(prefix))
+            .await
+            .unwrap();
+
+        let doc_id = server_state.create_doc().await.unwrap();
+
+        let token = auth_doc(
+            None,
+            TypedHeader(headers::Host::from(http::uri::Authority::from_static(
+                "localhost",
+            ))),
+            State(Arc::new(server_state)),
+            Path(doc_id.clone()),
+            Json(AuthDocRequest {
+                authorization: Authorization::Full,
+                user_id: None,
+                metadata: HashMap::new(),
+            }),
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(token.url, "wss://foo.bar/doc/ws");
+        assert_eq!(token.doc_id, doc_id);
+        assert!(token.token.is_none());
+    }
 }
