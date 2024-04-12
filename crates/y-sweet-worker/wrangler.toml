@@ -3,7 +3,7 @@ main = "build/worker/shim.mjs"
 compatibility_date = "2022-01-20"
 
 [vars]
-WORKERS_RS_VERSION = "0.0.18"
+WORKERS_RS_VERSION = "0.1.0"
 
 [build]
 command = "echo 'Run ./build.sh to rebuild'"
@@ -23,7 +23,7 @@ bindings = [
 ]
 
 [env.staging]
-vars.WORKERS_RS_VERSION = "0.0.18"
+vars.WORKERS_RS_VERSION = "0.1.0"
 
 [env.staging.durable_objects]
 bindings = [
@@ -36,7 +36,7 @@ bucket_name = "y-sweet-data-staging"
 preview_bucket_name = "y-sweet-data-dev"
 
 [env.test]
-vars.WORKERS_RS_VERSION = "0.0.18"
+vars.WORKERS_RS_VERSION = "0.1.0"
 
 [env.test.durable_objects]
 bindings = [
