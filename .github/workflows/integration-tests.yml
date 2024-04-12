@@ -23,16 +23,6 @@ jobs:
       with:
           toolchain: stable
           override: true
-    - uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          crates/target/
-          crates/y-sweet-worker/target/
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
     - name: Test deps
       run: npm ci
