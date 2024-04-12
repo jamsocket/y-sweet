@@ -18,12 +18,7 @@ jobs:
     container: ghcr.io/drifting-in-space/cicd-runner-base:main
 
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions-rs/toolchain@v1
-      with:
-          toolchain: stable
-          override: true
-
+    - uses: actions/checkout@v4
     - name: Test deps
       run: npm ci
       working-directory: tests
@@ -38,7 +33,7 @@ jobs:
       working-directory: tests
       timeout-minutes: 10
 
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       if: always()
       with:
         name: test-data
