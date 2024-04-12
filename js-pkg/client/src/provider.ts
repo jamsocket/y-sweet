@@ -240,7 +240,7 @@ export class YSweetProvider extends Observable<string> {
   shouldConnect: boolean
   _resyncInterval: ReturnType<typeof setInterval> | number // TODO: is setting this to 0 used as null?
   _bcSubscriber: Function
-  _updateHandler: Function
+  _updateHandler: (arg0: Uint8Array, arg1: any, arg2: Y.Doc, arg3: Y.Transaction) => void
   _awarenessUpdateHandler: Function
   _unloadHandler: Function
   _checkInterval: ReturnType<typeof setInterval> | number
