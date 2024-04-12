@@ -13,13 +13,9 @@ jobs:
         working-directory: ./crates
 
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions-rs/toolchain@v1
-        with:
-            toolchain: stable
-            components: 
-            target: wasm32-unknown-unknown
-            override: true
+      - uses: actions/checkout@v4
+      - name: Install latest rust toolchain
+        run: rustup update && rustup component add clippy && rustup target add wasm32-unknown-unknown
       - uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}

@@ -13,12 +13,9 @@ jobs:
       run:
         working-directory: ./crates
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          components: rustfmt
-          override: true
+      - uses: actions/checkout@v4
+      - name: Install clippy
+        run: rustup update && rustup component add clippy
       - name: Check format
         run: cargo fmt -- --check
       - name: Check format
