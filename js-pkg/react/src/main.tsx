@@ -251,7 +251,7 @@ export type ObjectOptions = {
  * @returns
  */
 export function useMap<T>(name: string, objectOptions?: ObjectOptions): Y.Map<T> {
-  const doc = useYDoc()
+  const doc = useYDoc({ hideDebuggerLink: true })
   const map = useMemo(() => doc.getMap<T>(name), [doc, name])
   useObserve(map, objectOptions?.observe || 'deep')
 
@@ -275,7 +275,7 @@ export function useMap<T>(name: string, objectOptions?: ObjectOptions): Y.Map<T>
  * @returns
  */
 export function useArray<T>(name: string, objectOptions?: ObjectOptions): Y.Array<T> {
-  const doc = useYDoc()
+  const doc = useYDoc({ hideDebuggerLink: true })
   const array = useMemo(() => doc.getArray<T>(name), [doc, name])
   useObserve(array, objectOptions?.observe || 'deep')
 
@@ -298,7 +298,7 @@ export function useArray<T>(name: string, objectOptions?: ObjectOptions): Y.Arra
  * @returns
  */
 export function useText(name: string, observerKind?: ObjectOptions): Y.Text {
-  const doc = useYDoc()
+  const doc = useYDoc({ hideDebuggerLink: true })
   const text = useMemo(() => doc.getText(name), [doc, name])
   useObserve(text, observerKind?.observe || 'deep')
 
