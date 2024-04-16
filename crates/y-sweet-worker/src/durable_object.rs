@@ -20,13 +20,10 @@ pub struct YServe {
 
 impl YServe {
     /// We need to lazily create the doc because the constructor is non-async.
-    pub async fn get_doc(
-        &mut self,
-        req: &Request,
-        doc_id: &str,
-        create: bool,
-    ) -> Result<&mut DocWithSyncKv> {
+    pub async fn get_doc(&mut self, req: &Request, doc_id: &str) -> Result<&mut DocWithSyncKv> {
         if self.lazy_doc.is_none() {
+            console_log!("Initializing lazy_doc.");
+
             let mut context = ServerContext::from_request(req, &self.env).unwrap();
             #[allow(clippy::arc_with_non_send_sync)] // Arc required for compatibility with core.
             let storage = Arc::new(self.state.storage());
@@ -50,10 +47,8 @@ impl YServe {
             .await
             .unwrap();
 
-            if create {
-                doc.sync_kv().persist().await.unwrap();
-            }
-
+            let len = doc.sync_kv().len();
+            console_log!("Persisting doc. Len = {}.", len);
             self.lazy_doc = Some(DocIdPair {
                 doc,
                 id: doc_id.to_owned(),
@@ -97,14 +92,15 @@ impl DurableObject for YServe {
         console_log!("Alarm!");
         let DocIdPair { id, doc } = self.lazy_doc.as_ref().unwrap();
         doc.sync_kv().persist().await.unwrap();
-        console_log!("Persisted. {}", id);
+        let len = doc.sync_kv().len();
+        console_log!("Persisted. {} (len: {})", id, len);
         Response::ok("ok")
     }
 }
 
 async fn handle_doc_create(req: Request, ctx: RouteContext<&mut YServe>) -> Result<Response> {
     let doc_id = ctx.param("doc_id").unwrap().to_owned();
-    ctx.data.get_doc(&req, &doc_id, true).await.unwrap();
+    ctx.data.get_doc(&req, &doc_id).await.unwrap();
 
     Response::ok("ok")
 }
@@ -114,12 +110,7 @@ async fn websocket_connect(req: Request, ctx: RouteContext<&mut YServe>) -> Resu
     server.accept()?;
 
     let doc_id = ctx.param("doc_id").unwrap().to_owned();
-    let awareness = ctx
-        .data
-        .get_doc(&req, &doc_id, false)
-        .await
-        .unwrap()
-        .awareness();
+    let awareness = ctx.data.get_doc(&req, &doc_id).await.unwrap().awareness();
 
     let connection = {
         let server = server.clone();
