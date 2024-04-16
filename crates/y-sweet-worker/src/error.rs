@@ -3,7 +3,7 @@ use thiserror::Error;
 use worker::Response;
 use worker_sys::console_error;
 
-#[derive(Error, Debug, PartialEq, Eq)]
+#[derive(Error, Debug)]
 pub enum Error {
     #[error("Expected server auth header.")]
     ExpectedAuthHeader,
@@ -27,6 +27,10 @@ pub enum Error {
     BadRequest,
     #[error("Invalid doc name.")]
     InvalidDocName,
+    #[error("Could not construct request.")]
+    CouldNotConstructRequest,
+    #[error("Could not forward request to durable object.")]
+    CouldNotForwardRequest(worker::Error),
 }
 
 impl Error {
@@ -43,6 +47,8 @@ impl Error {
             Self::InternalError => 500,
             Self::BadRequest => 400,
             Self::InvalidDocName => 400,
+            Self::CouldNotConstructRequest => 500,
+            Self::CouldNotForwardRequest(_) => 500,
         }
     }
 }

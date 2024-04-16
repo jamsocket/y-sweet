@@ -6,7 +6,7 @@ use server_context::ServerContext;
 use std::collections::HashMap;
 #[cfg(feature = "fetch-event")]
 use worker::{event, Env};
-use worker::{Date, Request, Response, Result, RouteContext, Router, Url};
+use worker::{console_log, Date, Method, Request, Response, Result, RouteContext, Router, Url};
 use y_sweet_core::{
     api_types::{validate_doc_name, ClientToken, DocCreationRequest, NewDocResponse},
     auth::Authenticator,
@@ -31,6 +31,7 @@ fn get_time_millis_since_epoch() -> u64 {
 pub fn router(
     context: ServerContext,
 ) -> std::result::Result<Router<'static, ServerContext>, Error> {
+
     Ok(Router::with_data(context)
         .get("/", |_, _| Response::ok("Y-Sweet!"))
         .get_async("/check_store", check_store_handler)
@@ -102,10 +103,14 @@ async fn new_doc(
         return Err(Error::InvalidDocName);
     }
 
-    let store = Some(ctx.data.store());
-    let dwskv = DocWithSyncKv::new(&doc_id, store, || {}).await.unwrap();
+    let auth = if let Some(auth) = ctx.param("z") {
+        format!("?z={}", auth)
+    } else {
+        String::new()
+    };
 
-    dwskv.sync_kv().persist().await.unwrap();
+    let req = Request::new(&format!("http://ignored/doc/{}{}", doc_id, auth), Method::Post).map_err(|_| Error::CouldNotConstructRequest)?;
+    forward_to_durable_object_with_doc_id(req, ctx, &doc_id).await.map_err(Error::CouldNotForwardRequest)?;
 
     let response = NewDocResponse { doc_id };
 
@@ -208,12 +213,16 @@ async fn auth_doc(
     })
 }
 
-async fn forward_to_durable_object(
+async fn forward_to_durable_object(req: Request, ctx: RouteContext<ServerContext>) -> Result<Response> {
+    let doc_id = ctx.param("doc_id").unwrap().to_string();
+    forward_to_durable_object_with_doc_id(req, ctx, &doc_id).await
+}
+
+async fn forward_to_durable_object_with_doc_id(
     req: Request,
     mut ctx: RouteContext<ServerContext>,
+    doc_id: &str,
 ) -> Result<Response> {
-    let doc_id = ctx.param("doc_id").unwrap().to_string();
-
     if let Some(auth) = ctx.data.auth().unwrap() {
         // Read query params.
         let url = req.url()?;
