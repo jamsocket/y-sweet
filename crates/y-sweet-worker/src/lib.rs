@@ -4,11 +4,9 @@ use error::{Error, IntoResponse};
 use serde_json::{json, Value};
 use server_context::ServerContext;
 use std::collections::HashMap;
-use worker::{
-    console_log, Date, Method, Request, Response, ResponseBody, Result, RouteContext, Router, Url,
-};
 #[cfg(feature = "fetch-event")]
 use worker::{event, Env};
+use worker::{Date, Method, Request, Response, ResponseBody, Result, RouteContext, Router, Url};
 use y_sweet_core::{
     api_types::{validate_doc_name, ClientToken, DocCreationRequest, NewDocResponse},
     auth::Authenticator,
@@ -110,13 +108,11 @@ async fn new_doc(
         String::new()
     };
 
-    console_log!("here0x");
     let req = Request::new(
         &format!("http://ignored/doc/{}{}", doc_id, auth),
         Method::Post,
     )
     .map_err(|_| Error::CouldNotConstructRequest)?;
-    console_log!("here1x");
     let result = forward_to_durable_object_with_doc_id(req, ctx, &doc_id)
         .await
         .map_err(Error::CouldNotForwardRequest)?;
@@ -129,8 +125,6 @@ async fn new_doc(
 
         return Err(Error::ErrorCreatingDoc(body));
     }
-
-    console_log!("here2x");
 
     let response = NewDocResponse { doc_id };
 
