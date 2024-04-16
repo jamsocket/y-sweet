@@ -87,7 +87,7 @@ impl TryFrom<&Env> for Configuration {
                         .parse()
                         .expect("Could not parse CHECKPOINT_FREQ_SECONDS as u64")
                 })
-                .unwrap_or(45),
+                .unwrap_or(9),
         );
 
         let bucket_kind = env.var(BUCKET_KIND).map_or_else(
