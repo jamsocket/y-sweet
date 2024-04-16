@@ -4,9 +4,11 @@ use error::{Error, IntoResponse};
 use serde_json::{json, Value};
 use server_context::ServerContext;
 use std::collections::HashMap;
+use worker::{
+    console_log, Date, Method, Request, Response, ResponseBody, Result, RouteContext, Router, Url,
+};
 #[cfg(feature = "fetch-event")]
 use worker::{event, Env};
-use worker::{console_log, Date, Method, Request, Response, ResponseBody, Result, RouteContext, Router, Url};
 use y_sweet_core::{
     api_types::{validate_doc_name, ClientToken, DocCreationRequest, NewDocResponse},
     auth::Authenticator,
@@ -31,7 +33,6 @@ fn get_time_millis_since_epoch() -> u64 {
 pub fn router(
     context: ServerContext,
 ) -> std::result::Result<Router<'static, ServerContext>, Error> {
-
     Ok(Router::with_data(context)
         .get("/", |_, _| Response::ok("Y-Sweet!"))
         .get_async("/check_store", check_store_handler)
@@ -110,9 +111,15 @@ async fn new_doc(
     };
 
     console_log!("here0x");
-    let req = Request::new(&format!("http://ignored/doc/{}{}", doc_id, auth), Method::Post).map_err(|_| Error::CouldNotConstructRequest)?;
+    let req = Request::new(
+        &format!("http://ignored/doc/{}{}", doc_id, auth),
+        Method::Post,
+    )
+    .map_err(|_| Error::CouldNotConstructRequest)?;
     console_log!("here1x");
-    let result = forward_to_durable_object_with_doc_id(req, ctx, &doc_id).await.map_err(Error::CouldNotForwardRequest)?;
+    let result = forward_to_durable_object_with_doc_id(req, ctx, &doc_id)
+        .await
+        .map_err(Error::CouldNotForwardRequest)?;
 
     if result.status_code() != 200 {
         let body = match result.body() {
@@ -124,7 +131,6 @@ async fn new_doc(
     }
 
     console_log!("here2x");
-
 
     let response = NewDocResponse { doc_id };
 
@@ -227,7 +233,10 @@ async fn auth_doc(
     })
 }
 
-async fn forward_to_durable_object(req: Request, mut ctx: RouteContext<ServerContext>) -> Result<Response> {
+async fn forward_to_durable_object(
+    req: Request,
+    mut ctx: RouteContext<ServerContext>,
+) -> Result<Response> {
     let doc_id = ctx.param("doc_id").unwrap().to_string();
 
     if let Some(auth) = ctx.data.auth().unwrap() {
@@ -250,7 +259,7 @@ async fn forward_to_durable_object(req: Request, mut ctx: RouteContext<ServerCon
             return e.into();
         }
     }
-    
+
     forward_to_durable_object_with_doc_id(req, ctx, &doc_id).await
 }
 

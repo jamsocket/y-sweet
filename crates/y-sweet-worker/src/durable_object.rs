@@ -20,7 +20,12 @@ pub struct YServe {
 
 impl YServe {
     /// We need to lazily create the doc because the constructor is non-async.
-    pub async fn get_doc(&mut self, req: &Request, doc_id: &str, create: bool) -> Result<&mut DocWithSyncKv> {
+    pub async fn get_doc(
+        &mut self,
+        req: &Request,
+        doc_id: &str,
+        create: bool,
+    ) -> Result<&mut DocWithSyncKv> {
         if self.lazy_doc.is_none() {
             let mut context = ServerContext::from_request(req, &self.env).unwrap();
             #[allow(clippy::arc_with_non_send_sync)] // Arc required for compatibility with core.
@@ -109,7 +114,12 @@ async fn websocket_connect(req: Request, ctx: RouteContext<&mut YServe>) -> Resu
     server.accept()?;
 
     let doc_id = ctx.param("doc_id").unwrap().to_owned();
-    let awareness = ctx.data.get_doc(&req, &doc_id, false).await.unwrap().awareness();
+    let awareness = ctx
+        .data
+        .get_doc(&req, &doc_id, false)
+        .await
+        .unwrap()
+        .awareness();
 
     let connection = {
         let server = server.clone();
