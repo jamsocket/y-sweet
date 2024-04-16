@@ -31,6 +31,8 @@ pub enum Error {
     CouldNotConstructRequest,
     #[error("Could not forward request to durable object.")]
     CouldNotForwardRequest(worker::Error),
+    #[error("Error creating doc.")]
+    ErrorCreatingDoc(String),
 }
 
 impl Error {
@@ -49,6 +51,7 @@ impl Error {
             Self::InvalidDocName => 400,
             Self::CouldNotConstructRequest => 500,
             Self::CouldNotForwardRequest(_) => 500,
+            Self::ErrorCreatingDoc(_) => 500,
         }
     }
 }
