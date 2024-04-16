@@ -80,6 +80,10 @@ impl SyncKv {
         map.insert(key.to_vec(), value.to_vec());
         self.mark_dirty();
     }
+
+    pub fn len(&self) -> usize {
+        self.data.lock().unwrap().len()
+    }
 }
 
 impl<'d> DocOps<'d> for SyncKv {}
