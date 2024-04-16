@@ -6,7 +6,7 @@ use server_context::ServerContext;
 use std::collections::HashMap;
 #[cfg(feature = "fetch-event")]
 use worker::{event, Env};
-use worker::{Date, Request, Response, Result, RouteContext, Router, Url};
+use worker::{Date, Method, Request, Response, ResponseBody, Result, RouteContext, Router, Url};
 use y_sweet_core::{
     api_types::{validate_doc_name, ClientToken, DocCreationRequest, NewDocResponse},
     auth::Authenticator,
@@ -102,10 +102,29 @@ async fn new_doc(
         return Err(Error::InvalidDocName);
     }
 
-    let store = Some(ctx.data.store());
-    let dwskv = DocWithSyncKv::new(&doc_id, store, || {}).await.unwrap();
+    let auth = if let Some(auth) = ctx.param("z") {
+        format!("?z={}", auth)
+    } else {
+        String::new()
+    };
 
-    dwskv.sync_kv().persist().await.unwrap();
+    let req = Request::new(
+        &format!("http://ignored/doc/{}{}", doc_id, auth),
+        Method::Post,
+    )
+    .map_err(|_| Error::CouldNotConstructRequest)?;
+    let result = forward_to_durable_object_with_doc_id(req, ctx, &doc_id)
+        .await
+        .map_err(Error::CouldNotForwardRequest)?;
+
+    if result.status_code() != 200 {
+        let body = match result.body() {
+            ResponseBody::Body(body) => String::from_utf8_lossy(&body).to_string(),
+            _ => String::new(),
+        };
+
+        return Err(Error::ErrorCreatingDoc(body));
+    }
 
     let response = NewDocResponse { doc_id };
 
@@ -235,6 +254,14 @@ async fn forward_to_durable_object(
         }
     }
 
+    forward_to_durable_object_with_doc_id(req, ctx, &doc_id).await
+}
+
+async fn forward_to_durable_object_with_doc_id(
+    req: Request,
+    ctx: RouteContext<ServerContext>,
+    doc_id: &str,
+) -> Result<Response> {
     let durable_object = ctx.env.durable_object(DURABLE_OBJECT)?;
     let stub = durable_object.id_from_name(&doc_id)?.get_stub()?;
 
