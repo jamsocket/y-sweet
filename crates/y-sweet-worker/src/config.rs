@@ -22,7 +22,12 @@ const S3_BUCKET_NAME: &str = "S3_BUCKET_NAME";
 //     reset after less than 30 seconds of inactivity.
 //
 // Ref: https://ts.cloudflare.community/workers/runtime-apis/durable-objects/#in-memory-state
-const DEFAULT_CHECKPOINT_FREQ_SECONDS: u64 = 29;
+//
+// However, experimentally, this seems wrong. Earlier documentation mentioned 10 seconds as the
+// reliable duration in the absence of failures, which seems to solve the problem:
+//
+// Ref: https://github.com/cloudflare/cloudflare-docs/pull/7625/files
+const DEFAULT_CHECKPOINT_FREQ_SECONDS: u64 = 9;
 
 #[derive(Serialize, Deserialize)]
 pub enum BucketKind {
