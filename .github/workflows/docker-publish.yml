@@ -46,6 +46,8 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
+      - uses: depot/setup-action@v1
+
       - name: Build and push Docker image
         id: build-and-push
         uses: depot/build-push-action@v1
