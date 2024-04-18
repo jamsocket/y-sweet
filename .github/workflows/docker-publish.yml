@@ -53,7 +53,7 @@ jobs:
         uses: depot/build-push-action@v1
         with:
           context: "crates"
-          file: "Dockerfile"
+          file: "crates/Dockerfile"
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
