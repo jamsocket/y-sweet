@@ -1,6 +1,6 @@
 # Running a y-sweet server
 
-The [quickstart](/quickstart) guide provides instructions for using our hosted y-sweet server, but if you prefer to host it on your own you have several options.
+The [quickstart](https://y-sweet.dev/quickstart) guide provides instructions for using our hosted y-sweet server, but if you prefer to host it on your own you have several options.
 
 ## Running a dev server
 
