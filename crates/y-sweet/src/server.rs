@@ -168,7 +168,7 @@ impl Server {
     }
 
     pub async fn serve(self, addr: &SocketAddr) -> Result<()> {
-        let listnener = TcpListener::bind(addr).await?;
+        let listener = TcpListener::bind(addr).await?;
         let server_state = Arc::new(self);
 
         let app = Router::new()
@@ -178,7 +178,7 @@ impl Server {
             .route("/doc/:doc_id/auth", post(auth_doc))
             .with_state(server_state);
 
-        axum::serve(listnener, app.into_make_service())
+        axum::serve(listener, app.into_make_service())
             .await
             .map_err(|_| anyhow!("Failed to serve"))?;
 
