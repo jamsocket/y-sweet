@@ -105,3 +105,4 @@ You can try a preview for free today by following our [quickstart](https://y-swe
 If you are interested in being a build partner for early access to new features, please [reach out](mailto:hi@driftingin.space).
 
 We are committed to growing y-sweet as an open-source-first project, wherever you decide to host it.
+
