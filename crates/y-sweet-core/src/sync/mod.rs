@@ -22,15 +22,15 @@ use yrs::{ReadTxn, StateVector, Transact, Update};
  When the server receives SyncStep1, it should reply with SyncStep2 immediately followed by SyncStep1. The client replies
  with SyncStep2 when it receives SyncStep1. Optionally the server may send a SyncDone after it received SyncStep2, so the
  client knows that the sync is finished.  There are two reasons for this more elaborated sync model: 1. This protocol can
- easily be implemented on top of http and websockets. 2. The server shoul only reply to requests, and not initiate them.
- Therefore it is necesarry that the client initiates the sync.
+ easily be implemented on top of http and websockets. 2. The server should only reply to requests, and not initiate them.
+ Therefore, it is necessary that the client initiates the sync.
 
  Construction of a message:
  [messageType : varUint, message definition..]
 
- Note: A message does not include information about the room name. This must to be handled by the upper layer protocol!
+ Note: A message does not include information about the room name. This must be handled by the upper layer protocol!
 
- stringify[messageType] stringifies a message definition (messageType is already read from the bufffer)
+ stringify[messageType] stringifies a message definition (messageType is already read from the buffer)
 */
 
 /// A default implementation of y-sync [Protocol].
@@ -43,7 +43,7 @@ impl Protocol for DefaultProtocol {}
 /// necessary.
 pub trait Protocol {
     /// To be called whenever a new connection has been accepted. Returns an encoded list of
-    /// messages to be send back to initiator. This binary may contain multiple messages inside,
+    /// messages to be sent back to initiator. This binary may contain multiple messages inside,
     /// stored one after another.
     fn start<E: Encoder>(&self, awareness: &Awareness, encoder: &mut E) -> Result<(), Error> {
         let (sv, update) = {
@@ -67,7 +67,7 @@ pub trait Protocol {
         Ok(Some(Message::Sync(SyncMessage::SyncStep2(update))))
     }
 
-    /// Handle reply for a sync-step-1 send from this replica previously. By default just apply
+    /// Handle reply for a sync-step-1 send from this replica previously. By default, just apply
     /// an update to current `awareness` document instance.
     fn handle_sync_step2(
         &self,
@@ -89,7 +89,7 @@ pub trait Protocol {
         self.handle_sync_step2(awareness, update)
     }
 
-    /// Handle authorization message. By default if reason for auth denial has been provided,
+    /// Handle authorization message. By default, if reason for auth denial has been provided,
     /// send back [Error::PermissionDenied].
     fn handle_auth(
         &self,
@@ -122,7 +122,7 @@ pub trait Protocol {
     }
 
     /// Y-sync protocol enables to extend its own settings with custom handles. These can be
-    /// implemented here. By default it returns an [Error::Unsupported].
+    /// implemented here. By default, it returns an [Error::Unsupported].
     fn missing_handle(
         &self,
         _awareness: &mut Awareness,

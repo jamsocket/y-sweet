@@ -275,7 +275,7 @@ impl std::fmt::Debug for Awareness {
 }
 
 /// Whenever a new callback is being registered, a [Subscription] is made. Whenever this
-/// subscription a registered callback is cancelled and will not be called any more.
+/// subscription a registered callback is cancelled and will not be called anymore.
 pub type UpdateSubscription = Subscription<Arc<dyn Fn(&Awareness, &Event) + 'static>>;
 
 /// A structure that represents an encodable state of an [Awareness] struct.
