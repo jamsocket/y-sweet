@@ -25,7 +25,7 @@ The y-sweet server can be used by any Yjs app, or you can use our opinionated st
 
 The goal of the y-sweet stack is to give developers the end-to-end developer ergonomics they would expect from a proprietary state-sync platform, **without the lock-in**.
 
-y-sweet is MIT-licensed, and was created by [Drifting in Space](https://driftingin.space).
+y-sweet is MIT-licensed, and was created by [Jamsocket](https://jamsocket.com).
 
 ## Docs
 
