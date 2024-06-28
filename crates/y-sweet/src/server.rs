@@ -44,6 +44,7 @@ fn current_time_epoch_millis() -> u64 {
     duration_since_epoch.as_millis() as u64
 }
 
+#[derive(Debug)]
 pub struct AppError(StatusCode, anyhow::Error);
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
