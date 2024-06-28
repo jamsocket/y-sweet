@@ -35,6 +35,10 @@ async function connectToDoc(server: Server, docId: string): Promise<Y.Doc> {
 
   await new Promise<void>((resolve, reject) => {
     provider.on('synced', resolve)
+
+    setTimeout(() => {
+      reject('Timed out waiting for sync')
+    }, 5_000)
   })
 
   return doc
