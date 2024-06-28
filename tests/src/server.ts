@@ -50,9 +50,9 @@ export class Server {
   constructor(configuration: ServerConfiguration) {
     this.port = Math.floor(Math.random() * 10000) + 10000
     const outFilePath = join(dirname(__filename), '..', 'out')
-    
+
     mkdirSync(outFilePath, { recursive: true })
-    
+
     this.outFileBase = join(outFilePath, configToString(configuration))
     mkdirSync(this.outFileBase, { recursive: true })
     this.dataDir = join(this.outFileBase, 'data')
