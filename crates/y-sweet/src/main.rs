@@ -10,6 +10,7 @@ use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     path::PathBuf,
 };
+use tokio::io::AsyncReadExt;
 use tracing::metadata::LevelFilter;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 use url::Url;
@@ -22,6 +23,7 @@ use y_sweet_core::{
 };
 
 mod cli;
+mod convert;
 mod server;
 mod stores;
 
@@ -60,6 +62,17 @@ enum ServSubcommand {
     GenAuth {
         #[clap(long)]
         json: bool,
+    },
+
+    /// Convert from a YDoc v1 update format to a .ysweet file.
+    /// The YDoc update should be passed in via stdin.
+    ConvertFromUpdate {
+        /// The store to write the document to.
+        #[clap(env = "Y_SWEET_STORE")]
+        store: String,
+
+        /// The ID of the document to write.
+        doc_id: String,
     },
 
     Version,
@@ -209,6 +222,16 @@ async fn main() -> Result<()> {
             } else {
                 print_auth_message(&auth);
             }
+        }
+        ServSubcommand::ConvertFromUpdate { store, doc_id } => {
+            let store = get_store_from_opts(store)?;
+            store.init().await?;
+
+            let mut stdin = tokio::io::stdin();
+            let mut buf = Vec::new();
+            stdin.read_to_end(&mut buf).await?;
+
+            convert::convert(store, &buf, doc_id).await?;
         }
         ServSubcommand::Version => {
             println!("{}", VERSION);

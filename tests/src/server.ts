@@ -5,6 +5,8 @@ import { dirname, join } from 'path'
 
 export type ServerType = 'native' | 'worker'
 
+export const CRATE_BASE = join(dirname(__filename), '..', '..', 'crates')
+
 type S3Config = {
   aws_access_key_id: string
   aws_secret_key: string
@@ -46,21 +48,20 @@ export class Server {
   }
 
   constructor(configuration: ServerConfiguration) {
-    const yServeBase = join(dirname(__filename), '..', '..', 'crates')
-
     this.port = Math.floor(Math.random() * 10000) + 10000
-    this.dataDir = join(tmpdir(), `y-sweet-test-${this.port}`)
     const outFilePath = join(dirname(__filename), '..', 'out')
-
+    
     mkdirSync(outFilePath, { recursive: true })
-
+    
     this.outFileBase = join(outFilePath, configToString(configuration))
     mkdirSync(this.outFileBase, { recursive: true })
+    this.dataDir = join(this.outFileBase, 'data')
+    mkdirSync(this.dataDir, { recursive: true })
 
     let auth
     if (configuration.useAuth) {
       console.log('Generating auth.')
-      auth = Server.generateAuth(yServeBase)
+      auth = Server.generateAuth(CRATE_BASE)
       this.serverToken = auth.server_token
       console.log('Done generating auth.')
     }
@@ -68,7 +69,7 @@ export class Server {
     if (configuration.server === 'native') {
       execSync('cargo build > ' + join(this.outFileBase, 'build.txt'), {
         stdio: 'ignore',
-        cwd: yServeBase,
+        cwd: CRATE_BASE,
       })
 
       let command = `target/debug/y-sweet serve --port ${this.port} ${this.dataDir} --prod`
@@ -79,11 +80,11 @@ export class Server {
       command +=
         ' > ' + join(this.outFileBase, 'server.txt') + ' 2> ' + join(this.outFileBase, 'stderr.txt')
 
-      console.log('Spawning server.')
-      this.process = spawn(command, { cwd: yServeBase, shell: true, stdio: 'ignore' })
+      console.log('Spawning server.', command)
+      this.process = spawn(command, { cwd: CRATE_BASE, shell: true, stdio: 'ignore' })
       console.log('Done spawning server.')
     } else if (configuration.server === 'worker') {
-      const workerBase = join(yServeBase, 'y-sweet-worker')
+      const workerBase = join(CRATE_BASE, 'y-sweet-worker')
       execSync(
         './build.sh --dev > ' +
           join(this.outFileBase, 'build.txt') +
