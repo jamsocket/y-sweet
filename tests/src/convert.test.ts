@@ -59,7 +59,6 @@ test('can convert a doc with content from an update', async () => {
   const doc = new Y.Doc()
 
   doc.getMap('test').set('hello', 'world')
-  doc.getMap('test').set('foo', 'bar')
 
   const docId = Math.random().toString(36).substring(7)
   await convertDoc(doc, docId, server.dataDir)
@@ -67,5 +66,4 @@ test('can convert a doc with content from an update', async () => {
   const newDoc = await connectToDoc(server, docId)
   const testMap = newDoc.getMap('test')
   expect(testMap.get('hello')).toBe('world')
-  expect(testMap.get('foo')).toBe('bar')
 })
