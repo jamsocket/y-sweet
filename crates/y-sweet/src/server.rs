@@ -48,7 +48,7 @@ fn current_time_epoch_millis() -> u64 {
 pub struct AppError(StatusCode, anyhow::Error);
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
-        (self.0, format!("Something went wrong: {}", self.0)).into_response()
+        (self.0, format!("Something went wrong: {}", self.1)).into_response()
     }
 }
 
