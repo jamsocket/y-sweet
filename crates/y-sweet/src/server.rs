@@ -61,7 +61,7 @@ where
 }
 
 pub struct Server {
-    docs: DashMap<String, DocWithSyncKv>,
+    docs: Arc<DashMap<String, DocWithSyncKv>>,
     doc_worker_tracker: TaskTracker,
     store: Option<Arc<Box<dyn Store>>>,
     checkpoint_freq: Duration,
@@ -79,7 +79,7 @@ impl Server {
         cancellation_token: CancellationToken,
     ) -> Result<Self> {
         Ok(Self {
-            docs: DashMap::new(),
+            docs: Arc::new(DashMap::new()),
             doc_worker_tracker: TaskTracker::new(),
             store: store.map(Arc::new),
             checkpoint_freq,
@@ -129,12 +129,29 @@ impl Server {
             let checkpoint_freq = self.checkpoint_freq;
             let doc_id_ = doc_id.to_string();
             let doc_id = doc_id.to_string();
-            let cancellation_token = self.cancellation_token.clone();
+            let persistence_cancellation_token = CancellationToken::new();
 
             // Spawn a task to save the document to the store when it changes.
             self.doc_worker_tracker.spawn(
-                Self::doc_worker(recv, sync_kv, checkpoint_freq, doc_id, cancellation_token)
-                    .instrument(span!(Level::INFO, "save_loop", doc_id=?doc_id_)),
+                Self::doc_persistence_worker(
+                    recv,
+                    sync_kv,
+                    checkpoint_freq,
+                    doc_id,
+                    persistence_cancellation_token.clone(),
+                )
+                .instrument(span!(Level::INFO, "save_loop", doc_id=?doc_id_)),
+            );
+
+            self.doc_worker_tracker.spawn(
+                Self::doc_gc_worker(
+                    self.docs.clone(),
+                    doc_id_.clone(),
+                    checkpoint_freq,
+                    persistence_cancellation_token,
+                    self.cancellation_token.clone(),
+                )
+                .instrument(span!(Level::INFO, "gc_loop", doc_id=?doc_id_)),
             );
         }
 
@@ -142,7 +159,46 @@ impl Server {
         Ok(())
     }
 
-    async fn doc_worker(
+    async fn doc_gc_worker(
+        docs: Arc<DashMap<String, DocWithSyncKv>>,
+        doc_id: String,
+        checkpoint_freq: Duration,
+        persistence_cancellation_token: CancellationToken,
+        cancellation_token: CancellationToken,
+    ) {
+        let mut last_had_references = std::time::Instant::now();
+
+        loop {
+            tokio::select! {
+                _ = tokio::time::sleep(checkpoint_freq) => {
+                    if let Some(doc) = docs.get(&doc_id) {
+                        let awareness = Arc::downgrade(&doc.awareness());
+                        if awareness.strong_count() > 1 {
+                            last_had_references = std::time::Instant::now();
+                            tracing::debug!("doc is still alive - it has {} references", awareness.strong_count());
+                        } else {
+                            tracing::info!("doc has only one reference, candidate for GC");
+                        }
+                    } else {
+                        break;
+                    }
+
+                    if std::time::Instant::now() - last_had_references > checkpoint_freq * 2 {
+                        tracing::info!("GCing doc");
+                        docs.remove(&doc_id);
+                        break;
+                    }
+                }
+                _ = cancellation_token.cancelled() => {
+                    break;
+                }
+            };
+        }
+        persistence_cancellation_token.cancel();
+        tracing::info!("Exiting gc_loop");
+    }
+
+    async fn doc_persistence_worker(
         mut recv: Receiver<()>,
         sync_kv: Arc<SyncKv>,
         checkpoint_freq: Duration,
@@ -191,9 +247,12 @@ impl Server {
             }
 
             tracing::info!("Persisting.");
-            sync_kv.persist().await.unwrap();
+            if let Err(e) = sync_kv.persist().await {
+                tracing::error!(?e, "Error persisting.");
+            } else {
+                tracing::info!("Done persisting.");
+            }
             last_save = std::time::Instant::now();
-            tracing::info!("Done persisting.");
             interrupted = false;
         }
         tracing::info!("Terminating loop for {}", doc_id);
@@ -211,7 +270,7 @@ impl Server {
         Ok(self
             .docs
             .get(doc_id)
-            .expect("Doc should exist, we just created it.")
+            .ok_or_else(|| anyhow!("Failed to get-or-create doc"))?
             .map(|d| d))
     }
 
@@ -237,6 +296,7 @@ impl Server {
         let listener = TcpListener::bind(addr).await?;
         let token = self.cancellation_token.clone();
         let server_state = Arc::new(self);
+
         let server_state_ = server_state.clone();
 
         let app = Router::new()
@@ -305,7 +365,7 @@ async fn handle_socket(
         }
     });
 
-    let connection = DocConnection::new(awareness.clone(), move |bytes| {
+    let connection = DocConnection::new(awareness, move |bytes| {
         if let Err(e) = send.try_send(bytes.to_vec()) {
             tracing::warn!(?e, "Error sending message");
         }
