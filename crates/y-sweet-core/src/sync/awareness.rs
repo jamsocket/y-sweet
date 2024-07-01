@@ -201,7 +201,7 @@ impl Awareness {
                         if is_null {
                             // never let a remote client remove this local state
                             if client_id == self.doc.client_id()
-                                && self.states.get(&client_id).is_some()
+                                && self.states.contains_key(&client_id)
                             {
                                 // remote client removed the local state. Do not remote state. Broadcast a message indicating
                                 // that this client still exists by increasing the clock
