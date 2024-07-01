@@ -136,7 +136,6 @@ impl Server {
         {
             let sync_kv = dwskv.sync_kv();
             let checkpoint_freq = self.checkpoint_freq;
-            let doc_id_ = doc_id.to_string();
             let doc_id = doc_id.to_string();
             let persistence_cancellation_token = CancellationToken::new();
 
@@ -146,21 +145,21 @@ impl Server {
                     recv,
                     sync_kv,
                     checkpoint_freq,
-                    doc_id,
+                    doc_id.clone(),
                     persistence_cancellation_token.clone(),
                 )
-                .instrument(span!(Level::INFO, "save_loop", doc_id=?doc_id_)),
+                .instrument(span!(Level::INFO, "save_loop", doc_id=?doc_id)),
             );
 
             self.doc_worker_tracker.spawn(
                 Self::doc_gc_worker(
                     self.docs.clone(),
-                    doc_id_.clone(),
+                    doc_id.clone(),
                     checkpoint_freq,
                     persistence_cancellation_token,
                     self.cancellation_token.clone(),
                 )
-                .instrument(span!(Level::INFO, "gc_loop", doc_id=?doc_id_)),
+                .instrument(span!(Level::INFO, "gc_loop", doc_id=?doc_id)),
             );
         }
 
