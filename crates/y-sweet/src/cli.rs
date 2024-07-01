@@ -38,6 +38,7 @@ pub fn print_server_url(auth: Option<&Authenticator>, url_prefix: Option<&Url>, 
         token.bright_purple()
     );
     println!();
+
     if auth.is_some() {
         println!(
             "{} {} {}",

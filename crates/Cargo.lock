@@ -81,12 +81,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f538837af36e6f6a9be0faa67f9a314f8119e4e4b5867c6ab40ed60360142519"
 
 [[package]]
-name = "arc-swap"
-version = "1.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69f7f8c3906b62b754cd5326047894316021dcfe5a194c8ea52bdd94934a3457"
-
-[[package]]
 name = "async-trait"
 version = "0.1.80"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -409,15 +403,6 @@ name = "equivalent"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
-
-[[package]]
-name = "fastrand"
-version = "2.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "658bd65b1cf4c852a3cc96f18a8ce7b5640f6b703f905c7d74532294c2a63984"
-dependencies = [
- "getrandom 0.2.14",
-]
 
 [[package]]
 name = "fnv"
@@ -2138,8 +2123,8 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "y-sweet-core",
- "yrs 0.17.4",
- "yrs-kvstore 0.1.0",
+ "yrs",
+ "yrs-kvstore",
 ]
 
 [[package]]
@@ -2163,8 +2148,8 @@ dependencies = [
  "time",
  "tokio",
  "tracing",
- "yrs 0.17.4",
- "yrs-kvstore 0.2.0",
+ "yrs",
+ "yrs-kvstore",
 ]
 
 [[package]]
@@ -2183,34 +2168,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "yrs"
-version = "0.18.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "27a994dea827d74874cc29cf7c70cf17edaa31627c6598c46314ddc8c320ee9e"
-dependencies = [
- "arc-swap",
- "atomic_refcell",
- "fastrand",
- "serde",
- "serde_json",
- "smallstr",
- "smallvec",
- "thiserror",
-]
-
-[[package]]
-name = "yrs-kvstore"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be867aba0de4ae4c1f1d044ff56866a46ceff27ff3b1a2cfa1224d1bf0de1fc3"
-dependencies = [
- "lib0",
- "smallvec",
- "thiserror",
- "yrs 0.18.3",
-]
-
-[[package]]
 name = "yrs-kvstore"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2218,7 +2175,7 @@ checksum = "0ed7183211b34821bbf2144ffeec051d930b49e80c1065121245fedaa8bb3356"
 dependencies = [
  "smallvec",
  "thiserror",
- "yrs 0.17.4",
+ "yrs",
 ]
 
 [[package]]
