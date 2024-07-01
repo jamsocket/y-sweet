@@ -27,7 +27,7 @@ jobs:
     - name: Run integration tests
       run: npm test
       working-directory: tests
-      timeout-minutes: 10
+      timeout-minutes: 4
 
     - uses: actions/upload-artifact@v4
       if: always()
