@@ -1,10 +1,12 @@
 use anyhow::{anyhow, Result};
 use axum::{
+    extract::Request,
     extract::{
         ws::{Message, WebSocket},
         Path, Query, State, WebSocketUpgrade,
     },
     http::StatusCode,
+    middleware::{self, Next},
     response::{IntoResponse, Response},
     routing::{get, post},
     Json, Router,
@@ -46,18 +48,24 @@ fn current_time_epoch_millis() -> u64 {
 
 #[derive(Debug)]
 pub struct AppError(StatusCode, anyhow::Error);
+impl std::error::Error for AppError {}
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         (self.0, format!("Something went wrong: {}", self.1)).into_response()
     }
 }
-
 impl<E> From<(StatusCode, E)> for AppError
 where
     E: Into<anyhow::Error>,
 {
     fn from((status_code, err): (StatusCode, E)) -> Self {
         Self(status_code, err.into())
+    }
+}
+impl std::fmt::Display for AppError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Status code: {} {}", self.0, self.1)?;
+        Ok(())
     }
 }
 
@@ -167,7 +175,7 @@ impl Server {
         persistence_cancellation_token: CancellationToken,
         cancellation_token: CancellationToken,
     ) {
-        let mut last_had_references = std::time::Instant::now();
+        let mut checkpoints_without_refs = 0;
 
         loop {
             tokio::select! {
@@ -175,16 +183,17 @@ impl Server {
                     if let Some(doc) = docs.get(&doc_id) {
                         let awareness = Arc::downgrade(&doc.awareness());
                         if awareness.strong_count() > 1 {
-                            last_had_references = std::time::Instant::now();
+                            checkpoints_without_refs = 0;
                             tracing::debug!("doc is still alive - it has {} references", awareness.strong_count());
                         } else {
-                            tracing::info!("doc has only one reference, candidate for GC");
+                            checkpoints_without_refs += 1;
+                            tracing::info!("doc has only one reference, candidate for GC. checkpoints_without_refs: {}", checkpoints_without_refs);
                         }
                     } else {
                         break;
                     }
 
-                    if std::time::Instant::now() - last_had_references > checkpoint_freq * 2 {
+                    if checkpoints_without_refs >= 2 {
                         tracing::info!("GCing doc");
                         docs.remove(&doc_id);
                         break;
@@ -208,45 +217,39 @@ impl Server {
     ) {
         let mut last_save = std::time::Instant::now();
 
-        // There are two ways to trigger a save: either the dirty
-        // callback is called, or the cancellation token has been
-        // cancelled.
-        let mut is_done = false;
-        let mut interrupted = false;
-        while !is_done || interrupted {
-            if !interrupted && !is_done {
-                is_done = tokio::select! {
-                    v = recv.recv() => v.is_none(),
-                    _ = cancellation_token.cancelled() => true,
-                };
-                tracing::info!("Received signal. done: {}", is_done);
-            }
+        loop {
+            let is_done = tokio::select! {
+                v = recv.recv() => v.is_none(),
+                _ = cancellation_token.cancelled() => true,
+            };
 
-            if !is_done {
-                let mut now = std::time::Instant::now();
-                if now - last_save < checkpoint_freq {
-                    tracing::info!("Throttling.");
-                    now = std::time::Instant::now();
+            tracing::info!("Received signal. done: {}", is_done);
+            let now = std::time::Instant::now();
+            if !is_done && now - last_save < checkpoint_freq {
+                let sleep = tokio::time::sleep(checkpoint_freq - (now - last_save));
+                tokio::pin!(sleep);
+                tracing::info!("Throttling.");
+
+                loop {
                     tokio::select! {
-                        _ = tokio::time::sleep(checkpoint_freq - (now - last_save)) => {
+                        _ = &mut sleep => {
+                            break;
                         }
                         v = recv.recv() => {
                             tracing::info!("Received dirty while throttling.");
-                            interrupted = true;
-                            is_done = v.is_none();
-                            continue;
+                            if v.is_none() {
+                                break;
+                            }
                         }
                         _ = cancellation_token.cancelled() => {
                             tracing::info!("Received cancellation while throttling.");
-                            interrupted = true;
-                            is_done = true;
-                            continue;
+                            break;
                         }
+
                     }
                     tracing::info!("Done throttling.");
                 }
             }
-
             tracing::info!("Persisting.");
             if let Err(e) = sync_kv.persist().await {
                 tracing::error!(?e, "Error persisting.");
@@ -254,7 +257,10 @@ impl Server {
                 tracing::info!("Done persisting.");
             }
             last_save = std::time::Instant::now();
-            interrupted = false;
+
+            if is_done {
+                break;
+            }
         }
         tracing::info!("Terminating loop for {}", doc_id);
     }
@@ -293,19 +299,36 @@ impl Server {
         }
     }
 
-    pub async fn serve(self, addr: &SocketAddr) -> Result<()> {
+    pub async fn redact_error_middleware(
+        State(redact_errors): State<bool>,
+        req: Request,
+        next: Next,
+    ) -> impl IntoResponse {
+        let resp = next.run(req).await;
+        if resp.status().is_success() || !redact_errors {
+            resp
+        } else {
+            // If we should redact errors, copy over only the status code and
+            // not the response body.
+            resp.status().into_response()
+        }
+    }
+
+    pub async fn serve(self, addr: &SocketAddr, redact_errors: bool) -> Result<()> {
         let listener = TcpListener::bind(addr).await?;
         let token = self.cancellation_token.clone();
         let server_state = Arc::new(self);
-
-        let server_state_ = server_state.clone();
 
         let app = Router::new()
             .route("/check_store", get(check_store))
             .route("/doc/ws/:doc_id", get(handle_socket_upgrade))
             .route("/doc/new", post(new_doc))
             .route("/doc/:doc_id/auth", post(auth_doc))
-            .with_state(server_state);
+            .with_state(server_state.clone())
+            .layer(middleware::from_fn_with_state(
+                redact_errors,
+                Self::redact_error_middleware,
+            ));
 
         axum::serve(listener, app.into_make_service())
             // Wait for all outstanding connections to close, and then exit.
@@ -313,8 +336,8 @@ impl Server {
             .await?;
 
         // Ensure all in-memory docs are saved before exiting.
-        server_state_.doc_worker_tracker.close();
-        server_state_.doc_worker_tracker.wait().await;
+        server_state.doc_worker_tracker.close();
+        server_state.doc_worker_tracker.wait().await;
 
         Ok(())
     }

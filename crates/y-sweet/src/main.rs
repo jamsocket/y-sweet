@@ -197,8 +197,9 @@ async fn main() -> Result<()> {
             )
             .await?;
 
+            let prod = *prod;
             let handle = tokio::spawn(async move {
-                server.serve(&addr).await.unwrap();
+                server.serve(&addr, prod).await.unwrap();
             });
 
             tracing::info!("Listening on ws://{}", addr);
