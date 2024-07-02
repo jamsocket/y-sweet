@@ -304,13 +304,12 @@ impl Server {
         next: Next,
     ) -> impl IntoResponse {
         let resp = next.run(req).await;
-        if resp.status().is_success() || !redact_errors {
-            resp
-        } else {
+        if redact_errors && resp.status().is_server_error() || resp.status().is_client_error() {
             // If we should redact errors, copy over only the status code and
             // not the response body.
-            resp.status().into_response()
+            return resp.status().into_response();
         }
+        resp
     }
 
     pub async fn serve(self, addr: &SocketAddr, redact_errors: bool) -> Result<()> {
