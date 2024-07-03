@@ -11,3 +11,7 @@
 - Deploys as a native Linux process, or as a WebAssembly module on Cloudflare's edge.
 - Provides document-level access control via client tokens.
 - Written in Rust with a focus on stability and performance, building on the excellent [y-crdt](https://github.com/y-crdt/y-crdt/) library.
+
+## `y-sweet` crate
+
+The y-sweet crate is primarily intended to be used as a binary, but can also be used as a library. See `main.rs` for usage examples.

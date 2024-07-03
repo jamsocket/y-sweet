@@ -167,16 +167,19 @@ impl Server {
         }
     }
 
-    pub async fn serve(self, addr: &SocketAddr) -> Result<()> {
-        let listener = TcpListener::bind(addr).await?;
-        let server_state = Arc::new(self);
-
-        let app = Router::new()
+    pub fn routes(self) -> Router {
+        Router::new()
             .route("/check_store", get(check_store))
             .route("/doc/ws/:doc_id", get(handle_socket_upgrade))
             .route("/doc/new", post(new_doc))
             .route("/doc/:doc_id/auth", post(auth_doc))
-            .with_state(server_state);
+            .with_state(Arc::new(self))
+    }
+
+    pub async fn serve(self, addr: &SocketAddr) -> Result<()> {
+        let listener = TcpListener::bind(addr).await?;
+
+        let app = self.routes();
 
         axum::serve(listener, app.into_make_service())
             .await
