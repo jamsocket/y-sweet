@@ -12,7 +12,7 @@ pub async fn convert(store: Box<dyn Store>, doc_as_update: &[u8], doc_id: &str) 
     let sync_kv = Arc::new(sync_kv);
 
     sync_kv
-        .push_update(DOC_NAME, &doc_as_update)
+        .push_update(DOC_NAME, doc_as_update)
         .map_err(|_| anyhow::anyhow!("Failed to push update"))?;
 
     sync_kv
