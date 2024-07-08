@@ -1,5 +1,3 @@
-import crypto from 'crypto'
-
 /**
  * Schema of object returned after a successful document creation.
  */
@@ -24,6 +22,10 @@ export type ClientToken = {
 
   /** A string that grants the bearer access to the document. By default, the development server does not require a token. */
   token?: string
+}
+
+function generateRandomString(): string {
+  return Math.random().toString(36).substring(2)
 }
 
 /** Metadata associated with a {@link YSweetError}. */
@@ -187,7 +189,7 @@ export class DocumentManager {
     // the cache using `cache: 'no-store'` causes fetch() to error in other environments
     // (e.g. Cloudflare Workers). To work around this, we simply add a cache-busting query
     // param.
-    const cacheBust = crypto.randomUUID().slice(0, 24).replace(/-/g, '')
+    const cacheBust = generateRandomString()
     url = `${this.baseUrl}/${url}?z=${cacheBust}`
     try {
       result = await fetch(url, {
