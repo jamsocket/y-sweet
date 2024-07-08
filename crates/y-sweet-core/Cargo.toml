@@ -7,6 +7,10 @@ license = "MIT"
 homepage = "https://y-sweet.dev"
 repository = "https://github.com/drifting-in-space/y-sweet"
 
+[features]
+default = ["sync"]
+sync = ["yrs/sync"]
+
 [dependencies]
 anyhow = "1.0.72"
 async-trait = "0.1.71"
@@ -23,7 +27,7 @@ sha2 = "0.10.7"
 thiserror = "1.0.44"
 time = { version = "0.3.25", features = ["wasm-bindgen"] }
 tracing = "0.1.37"
-yrs = "0.17.2"
+yrs = { version = "0.19.1" }
 yrs-kvstore = "0.2.0"
 
 [dev-dependencies]

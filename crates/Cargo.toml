@@ -9,3 +9,7 @@ members = [
 exclude = [
     "y-sweet-worker",
 ]
+
+[patch.crates-io]
+yrs-kvstore = { git = "https://github.com/rbtying/yrs-persistence" }
+
