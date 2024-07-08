@@ -1,14 +1,14 @@
 use crate::{doc_connection::DOC_NAME, store::Store, sync::awareness::Awareness, sync_kv::SyncKv};
 use anyhow::{anyhow, Context, Result};
 use std::sync::{Arc, RwLock};
-use yrs::{Doc, Options, Transact, UpdateSubscription};
+use yrs::{Doc, Subscription, Transact};
 use yrs_kvstore::DocOps;
 
 pub struct DocWithSyncKv {
     awareness: Arc<RwLock<Awareness>>,
     sync_kv: Arc<SyncKv>,
     #[allow(unused)] // acts as RAII guard
-    subscription: UpdateSubscription,
+    subscription: Subscription,
 }
 
 impl DocWithSyncKv {
@@ -47,7 +47,7 @@ impl DocWithSyncKv {
             doc.observe_update_v1(move |_, event| {
                 sync_kv.push_update(DOC_NAME, &event.update).unwrap();
                 sync_kv
-                    .flush_doc_with(DOC_NAME, Options::default())
+                    .flush_doc_with(DOC_NAME, Default::default())
                     .unwrap();
             })
             .map_err(|_| anyhow!("Failed to subscribe to updates"))?

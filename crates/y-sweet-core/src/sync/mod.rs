@@ -360,8 +360,8 @@ mod test {
 
         for msg in messages {
             let encoded = msg.encode_v1();
-            let decoded =
-                Message::decode_v1(&encoded).expect(&format!("failed to decode {:?}", msg));
+            let decoded = Message::decode_v1(&encoded)
+                .unwrap_or_else(|_| panic!("failed to decode {:?}", msg));
             assert_eq!(decoded, msg);
         }
     }
