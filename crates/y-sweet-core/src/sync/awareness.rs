@@ -31,9 +31,6 @@ pub struct Awareness {
     on_update: Option<AwarenessObserver>,
 }
 
-unsafe impl Send for Awareness {}
-unsafe impl Sync for Awareness {}
-
 impl Awareness {
     /// Creates a new instance of [Awareness] struct, which operates over a given document.
     /// Awareness instance has full ownership of that document. If necessary it can be accessed
