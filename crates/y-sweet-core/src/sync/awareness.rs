@@ -191,9 +191,6 @@ impl Awareness {
 
     /// Applies an update (incoming from remote channel or generated using [Awareness::update] /
     /// [Awareness::update_with_clients] methods) and modifies a state of a current instance.
-    ///
-    /// If current instance has an observer channel (see: [Awareness::with_observer]), applied
-    /// changes will also be emitted as events.
     pub fn apply_update(&mut self, update: AwarenessUpdate) -> Result<(), Error> {
         let mut added = Vec::new();
         let mut updated = Vec::new();
@@ -212,7 +209,7 @@ impl Awareness {
                         if is_null {
                             // never let a remote client remove this local state
                             if client_id == self.doc.client_id()
-                                && self.states.get(&client_id).is_some()
+                                && self.states.contains_key(&client_id)
                             {
                                 // remote client removed the local state. Do not remote state. Broadcast a message indicating
                                 // that this client still exists by increasing the clock
