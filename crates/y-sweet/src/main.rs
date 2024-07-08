@@ -1,9 +1,5 @@
-#![doc = include_str!("../README.md")]
-
-use crate::stores::filesystem::FileSystemStore;
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use cli::{print_auth_message, print_server_url};
 use serde_json::json;
 use std::{
     env,
@@ -15,6 +11,8 @@ use tokio_util::sync::CancellationToken;
 use tracing::metadata::LevelFilter;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 use url::Url;
+use y_sweet::cli::{print_auth_message, print_server_url};
+use y_sweet::stores::filesystem::FileSystemStore;
 use y_sweet_core::{
     auth::Authenticator,
     store::{
@@ -22,11 +20,6 @@ use y_sweet_core::{
         Store,
     },
 };
-
-mod cli;
-mod convert;
-mod server;
-mod stores;
 
 const DEFAULT_S3_REGION: &str = "us-east-1";
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -188,7 +181,7 @@ async fn main() -> Result<()> {
 
             let token = CancellationToken::new();
 
-            let server = server::Server::new(
+            let server = y_sweet::server::Server::new(
                 store,
                 std::time::Duration::from_secs(*checkpoint_freq_seconds),
                 auth,
@@ -236,7 +229,7 @@ async fn main() -> Result<()> {
             let mut buf = Vec::new();
             stdin.read_to_end(&mut buf).await?;
 
-            convert::convert(store, &buf, doc_id).await?;
+            y_sweet::convert::convert(store, &buf, doc_id).await?;
         }
         ServSubcommand::Version => {
             println!("{}", VERSION);

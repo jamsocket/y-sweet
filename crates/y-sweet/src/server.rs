@@ -308,17 +308,21 @@ impl Server {
         resp
     }
 
-    pub async fn serve(self, addr: &SocketAddr, redact_errors: bool) -> Result<()> {
-        let listener = TcpListener::bind(addr).await?;
-        let token = self.cancellation_token.clone();
-        let server_state = Arc::new(self);
-
-        let app = Router::new()
+    pub fn routes(self: &Arc<Self>) -> Router {
+        Router::new()
             .route("/check_store", get(check_store))
             .route("/doc/ws/:doc_id", get(handle_socket_upgrade))
             .route("/doc/new", post(new_doc))
             .route("/doc/:doc_id/auth", post(auth_doc))
-            .with_state(server_state.clone());
+            .with_state(self.clone())
+    }
+
+    pub async fn serve(self, addr: &SocketAddr, redact_errors: bool) -> Result<()> {
+        let listener = TcpListener::bind(addr).await?;
+        let token = self.cancellation_token.clone();
+        let s = Arc::new(self);
+
+        let app = s.routes();
         let app = if redact_errors {
             app
         } else {
@@ -331,8 +335,8 @@ impl Server {
             .await?;
 
         // Ensure all in-memory docs are saved before exiting.
-        server_state.doc_worker_tracker.close();
-        server_state.doc_worker_tracker.wait().await;
+        s.doc_worker_tracker.close();
+        s.doc_worker_tracker.wait().await;
 
         Ok(())
     }
