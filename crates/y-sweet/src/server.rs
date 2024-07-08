@@ -298,13 +298,9 @@ impl Server {
         }
     }
 
-    pub async fn redact_error_middleware(
-        State(redact_errors): State<bool>,
-        req: Request,
-        next: Next,
-    ) -> impl IntoResponse {
+    pub async fn redact_error_middleware(req: Request, next: Next) -> impl IntoResponse {
         let resp = next.run(req).await;
-        if redact_errors && resp.status().is_server_error() || resp.status().is_client_error() {
+        if resp.status().is_server_error() || resp.status().is_client_error() {
             // If we should redact errors, copy over only the status code and
             // not the response body.
             return resp.status().into_response();
@@ -322,11 +318,12 @@ impl Server {
             .route("/doc/ws/:doc_id", get(handle_socket_upgrade))
             .route("/doc/new", post(new_doc))
             .route("/doc/:doc_id/auth", post(auth_doc))
-            .with_state(server_state.clone())
-            .layer(middleware::from_fn_with_state(
-                redact_errors,
-                Self::redact_error_middleware,
-            ));
+            .with_state(server_state.clone());
+        let app = if redact_errors {
+            app
+        } else {
+            app.layer(middleware::from_fn(Self::redact_error_middleware))
+        };
 
         axum::serve(listener, app.into_make_service())
             // Wait for all outstanding connections to close, and then exit.
