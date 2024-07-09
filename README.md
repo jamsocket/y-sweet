@@ -54,7 +54,7 @@ import { DocumentManager } from '@y-sweet/sdk'
 const manager = new DocumentManager(CONNECTION_STRING)
 
 // Get the client token from the y-sweet server. The client token is like the user's "password" to edit the "myDoc123" doc.
-const clientToken = await manager.getOrCreateClientAndToken('myDoc123')
+const clientToken = await manager.getOrCreateDocAndToken('myDoc123')
 ```
 
 ### On the client
