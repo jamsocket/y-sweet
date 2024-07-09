@@ -28,7 +28,7 @@ tracing-subscriber = { version = "0.3.17", features = ["env-filter", "fmt"] }
 url = "2.4.0"
 y-sweet-core = { version="0.1.2", path = "../y-sweet-core", features=["sync"] }
 yrs = { version = "0.19.1" }
-yrs-kvstore = "0.2.0"
+yrs-kvstore = "0.3.0"
 
 [dev-dependencies]
 http = "1.1.0"
