@@ -2126,7 +2126,8 @@ dependencies = [
 [[package]]
 name = "yrs-kvstore"
 version = "0.3.0"
-source = "git+https://github.com/y-crdt/yrs-persistence#204aabdbd567ad7124bdba4b5fd46b1ee86c91d0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "98d4ff429e242c38b6b31115f177b52f6f77a1c0cf553bd2e0bb7fbcc90e3429"
 dependencies = [
  "smallvec",
  "thiserror",
