@@ -1,7 +1,6 @@
 use crate::sync::{
-    self,
-    awareness::{Awareness, Event},
-    DefaultProtocol, Message, Protocol, SyncMessage, MSG_SYNC, MSG_SYNC_UPDATE,
+    self, awareness::Awareness, DefaultProtocol, Message, Protocol, SyncMessage, MSG_SYNC,
+    MSG_SYNC_UPDATE,
 };
 use std::sync::{Arc, OnceLock, RwLock};
 use yrs::{
@@ -11,26 +10,24 @@ use yrs::{
         decoder::Decode,
         encoder::{Encode, Encoder, EncoderV1},
     },
-    ReadTxn, Subscription, Transact, Update, UpdateSubscription,
+    ReadTxn, Subscription, Transact, Update,
 };
 
 // TODO: this is an implementation detail and should not be exposed.
 pub const DOC_NAME: &str = "doc";
 
-type AwarenessSubscription = Subscription<Arc<dyn Fn(&Awareness, &Event)>>;
-
-#[cfg(target_arch = "wasm32")]
+#[cfg(not(feature = "sync"))]
 type Callback = Arc<dyn Fn(&[u8]) + 'static>;
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature = "sync")]
 type Callback = Arc<dyn Fn(&[u8]) + 'static + Send + Sync>;
 
 pub struct DocConnection {
     awareness: Arc<RwLock<Awareness>>,
     #[allow(unused)] // acts as RAII guard
-    doc_subscription: UpdateSubscription,
+    doc_subscription: Subscription,
     #[allow(unused)] // acts as RAII guard
-    awareness_subscription: AwarenessSubscription,
+    awareness_subscription: Subscription,
     callback: Callback,
     closed: Arc<OnceLock<()>>,
 
@@ -40,7 +37,7 @@ pub struct DocConnection {
 }
 
 impl DocConnection {
-    #[cfg(target_arch = "wasm32")]
+    #[cfg(not(feature = "sync"))]
     pub fn new<F>(awareness: Arc<RwLock<Awareness>>, callback: F) -> Self
     where
         F: Fn(&[u8]) + 'static,
@@ -48,7 +45,7 @@ impl DocConnection {
         Self::new_inner(awareness, Arc::new(callback))
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(feature = "sync")]
     pub fn new<F>(awareness: Arc<RwLock<Awareness>>, callback: F) -> Self
     where
         F: Fn(&[u8]) + 'static + Send + Sync,

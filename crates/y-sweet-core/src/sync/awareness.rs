@@ -10,7 +10,10 @@ use yrs::{Doc, Observer, Subscription};
 
 const NULL_STR: &str = "null";
 
+#[cfg(not(feature = "sync"))]
 type AwarenessObserver = Observer<Arc<dyn Fn(&Awareness, &Event) + 'static>>;
+#[cfg(feature = "sync")]
+type AwarenessObserver = Observer<Arc<dyn Fn(&Awareness, &Event) + Send + Sync + 'static>>;
 
 /// The Awareness class implements a simple shared state protocol that can be used for non-persistent
 /// data like awareness information (cursor, username, status, ..). Each client can update its own
@@ -45,7 +48,18 @@ impl Awareness {
     }
 
     /// Returns a channel receiver for an incoming awareness events. This channel can be cloned.
-    pub fn on_update<F>(&mut self, f: F) -> UpdateSubscription
+    #[cfg(feature = "sync")]
+    pub fn on_update<F>(&mut self, f: F) -> Subscription
+    where
+        F: Fn(&Awareness, &Event) + Send + Sync + 'static,
+    {
+        let eh = self.on_update.get_or_insert_with(Observer::default);
+        eh.subscribe(Arc::new(f))
+    }
+
+    /// Returns a channel receiver for an incoming awareness events. This channel can be cloned.
+    #[cfg(not(feature = "sync"))]
+    pub fn on_update<F>(&mut self, f: F) -> Subscription
     where
         F: Fn(&Awareness, &Event) + 'static,
     {
@@ -93,18 +107,18 @@ impl Awareness {
                 e.insert(new);
                 if let Some(eh) = self.on_update.as_ref() {
                     let e = Event::new(vec![], vec![client_id], vec![]);
-                    for cb in eh.callbacks() {
+                    eh.trigger(|cb| {
                         cb(self, &e);
-                    }
+                    });
                 }
             }
             Entry::Vacant(e) => {
                 e.insert(new);
                 if let Some(eh) = self.on_update.as_ref() {
                     let e = Event::new(vec![client_id], vec![], vec![]);
-                    for cb in eh.callbacks() {
+                    eh.trigger(|cb| {
                         cb(self, &e);
-                    }
+                    });
                 }
             }
         }
@@ -117,9 +131,9 @@ impl Awareness {
         if let Some(eh) = self.on_update.as_ref() {
             if prev_state.is_some() {
                 let e = Event::new(Vec::default(), Vec::default(), vec![client_id]);
-                for cb in eh.callbacks() {
+                eh.trigger(|cb| {
                     cb(self, &e);
-                }
+                });
             }
         }
     }
@@ -242,9 +256,9 @@ impl Awareness {
         if let Some(eh) = self.on_update.as_ref() {
             if !added.is_empty() || !updated.is_empty() || !removed.is_empty() {
                 let e = Event::new(added, updated, removed);
-                for cb in eh.callbacks() {
+                eh.trigger(|cb| {
                     cb(self, &e);
-                }
+                });
             }
         }
 
@@ -267,10 +281,6 @@ impl std::fmt::Debug for Awareness {
             .finish()
     }
 }
-
-/// Whenever a new callback is being registered, a [Subscription] is made. Whenever this
-/// subscription a registered callback is cancelled and will not be called anymore.
-pub type UpdateSubscription = Subscription<Arc<dyn Fn(&Awareness, &Event) + 'static>>;
 
 /// A structure that represents an encodable state of an [Awareness] struct.
 #[derive(Debug, Eq, PartialEq)]

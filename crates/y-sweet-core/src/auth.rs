@@ -458,7 +458,7 @@ mod tests {
 
         let auth_req = AuthenticatedRequest {
             payload: Payload::new(Permission::Doc("abc123".to_string())),
-            token: token,
+            token,
         };
 
         let auth_enc = bincode_encode(&auth_req).expect("Bincode serialization should not fail.");
