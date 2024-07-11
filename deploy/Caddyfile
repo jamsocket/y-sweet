@@ -1,0 +1,13 @@
+http://localhost {
+    reverse_proxy /doc/ws/* y-sweet:8080
+    reverse_proxy /* demos:3000
+}
+
+# To use a real domain with HTTPS, replace "http://localhost" with the domain
+# (omit http://). You will also need to change --url-prefix in docker-compose.yml
+# to reflect the domain.
+# 
+# example.com {
+#   reverse_proxy /doc/ws/* y-sweet:8080
+#   reverse_proxy /* demos:3000
+# }

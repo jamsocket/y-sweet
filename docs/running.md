@@ -46,6 +46,6 @@ npm run deploy
 
 See `y-sweet/crates/y-sweet-worker/wrangler.toml` for the Cloudflare resources it references. You will either need to create these resources or change the configuration to point to your own resources.
 
-## Self-hosting in production
+## Docker Image
 
-Docker images coming soon. If you're interested, [let us know](mailto:hi@driftingin.space).
+The latest Docker image is available as `ghcr.io/jamsocket/y-sweet:latest`. You can find a [list of images here](https://github.com/jamsocket/y-sweet/pkgs/container/y-sweet).
