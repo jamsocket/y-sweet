@@ -1,0 +1,33 @@
+services:
+  y-sweet:
+    restart: unless-stopped
+    image: ghcr.io/jamsocket/y-sweet:latest
+    build:
+      dockerfile: Dockerfile
+      context: ../crates
+    command:
+      "y-sweet serve ./data --host 0.0.0.0 --auth AXO33rILFt0ZOP7v9NM8e2u6m1pVWvCS5HI9mYMK --url-prefix=http://localhost/"
+    volumes:
+      - ./data:/data
+    ports:
+      - "8080:8080"
+
+  demos:
+    restart: unless-stopped
+    build:
+      context: ../examples/nextjs
+    environment:
+      - CONNECTION_STRING=ys://AAAg1s4QOZVQsRWT4p-CUrk3ory1a21SksuWR6hzqy-vFJM@y-sweet:8080
+    ports:
+      - "3000:3000"
+
+  caddy:
+    image: caddy:2.8.4
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
