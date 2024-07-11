@@ -15,7 +15,6 @@ services:
   demos:
     restart: unless-stopped
     build:
-      dockerfile: Dockerfile
       context: ../examples/nextjs
     environment:
       - CONNECTION_STRING=ys://AAAg1s4QOZVQsRWT4p-CUrk3ory1a21SksuWR6hzqy-vFJM@y-sweet:8080
