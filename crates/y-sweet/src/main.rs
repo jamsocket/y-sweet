@@ -7,6 +7,7 @@ use std::{
     path::PathBuf,
 };
 use tokio::io::AsyncReadExt;
+use tokio_util::sync::CancellationToken;
 use tracing::metadata::LevelFilter;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 use url::Url;
@@ -178,16 +179,20 @@ async fn main() -> Result<()> {
                 print_server_url(auth.as_ref(), url_prefix.as_ref(), addr);
             }
 
+            let token = CancellationToken::new();
+
             let server = y_sweet::server::Server::new(
                 store,
                 std::time::Duration::from_secs(*checkpoint_freq_seconds),
                 auth,
                 url_prefix.clone(),
+                token.clone(),
             )
             .await?;
 
+            let prod = *prod;
             let handle = tokio::spawn(async move {
-                server.serve(&addr).await.unwrap();
+                server.serve(&addr, prod).await.unwrap();
             });
 
             tracing::info!("Listening on ws://{}", addr);
@@ -197,10 +202,10 @@ async fn main() -> Result<()> {
                 .expect("Failed to install CTRL+C signal handler");
 
             tracing::info!("Shutting down.");
+            token.cancel();
 
-            // TODO: graceful shutdown; close connections and write everything.
-
-            handle.abort();
+            handle.await?;
+            tracing::info!("Server shut down.");
         }
         ServSubcommand::GenAuth { json } => {
             let auth = Authenticator::gen_key()?;

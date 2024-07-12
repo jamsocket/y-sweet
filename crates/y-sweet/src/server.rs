@@ -1,11 +1,13 @@
 use anyhow::{anyhow, Result};
 use axum::{
+    extract::Request,
     extract::{
         ws::{Message, WebSocket},
         Path, Query, State, WebSocketUpgrade,
     },
     http::StatusCode,
-    response::Response,
+    middleware::{self, Next},
+    response::{IntoResponse, Response},
     routing::{get, post},
     Json, Router,
 };
@@ -19,7 +21,11 @@ use std::{
     sync::{Arc, RwLock},
     time::Duration,
 };
-use tokio::{net::TcpListener, sync::mpsc::channel};
+use tokio::{
+    net::TcpListener,
+    sync::mpsc::{channel, Receiver},
+};
+use tokio_util::{sync::CancellationToken, task::TaskTracker};
 use tracing::{span, Instrument, Level};
 use url::Url;
 use y_sweet_core::{
@@ -31,6 +37,7 @@ use y_sweet_core::{
     doc_sync::DocWithSyncKv,
     store::Store,
     sync::awareness::Awareness,
+    sync_kv::SyncKv,
 };
 
 fn current_time_epoch_millis() -> u64 {
@@ -39,12 +46,37 @@ fn current_time_epoch_millis() -> u64 {
     duration_since_epoch.as_millis() as u64
 }
 
+#[derive(Debug)]
+pub struct AppError(StatusCode, anyhow::Error);
+impl std::error::Error for AppError {}
+impl IntoResponse for AppError {
+    fn into_response(self) -> Response {
+        (self.0, format!("Something went wrong: {}", self.1)).into_response()
+    }
+}
+impl<E> From<(StatusCode, E)> for AppError
+where
+    E: Into<anyhow::Error>,
+{
+    fn from((status_code, err): (StatusCode, E)) -> Self {
+        Self(status_code, err.into())
+    }
+}
+impl std::fmt::Display for AppError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Status code: {} {}", self.0, self.1)?;
+        Ok(())
+    }
+}
+
 pub struct Server {
-    docs: DashMap<String, DocWithSyncKv>,
+    docs: Arc<DashMap<String, DocWithSyncKv>>,
+    doc_worker_tracker: TaskTracker,
     store: Option<Arc<Box<dyn Store>>>,
     checkpoint_freq: Duration,
     authenticator: Option<Authenticator>,
     url_prefix: Option<Url>,
+    cancellation_token: CancellationToken,
 }
 
 impl Server {
@@ -53,13 +85,16 @@ impl Server {
         checkpoint_freq: Duration,
         authenticator: Option<Authenticator>,
         url_prefix: Option<Url>,
+        cancellation_token: CancellationToken,
     ) -> Result<Self> {
         Ok(Self {
-            docs: DashMap::new(),
+            docs: Arc::new(DashMap::new()),
+            doc_worker_tracker: TaskTracker::new(),
             store: store.map(Arc::new),
             checkpoint_freq,
             authenticator,
             url_prefix,
+            cancellation_token,
         })
     }
 
@@ -85,7 +120,7 @@ impl Server {
     }
 
     pub async fn load_doc(&self, doc_id: &str) -> Result<()> {
-        let (send, mut recv) = channel(1024);
+        let (send, recv) = channel(1024);
 
         let dwskv = DocWithSyncKv::new(doc_id, self.store.clone(), move || {
             send.try_send(()).unwrap();
@@ -102,35 +137,131 @@ impl Server {
             let sync_kv = dwskv.sync_kv();
             let checkpoint_freq = self.checkpoint_freq;
             let doc_id = doc_id.to_string();
-            tokio::spawn(
-                async move {
-                    // TODO: expedite save on shutdown.
-                    let mut last_save = std::time::Instant::now();
+            let persistence_cancellation_token = CancellationToken::new();
 
-                    while let Some(()) = recv.recv().await {
-                        tracing::info!("Received dirty signal.");
-                        let now = std::time::Instant::now();
-                        if now - last_save < checkpoint_freq {
-                            let timeout = checkpoint_freq - (now - last_save);
-                            tracing::info!(?timeout, "Throttling.");
-                            tokio::time::sleep(timeout).await;
-                            tracing::info!("Done throttling.");
-                        }
-
-                        tracing::info!("Persisting.");
-                        sync_kv.persist().await.unwrap();
-                        last_save = std::time::Instant::now();
-                        tracing::info!("Done persisting.");
-                    }
-
-                    tracing::info!("Terminating loop.");
-                }
+            // Spawn a task to save the document to the store when it changes.
+            self.doc_worker_tracker.spawn(
+                Self::doc_persistence_worker(
+                    recv,
+                    sync_kv,
+                    checkpoint_freq,
+                    doc_id.clone(),
+                    persistence_cancellation_token.clone(),
+                )
                 .instrument(span!(Level::INFO, "save_loop", doc_id=?doc_id)),
+            );
+
+            self.doc_worker_tracker.spawn(
+                Self::doc_gc_worker(
+                    self.docs.clone(),
+                    doc_id.clone(),
+                    checkpoint_freq,
+                    persistence_cancellation_token,
+                    self.cancellation_token.clone(),
+                )
+                .instrument(span!(Level::INFO, "gc_loop", doc_id=?doc_id)),
             );
         }
 
         self.docs.insert(doc_id.to_string(), dwskv);
         Ok(())
+    }
+
+    async fn doc_gc_worker(
+        docs: Arc<DashMap<String, DocWithSyncKv>>,
+        doc_id: String,
+        checkpoint_freq: Duration,
+        persistence_cancellation_token: CancellationToken,
+        cancellation_token: CancellationToken,
+    ) {
+        let mut checkpoints_without_refs = 0;
+
+        loop {
+            tokio::select! {
+                _ = tokio::time::sleep(checkpoint_freq) => {
+                    if let Some(doc) = docs.get(&doc_id) {
+                        let awareness = Arc::downgrade(&doc.awareness());
+                        if awareness.strong_count() > 1 {
+                            checkpoints_without_refs = 0;
+                            tracing::debug!("doc is still alive - it has {} references", awareness.strong_count());
+                        } else {
+                            checkpoints_without_refs += 1;
+                            tracing::info!("doc has only one reference, candidate for GC. checkpoints_without_refs: {}", checkpoints_without_refs);
+                        }
+                    } else {
+                        break;
+                    }
+
+                    if checkpoints_without_refs >= 2 {
+                        tracing::info!("GCing doc");
+                        docs.remove(&doc_id);
+                        break;
+                    }
+                }
+                _ = cancellation_token.cancelled() => {
+                    break;
+                }
+            };
+        }
+        persistence_cancellation_token.cancel();
+        tracing::info!("Exiting gc_loop");
+    }
+
+    async fn doc_persistence_worker(
+        mut recv: Receiver<()>,
+        sync_kv: Arc<SyncKv>,
+        checkpoint_freq: Duration,
+        doc_id: String,
+        cancellation_token: CancellationToken,
+    ) {
+        let mut last_save = std::time::Instant::now();
+
+        loop {
+            let is_done = tokio::select! {
+                v = recv.recv() => v.is_none(),
+                _ = cancellation_token.cancelled() => true,
+            };
+
+            tracing::info!("Received signal. done: {}", is_done);
+            let now = std::time::Instant::now();
+            if !is_done && now - last_save < checkpoint_freq {
+                let sleep = tokio::time::sleep(checkpoint_freq - (now - last_save));
+                tokio::pin!(sleep);
+                tracing::info!("Throttling.");
+
+                loop {
+                    tokio::select! {
+                        _ = &mut sleep => {
+                            break;
+                        }
+                        v = recv.recv() => {
+                            tracing::info!("Received dirty while throttling.");
+                            if v.is_none() {
+                                break;
+                            }
+                        }
+                        _ = cancellation_token.cancelled() => {
+                            tracing::info!("Received cancellation while throttling.");
+                            break;
+                        }
+
+                    }
+                    tracing::info!("Done throttling.");
+                }
+            }
+            tracing::info!("Persisting.");
+            if let Err(e) = sync_kv.persist().await {
+                tracing::error!(?e, "Error persisting.");
+            } else {
+                tracing::info!("Done persisting.");
+            }
+            last_save = std::time::Instant::now();
+
+            if is_done {
+                break;
+            }
+        }
+        tracing::info!("Terminating loop for {}", doc_id);
     }
 
     pub async fn get_or_create_doc(
@@ -145,14 +276,14 @@ impl Server {
         Ok(self
             .docs
             .get(doc_id)
-            .expect("Doc should exist, we just created it.")
+            .ok_or_else(|| anyhow!("Failed to get-or-create doc"))?
             .map(|d| d))
     }
 
     pub fn check_auth(
         &self,
         header: Option<TypedHeader<headers::Authorization<headers::authorization::Bearer>>>,
-    ) -> Result<(), StatusCode> {
+    ) -> Result<(), AppError> {
         if let Some(auth) = &self.authenticator {
             if let Some(TypedHeader(headers::Authorization(bearer))) = header {
                 if let Ok(()) =
@@ -161,29 +292,51 @@ impl Server {
                     return Ok(());
                 }
             }
-            Err(StatusCode::UNAUTHORIZED)
+            Err((StatusCode::UNAUTHORIZED, anyhow!("Unauthorized.")))?
         } else {
             Ok(())
         }
     }
 
-    pub fn routes(self) -> Router {
+    pub async fn redact_error_middleware(req: Request, next: Next) -> impl IntoResponse {
+        let resp = next.run(req).await;
+        if resp.status().is_server_error() || resp.status().is_client_error() {
+            // If we should redact errors, copy over only the status code and
+            // not the response body.
+            return resp.status().into_response();
+        }
+        resp
+    }
+
+    pub fn routes(self: &Arc<Self>) -> Router {
         Router::new()
             .route("/check_store", get(check_store))
             .route("/doc/ws/:doc_id", get(handle_socket_upgrade))
             .route("/doc/new", post(new_doc))
             .route("/doc/:doc_id/auth", post(auth_doc))
-            .with_state(Arc::new(self))
+            .with_state(self.clone())
     }
 
-    pub async fn serve(self, addr: &SocketAddr) -> Result<()> {
+    pub async fn serve(self, addr: &SocketAddr, redact_errors: bool) -> Result<()> {
         let listener = TcpListener::bind(addr).await?;
+        let token = self.cancellation_token.clone();
+        let s = Arc::new(self);
 
-        let app = self.routes();
+        let app = s.routes();
+        let app = if redact_errors {
+            app
+        } else {
+            app.layer(middleware::from_fn(Self::redact_error_middleware))
+        };
 
         axum::serve(listener, app.into_make_service())
-            .await
-            .map_err(|_| anyhow!("Failed to serve"))?;
+            // Wait for all outstanding connections to close, and then exit.
+            .with_graceful_shutdown(async move { token.cancelled().await })
+            .await?;
+
+        // Ensure all in-memory docs are saved before exiting.
+        s.doc_worker_tracker.close();
+        s.doc_worker_tracker.wait().await;
 
         Ok(())
     }
@@ -199,25 +352,33 @@ async fn handle_socket_upgrade(
     Path(doc_id): Path<String>,
     Query(params): Query<HandlerParams>,
     State(server_state): State<Arc<Server>>,
-) -> Result<Response, StatusCode> {
+) -> Result<Response, AppError> {
     // TODO: clean this up.
     if let Some(authenticator) = &server_state.authenticator {
         if let Some(token) = params.token {
             authenticator
                 .verify_doc_token(&token, &doc_id, current_time_epoch_millis())
-                .map_err(|_| StatusCode::FORBIDDEN)?;
+                .map_err(|e| (StatusCode::FORBIDDEN, e))?;
         } else {
-            return Err(StatusCode::UNAUTHORIZED);
+            Err((StatusCode::UNAUTHORIZED, anyhow!("No token provided.")))?
         }
     }
 
-    let dwskv = server_state.get_or_create_doc(&doc_id).await.unwrap();
+    let dwskv = server_state
+        .get_or_create_doc(&doc_id)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
     let awareness = dwskv.awareness();
+    let cancellation_token = server_state.cancellation_token.clone();
 
-    Ok(ws.on_upgrade(move |socket| handle_socket(socket, awareness)))
+    Ok(ws.on_upgrade(move |socket| handle_socket(socket, awareness, cancellation_token)))
 }
 
-async fn handle_socket(socket: WebSocket, awareness: Arc<RwLock<Awareness>>) {
+async fn handle_socket(
+    socket: WebSocket,
+    awareness: Arc<RwLock<Awareness>>,
+    cancellation_token: CancellationToken,
+) {
     let (mut sink, mut stream) = socket.split();
     let (send, mut recv) = channel(1024);
 
@@ -227,29 +388,37 @@ async fn handle_socket(socket: WebSocket, awareness: Arc<RwLock<Awareness>>) {
         }
     });
 
-    let connection = DocConnection::new(awareness.clone(), move |bytes| {
+    let connection = DocConnection::new(awareness, move |bytes| {
         if let Err(e) = send.try_send(bytes.to_vec()) {
             tracing::warn!(?e, "Error sending message");
         }
     });
 
-    while let Some(msg) = stream.next().await {
-        let msg = match msg {
-            Ok(Message::Binary(bytes)) => bytes,
-            Ok(Message::Close(_)) => break,
-            Err(_e) => {
-                // The stream will complain about things like
-                // connections being lost without handshake.
-                continue;
-            }
-            msg => {
-                tracing::warn!(?msg, "Received non-binary message");
-                continue;
-            }
-        };
+    loop {
+        tokio::select! {
+            Some(msg) = stream.next() => {
+                let msg = match msg {
+                    Ok(Message::Binary(bytes)) => bytes,
+                    Ok(Message::Close(_)) => break,
+                    Err(_e) => {
+                        // The stream will complain about things like
+                        // connections being lost without handshake.
+                        continue;
+                    }
+                    msg => {
+                        tracing::warn!(?msg, "Received non-binary message");
+                        continue;
+                    }
+                };
 
-        if let Err(e) = connection.send(&msg).await {
-            tracing::warn!(?e, "Error handling message");
+                if let Err(e) = connection.send(&msg).await {
+                    tracing::warn!(?e, "Error handling message");
+                }
+            }
+            _ = cancellation_token.cancelled() => {
+                tracing::debug!("Closing doc connection due to server cancel...");
+                break;
+            }
         }
     }
 }
@@ -257,7 +426,7 @@ async fn handle_socket(socket: WebSocket, awareness: Arc<RwLock<Awareness>>) {
 async fn check_store(
     authorization: Option<TypedHeader<headers::Authorization<headers::authorization::Bearer>>>,
     State(server_state): State<Arc<Server>>,
-) -> Result<Json<Value>, StatusCode> {
+) -> Result<Json<Value>, AppError> {
     server_state.check_auth(authorization)?;
 
     if server_state.store.is_none() {
@@ -273,12 +442,12 @@ async fn new_doc(
     authorization: Option<TypedHeader<headers::Authorization<headers::authorization::Bearer>>>,
     State(server_state): State<Arc<Server>>,
     Json(body): Json<DocCreationRequest>,
-) -> Result<Json<NewDocResponse>, StatusCode> {
+) -> Result<Json<NewDocResponse>, AppError> {
     server_state.check_auth(authorization)?;
 
     let doc_id = if let Some(doc_id) = body.doc_id {
         if !validate_doc_name(doc_id.as_str()) {
-            return Err(StatusCode::BAD_REQUEST);
+            Err((StatusCode::BAD_REQUEST, anyhow!("Invalid document name")))?
         }
 
         server_state
@@ -286,14 +455,14 @@ async fn new_doc(
             .await
             .map_err(|e| {
                 tracing::error!(?e, "Failed to create doc");
-                StatusCode::INTERNAL_SERVER_ERROR
+                (StatusCode::INTERNAL_SERVER_ERROR, e)
             })?;
 
         doc_id
     } else {
         server_state.create_doc().await.map_err(|d| {
             tracing::error!(?d, "Failed to create doc");
-            StatusCode::INTERNAL_SERVER_ERROR
+            (StatusCode::INTERNAL_SERVER_ERROR, d)
         })?
     };
 
@@ -306,11 +475,11 @@ async fn auth_doc(
     State(server_state): State<Arc<Server>>,
     Path(doc_id): Path<String>,
     Json(_body): Json<AuthDocRequest>,
-) -> Result<Json<ClientToken>, StatusCode> {
+) -> Result<Json<ClientToken>, AppError> {
     server_state.check_auth(authorization)?;
 
     if !server_state.doc_exists(&doc_id).await {
-        return Err(StatusCode::NOT_FOUND);
+        Err((StatusCode::NOT_FOUND, anyhow!("Doc {} not found", doc_id)))?;
     }
 
     let token = if let Some(auth) = &server_state.authenticator {
@@ -341,9 +510,15 @@ mod test {
 
     #[tokio::test]
     async fn test_auth_doc() {
-        let server_state = Server::new(None, Duration::from_secs(60), None, None)
-            .await
-            .unwrap();
+        let server_state = Server::new(
+            None,
+            Duration::from_secs(60),
+            None,
+            None,
+            CancellationToken::new(),
+        )
+        .await
+        .unwrap();
 
         let doc_id = server_state.create_doc().await.unwrap();
 
@@ -371,9 +546,15 @@ mod test {
     #[tokio::test]
     async fn test_auth_doc_with_prefix() {
         let prefix: Url = "https://foo.bar".parse().unwrap();
-        let server_state = Server::new(None, Duration::from_secs(60), None, Some(prefix))
-            .await
-            .unwrap();
+        let server_state = Server::new(
+            None,
+            Duration::from_secs(60),
+            None,
+            Some(prefix),
+            CancellationToken::new(),
+        )
+        .await
+        .unwrap();
 
         let doc_id = server_state.create_doc().await.unwrap();
 
