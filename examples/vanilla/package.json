@@ -10,8 +10,8 @@
     "format": "prettier --write \"**/*.js\""
   },
   "dependencies": {
-    "@y-sweet/client": "0.1.2",
-    "@y-sweet/sdk": "0.1.2",
+    "@y-sweet/client": "0.2.0",
+    "@y-sweet/sdk": "0.2.0",
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "yjs": "^13.6.7"
