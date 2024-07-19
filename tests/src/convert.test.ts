@@ -60,6 +60,7 @@ test('can convert an empty doc from an update', async () => {
 
 test('can convert a doc with content from an update', async () => {
   const server = new Server({ useAuth: false, server: 'native' })
+  await server.waitForReady()
   const doc = new Y.Doc()
 
   doc.getMap('test').set('hello', 'world')
