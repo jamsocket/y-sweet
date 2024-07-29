@@ -285,21 +285,21 @@ export class DocumentManager {
 
   /**
    * Returns an entire document, represented as a Yjs update byte string.
-   * 
+   *
    * This can be turned back into a Yjs document as follows:
-   * 
+   *
    * ```typescript
    * import * as Y from 'yjs'
-   * 
+   *
    * let update = await manager.getDocAsUpdate(docId)
    * let doc = new Y.Doc()
    * doc.transact(() => {
    *  Y.applyUpdate(doc, update)
    * })
    * ```
-   * 
-   * @param docId 
-   * @returns 
+   *
+   * @param docId
+   * @returns
    */
   public async getDocAsUpdate(docId: string): Promise<Uint8Array> {
     const result = await this.doFetch(`doc/${docId}/as-update`, 'GET')
@@ -313,20 +313,20 @@ export class DocumentManager {
 
   /**
    * Updates a document with the given Yjs update byte string.
-   * 
+   *
    * This can be generated from a Yjs document as follows:
-   * 
+   *
    * ```typescript
    * import * as Y from 'yjs'
-   * 
+   *
    * let doc = new Y.Doc()
    * // Modify the document...
    * let update = Y.encodeStateAsUpdate(doc)
    * await manager.updateDoc(docId, update)
    * ```
-   * 
-   * @param docId 
-   * @param update 
+   *
+   * @param docId
+   * @param update
    */
   public async updateDoc(docId: string, update: Uint8Array): Promise<void> {
     let headers: [string, string][] = [['Content-Type', 'application/octet-stream']]
