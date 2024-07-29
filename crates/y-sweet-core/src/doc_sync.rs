@@ -73,7 +73,7 @@ impl DocWithSyncKv {
     }
 
     pub fn apply_update(&self, update: &[u8]) -> Result<()> {
-        let awareness_guard = self.awareness.read().unwrap();
+        let awareness_guard = self.awareness.write().unwrap();
         let doc = &awareness_guard.doc;
 
         let update: Update =
