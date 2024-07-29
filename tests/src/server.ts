@@ -81,15 +81,20 @@ export class Server {
         ' > ' + join(this.outFileBase, 'server.txt') + ' 2> ' + join(this.outFileBase, 'stderr.txt')
 
       console.log('Spawning server.', command)
-      this.process = spawn(command, { cwd: CRATE_BASE, shell: true, stdio: 'ignore' })
+      this.process = spawn(command, {
+        cwd: CRATE_BASE,
+        shell: true,
+        stdio: 'ignore',
+        env: { RUST_BACKTRACE: '1', ...process.env }
+      })
       console.log('Done spawning server.')
     } else if (configuration.server === 'worker') {
       const workerBase = join(CRATE_BASE, 'y-sweet-worker')
       execSync(
         './build.sh --dev > ' +
-          join(this.outFileBase, 'build.txt') +
-          ' 2> ' +
-          join(this.outFileBase, 'build-stderr.txt'),
+        join(this.outFileBase, 'build.txt') +
+        ' 2> ' +
+        join(this.outFileBase, 'build-stderr.txt'),
         {
           stdio: 'ignore',
           cwd: workerBase,

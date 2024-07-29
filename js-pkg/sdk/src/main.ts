@@ -282,6 +282,16 @@ export class DocumentManager {
     const result = await this.createDoc(docId)
     return await this.getClientToken(result)
   }
+
+  public async getDocAsUpdate(docId: string): Promise<Uint8Array> {
+    const result = await this.doFetch(`doc/${docId}/as-update`, 'GET')
+    if (!result.ok) {
+      throw new Error(`Failed to get doc ${docId}: ${result.status} ${result.statusText}`)
+    }
+    
+    let buffer = await result.arrayBuffer()
+    return new Uint8Array(buffer)
+  }
 }
 
 /**

@@ -4,6 +4,7 @@ import { createYjsProvider as createYjsProvider_, YSweetProviderParams } from '@
 import { WebSocket } from 'ws'
 import * as Y from 'yjs'
 import { Server, ServerConfiguration } from './server'
+import { waitForProviderSync } from './util'
 
 /**
  * Wraps `createYjsProvider` with a polyfill for `WebSocket` and
@@ -103,7 +104,7 @@ describe.each(CONFIGURATIONS)(
       // When running Cloudflare's workerd locally, sometimes the call following
       // the 404 will fail with a 500.
       // Not sure why, but this is a workaround.
-      await DOCUMENT_MANANGER.createDoc().catch(() => {})
+      await DOCUMENT_MANANGER.createDoc().catch(() => { })
     })
 
     test('Create and connect to doc', async () => {
@@ -125,6 +126,33 @@ describe.each(CONFIGURATIONS)(
       })
     })
 
+    test('Fetch doc as update', async () => {
+      const docResult = await DOCUMENT_MANANGER.createDoc()
+      const key = await DOCUMENT_MANANGER.getClientToken(docResult)
+
+      const doc = new Y.Doc()
+      const provider = createYjsProvider(doc, key, {})
+
+      let map = doc.getMap('test')
+      map.set('foo', 'bar')
+      map.set('baz', 'qux')
+
+      await waitForProviderSync(provider)
+
+      const update = await DOCUMENT_MANANGER.getDocAsUpdate(docResult.docId)
+
+      let newDoc = new Y.Doc()
+      newDoc.transact(() => {
+        Y.applyUpdate(newDoc, update)
+      })
+
+      console.log('update', update)
+
+      let newMap = newDoc.getMap('test')
+      expect(newMap.get('foo')).toBe('bar')
+      expect(newMap.get('baz')).toBe('qux')
+    })
+
     test('Create a doc by specifying a name', async () => {
       const docResult = await DOCUMENT_MANANGER.createDoc('mydoc123')
 
@@ -144,11 +172,7 @@ describe.each(CONFIGURATIONS)(
       // Connect to the doc.
       const provider = createYjsProvider(doc, key, {})
 
-      // Wait for the doc to sync.
-      await new Promise<void>((resolve, reject) => {
-        provider.on('synced', resolve)
-        provider.on('syncing', reject)
-      })
+      await waitForProviderSync(provider)
 
       // Disconnect.
       expect(provider.ws).not.toBeNull()
@@ -178,12 +202,7 @@ describe.each(CONFIGURATIONS)(
         })
       })
 
-      await new Promise<void>((resolve, reject) => {
-        provider.on('sync', () => {
-          resolve()
-        })
-        provider.on('syncing', reject)
-      })
+      await waitForProviderSync(provider)
       expect(provider.synced).toBe(true)
 
       // Create a second doc.
@@ -196,10 +215,7 @@ describe.each(CONFIGURATIONS)(
       expect(doc2.getMap('test').get('foo')).toBeUndefined()
 
       // Wait for the doc to sync.
-      await new Promise((resolve, reject) => {
-        provider2.on('synced', resolve)
-        provider2.on('syncing', reject)
-      })
+      await waitForProviderSync(provider2)
 
       // Ensure that the second doc received the changes.
       expect(doc2.getMap('test').get('foo')).toBe('bar')

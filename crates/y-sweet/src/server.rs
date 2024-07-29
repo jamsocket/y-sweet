@@ -314,6 +314,7 @@ impl Server {
             .route("/doc/ws/:doc_id", get(handle_socket_upgrade))
             .route("/doc/new", post(new_doc))
             .route("/doc/:doc_id/auth", post(auth_doc))
+            .route("/doc/:doc_id/as-update", get(get_doc_as_update))
             .with_state(self.clone())
     }
 
@@ -340,11 +341,43 @@ impl Server {
 
         Ok(())
     }
+
+    fn verify_doc_token(&self, token: Option<&str>, doc: &str) -> Result<(), AppError> {
+        if let Some(authenticator) = &self.authenticator {
+            if let Some(token) = token {
+                authenticator
+                    .verify_doc_token(token, doc, current_time_epoch_millis())
+                    .map_err(|e| (StatusCode::FORBIDDEN, e))?;
+            } else {
+                Err((StatusCode::UNAUTHORIZED, anyhow!("No token provided.")))?
+            }
+        }
+        Ok(())
+    }
 }
 
 #[derive(Deserialize)]
 struct HandlerParams {
     token: Option<String>,
+}
+
+async fn get_doc_as_update(
+    Path(doc_id): Path<String>,
+    State(server_state): State<Arc<Server>>,
+    authorization: Option<TypedHeader<headers::Authorization<headers::authorization::Bearer>>>,
+) -> Result<Response, AppError> {
+    server_state.check_auth(authorization)?;
+
+    let dwskv = server_state
+        .get_or_create_doc(&doc_id)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+
+    let update = dwskv.as_update();
+
+    println!("update: {:?}", update);
+
+    Ok(update.into_response())
 }
 
 async fn handle_socket_upgrade(
@@ -353,16 +386,7 @@ async fn handle_socket_upgrade(
     Query(params): Query<HandlerParams>,
     State(server_state): State<Arc<Server>>,
 ) -> Result<Response, AppError> {
-    // TODO: clean this up.
-    if let Some(authenticator) = &server_state.authenticator {
-        if let Some(token) = params.token {
-            authenticator
-                .verify_doc_token(&token, &doc_id, current_time_epoch_millis())
-                .map_err(|e| (StatusCode::FORBIDDEN, e))?;
-        } else {
-            Err((StatusCode::UNAUTHORIZED, anyhow!("No token provided.")))?
-        }
-    }
+    server_state.verify_doc_token(params.token.as_deref(), &doc_id)?;
 
     let dwskv = server_state
         .get_or_create_doc(&doc_id)
