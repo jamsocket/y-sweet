@@ -92,9 +92,9 @@ export class Server {
       const workerBase = join(CRATE_BASE, 'y-sweet-worker')
       execSync(
         './build.sh --dev > ' +
-          join(this.outFileBase, 'build.txt') +
-          ' 2> ' +
-          join(this.outFileBase, 'build-stderr.txt'),
+        join(this.outFileBase, 'build.txt') +
+        ' 2> ' +
+        join(this.outFileBase, 'build-stderr.txt'),
         {
           stdio: 'ignore',
           cwd: workerBase,

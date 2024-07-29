@@ -105,7 +105,7 @@ describe.each(CONFIGURATIONS)(
       // When running Cloudflare's workerd locally, sometimes the call following
       // the 404 will fail with a 500.
       // Not sure why, but this is a workaround.
-      await DOCUMENT_MANANGER.createDoc().catch(() => {})
+      await DOCUMENT_MANANGER.createDoc().catch(() => { })
     })
 
     test('Create and connect to doc', async () => {
