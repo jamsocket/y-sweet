@@ -28,7 +28,7 @@ type AwarenessObserver = Observer<Arc<dyn Fn(&Awareness, &Event) + Send + Sync +
 ///
 /// Before a client disconnects, it should propagate a `null` state with an updated clock.
 pub struct Awareness {
-    doc: Doc,
+    pub doc: Doc,
     states: HashMap<ClientID, String>,
     meta: HashMap<ClientID, MetaClientState>,
     on_update: Option<AwarenessObserver>,

@@ -294,13 +294,6 @@ pub enum Error {
     Other(#[from] Box<dyn std::error::Error + Send + Sync>),
 }
 
-#[cfg(feature = "net")]
-impl From<tokio::task::JoinError> for Error {
-    fn from(value: tokio::task::JoinError) -> Self {
-        Error::Other(value.into())
-    }
-}
-
 /// Since y-sync protocol enables for a multiple messages to be packed into a singe byte payload,
 /// [MessageReader] can be used over the decoder to read these messages one by one in iterable
 /// fashion.
