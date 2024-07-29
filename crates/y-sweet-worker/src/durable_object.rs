@@ -84,6 +84,7 @@ impl DurableObject for YServe {
         Router::with_data(self)
             .post_async("/doc/:doc_id", handle_doc_create)
             .get_async("/doc/ws/:doc_id", websocket_connect)
+            .get_async("/doc/:doc_id/as-update", as_update)
             .run(req, env)
             .await
     }
@@ -96,6 +97,13 @@ impl DurableObject for YServe {
         console_log!("Persisted. {} (len: {})", id, len);
         Response::ok("ok")
     }
+}
+
+async fn as_update(req: Request, ctx: RouteContext<&mut YServe>) -> Result<Response> {
+    let doc_id = ctx.param("doc_id").unwrap().to_owned();
+    let doc = ctx.data.get_doc(&req, &doc_id).await.unwrap();
+    let update = doc.as_update();
+    Response::from_bytes(update)
 }
 
 async fn handle_doc_create(req: Request, ctx: RouteContext<&mut YServe>) -> Result<Response> {
