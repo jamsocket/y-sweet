@@ -1,7 +1,7 @@
 use crate::{doc_connection::DOC_NAME, store::Store, sync::awareness::Awareness, sync_kv::SyncKv};
 use anyhow::{anyhow, Context, Result};
 use std::sync::{Arc, RwLock};
-use yrs::{Doc, ReadTxn, StateVector, Subscription, Transact};
+use yrs::{updates::decoder::Decode, Doc, ReadTxn, StateVector, Subscription, Transact, Update};
 use yrs_kvstore::DocOps;
 
 pub struct DocWithSyncKv {
@@ -70,5 +70,18 @@ impl DocWithSyncKv {
         let update = txn.encode_state_as_update_v1(&StateVector::default());
 
         update
+    }
+
+    pub fn apply_update(&self, update: &[u8]) -> Result<()> {
+        let awareness_guard = self.awareness.read().unwrap();
+        let doc = &awareness_guard.doc;
+
+        let update: Update =
+            Update::decode_v1(update).map_err(|_| anyhow!("Failed to decode update"))?;
+
+        let mut txn = doc.transact_mut();
+        txn.apply_update(update);
+
+        Ok(())
     }
 }

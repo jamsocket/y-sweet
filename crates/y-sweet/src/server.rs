@@ -1,9 +1,9 @@
 use anyhow::{anyhow, Result};
 use axum::{
-    extract::Request,
+    body::Bytes,
     extract::{
         ws::{Message, WebSocket},
-        Path, Query, State, WebSocketUpgrade,
+        Path, Query, Request, State, WebSocketUpgrade,
     },
     http::StatusCode,
     middleware::{self, Next},
@@ -315,6 +315,7 @@ impl Server {
             .route("/doc/new", post(new_doc))
             .route("/doc/:doc_id/auth", post(auth_doc))
             .route("/doc/:doc_id/as-update", get(get_doc_as_update))
+            .route("/doc/:doc_id/update", post(update_doc))
             .with_state(self.clone())
     }
 
@@ -378,6 +379,27 @@ async fn get_doc_as_update(
     println!("update: {:?}", update);
 
     Ok(update.into_response())
+}
+
+async fn update_doc(
+    Path(doc_id): Path<String>,
+    State(server_state): State<Arc<Server>>,
+    authorization: Option<TypedHeader<headers::Authorization<headers::authorization::Bearer>>>,
+    body: Bytes,
+) -> Result<Response, AppError> {
+    server_state.check_auth(authorization)?;
+
+    let dwskv = server_state
+        .get_or_create_doc(&doc_id)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+
+    if let Err(err) = dwskv.apply_update(&body) {
+        tracing::error!(?err, "Failed to apply update");
+        return Err(AppError(StatusCode::INTERNAL_SERVER_ERROR, err));
+    }
+
+    Ok(StatusCode::OK.into_response())
 }
 
 async fn handle_socket_upgrade(

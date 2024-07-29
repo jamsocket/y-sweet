@@ -288,9 +288,26 @@ export class DocumentManager {
     if (!result.ok) {
       throw new Error(`Failed to get doc ${docId}: ${result.status} ${result.statusText}`)
     }
-    
+
     let buffer = await result.arrayBuffer()
     return new Uint8Array(buffer)
+  }
+
+  public async updateDoc(docId: string, update: Uint8Array): Promise<void> {
+    let headers: [string, string][] = [['Content-Type', 'application/octet-stream']]
+    if (this.token) {
+      headers.push(['Authorization', `Bearer ${this.token}`])
+    }
+
+    const result = await fetch(`${this.baseUrl}/doc/${docId}/update`, {
+      method: 'POST',
+      body: update,
+      headers,
+    })
+
+    if (!result.ok) {
+      throw new Error(`Failed to update doc ${docId}: ${result.status} ${result.statusText}`)
+    }
   }
 }
 
