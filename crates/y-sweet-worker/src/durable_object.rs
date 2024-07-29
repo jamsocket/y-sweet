@@ -85,6 +85,7 @@ impl DurableObject for YServe {
             .post_async("/doc/:doc_id", handle_doc_create)
             .get_async("/doc/ws/:doc_id", websocket_connect)
             .get_async("/doc/:doc_id/as-update", as_update)
+            .post_async("/doc/:doc_id/update", update_doc)
             .run(req, env)
             .await
     }
@@ -104,6 +105,14 @@ async fn as_update(req: Request, ctx: RouteContext<&mut YServe>) -> Result<Respo
     let doc = ctx.data.get_doc(&req, &doc_id).await.unwrap();
     let update = doc.as_update();
     Response::from_bytes(update)
+}
+
+async fn update_doc(mut req: Request, ctx: RouteContext<&mut YServe>) -> Result<Response> {
+    let doc_id = ctx.param("doc_id").unwrap().to_owned();
+    let doc = ctx.data.get_doc(&req, &doc_id).await.unwrap();
+    let bytes = req.bytes().await.unwrap();
+    doc.apply_update(&bytes).unwrap();
+    Response::ok("ok")
 }
 
 async fn handle_doc_create(req: Request, ctx: RouteContext<&mut YServe>) -> Result<Response> {
