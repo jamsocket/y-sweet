@@ -1,7 +1,7 @@
 {
     "name": "y-sweet",
     "bin": {
-        "y-sweet": "./src/run.js"
+        "y-sweet": "./src/main.js"
     },
     "scripts": {
         "postinstall": "node src/install.js",
@@ -20,5 +20,8 @@
     },
     "bugs": {
         "url": "https://github.com/drifting-in-space/y-sweet/issues"
+    },
+    "peerDependencies": {
+        "yjs": "^13.6.18"
     }
 }
