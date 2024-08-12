@@ -24,7 +24,8 @@ impl YServe {
         if self.lazy_doc.is_none() {
             console_log!("Initializing lazy_doc.");
 
-            let mut context = ServerContext::from_request(req, &self.env).unwrap();
+            let mut context = ServerContext::from_request(req, &self.env)
+                .map_err(|_| "Couldn't get server context from request.")?;
             #[allow(clippy::arc_with_non_send_sync)] // Arc required for compatibility with core.
             let storage = Arc::new(self.state.storage());
 
@@ -41,11 +42,13 @@ impl YServe {
                 let storage = storage.clone();
                 wasm_bindgen_futures::spawn_local(async move {
                     console_log!("Setting alarm.");
-                    storage.0.set_alarm(timeout_interval_ms).await.unwrap();
+                    if let Err(e) = storage.0.set_alarm(timeout_interval_ms).await {
+                        console_log!("Error setting alarm: {:?}", e);
+                    }
                 });
             })
             .await
-            .unwrap();
+            .map_err(|e| format!("Error creating doc: {:?}", e))?;
 
             let len = doc.sync_kv().len();
             console_log!("Persisting doc. Len = {}.", len);
@@ -55,15 +58,19 @@ impl YServe {
             });
             self.lazy_doc
                 .as_mut()
-                .unwrap()
+                .ok_or("Couldn't get mutable reference to lazy_doc.")?
                 .doc
                 .sync_kv()
                 .persist()
                 .await
-                .unwrap();
+                .map_err(|_| "Couldn't persist doc.")?;
         }
 
-        Ok(&mut self.lazy_doc.as_mut().unwrap().doc)
+        Ok(&mut self
+            .lazy_doc
+            .as_mut()
+            .ok_or("Couldn't get doc as mutable.")?
+            .doc)
     }
 }
 
@@ -92,8 +99,11 @@ impl DurableObject for YServe {
 
     async fn alarm(&mut self) -> Result<Response> {
         console_log!("Alarm!");
-        let DocIdPair { id, doc } = self.lazy_doc.as_ref().unwrap();
-        doc.sync_kv().persist().await.unwrap();
+        let DocIdPair { id, doc } = self.lazy_doc.as_ref().ok_or("Couldn't get lazy doc.")?;
+        doc.sync_kv()
+            .persist()
+            .await
+            .map_err(|_| "Couldn't persist doc.")?;
         let len = doc.sync_kv().len();
         console_log!("Persisted. {} (len: {})", id, len);
         Response::ok("ok")
@@ -101,23 +111,44 @@ impl DurableObject for YServe {
 }
 
 async fn as_update(req: Request, ctx: RouteContext<&mut YServe>) -> Result<Response> {
-    let doc_id = ctx.param("doc_id").unwrap().to_owned();
-    let doc = ctx.data.get_doc(&req, &doc_id).await.unwrap();
+    let doc_id = ctx
+        .param("doc_id")
+        .ok_or_else(|| "Couldn't parse doc_id")?
+        .to_owned();
+    let doc = ctx
+        .data
+        .get_doc(&req, &doc_id)
+        .await
+        .map_err(|_| "Couldn't get doc.")?;
     let update = doc.as_update();
     Response::from_bytes(update)
 }
 
 async fn update_doc(mut req: Request, ctx: RouteContext<&mut YServe>) -> Result<Response> {
-    let doc_id = ctx.param("doc_id").unwrap().to_owned();
-    let doc = ctx.data.get_doc(&req, &doc_id).await.unwrap();
-    let bytes = req.bytes().await.unwrap();
-    doc.apply_update(&bytes).unwrap();
+    let doc_id = ctx
+        .param("doc_id")
+        .ok_or_else(|| "Couldn't parse doc_id")?
+        .to_owned();
+    let doc = ctx
+        .data
+        .get_doc(&req, &doc_id)
+        .await
+        .map_err(|_| "Couldn't get doc.")?;
+    let bytes = req.bytes().await.map_err(|_| "Couldn't get bytes.")?;
+    doc.apply_update(&bytes)
+        .map_err(|_| "Couldn't apply update.")?;
     Response::ok("ok")
 }
 
 async fn handle_doc_create(req: Request, ctx: RouteContext<&mut YServe>) -> Result<Response> {
-    let doc_id = ctx.param("doc_id").unwrap().to_owned();
-    ctx.data.get_doc(&req, &doc_id).await.unwrap();
+    let doc_id = ctx
+        .param("doc_id")
+        .ok_or_else(|| "Couldn't parse doc_id")?
+        .to_owned();
+    ctx.data
+        .get_doc(&req, &doc_id)
+        .await
+        .map_err(|_| "Couldn't get doc.")?;
 
     Response::ok("ok")
 }
@@ -126,8 +157,16 @@ async fn websocket_connect(req: Request, ctx: RouteContext<&mut YServe>) -> Resu
     let WebSocketPair { client, server } = WebSocketPair::new()?;
     server.accept()?;
 
-    let doc_id = ctx.param("doc_id").unwrap().to_owned();
-    let awareness = ctx.data.get_doc(&req, &doc_id).await.unwrap().awareness();
+    let doc_id = ctx
+        .param("doc_id")
+        .ok_or_else(|| "Couldn't parse doc_id")?
+        .to_owned();
+    let awareness = ctx
+        .data
+        .get_doc(&req, &doc_id)
+        .await
+        .map_err(|_| "Couldn't get doc.")?
+        .awareness();
 
     let connection = {
         let server = server.clone();
