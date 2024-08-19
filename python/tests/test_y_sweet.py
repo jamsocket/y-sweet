@@ -8,7 +8,7 @@ import string
 
 CONNECTION_STRING = environ.get('CONNECTION_STRING', 'ys://localhost:8080')
 
-class TestYSweet(unittest.IsolatedAsyncioTestCase):
+class TestYSweet(unittest.TestCase):
     def setUp(self):
         self.random_string = ''.join(random.choices(string.ascii_lowercase + string.digits, k=10))
 
