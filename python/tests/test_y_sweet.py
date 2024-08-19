@@ -5,8 +5,6 @@ from y_sweet_sdk import DocumentManager, YSweetError
 from os import environ
 import random
 import string
-import time
-import asyncio
 
 CONNECTION_STRING = environ.get('CONNECTION_STRING', 'ys://localhost:8080')
 
@@ -33,7 +31,7 @@ class TestYSweet(unittest.IsolatedAsyncioTestCase):
         result = doc.get_client_token(existing)
         self.assertEqual(result['docId'], existing)
 
-    async def test_get_url(self):
+    def test_get_url(self):
         doc = DocumentManager(CONNECTION_STRING)
         name = f'{self.random_string}-test-doc'
         
