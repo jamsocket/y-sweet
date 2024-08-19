@@ -6,10 +6,11 @@ from os import environ
 import random
 import string
 import time
+import asyncio
 
 CONNECTION_STRING = environ.get('CONNECTION_STRING', 'ys://localhost:8080')
 
-class TestYSweet(unittest.TestCase):
+class TestYSweet(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.random_string = ''.join(random.choices(string.ascii_lowercase + string.digits, k=10))
 
@@ -32,6 +33,11 @@ class TestYSweet(unittest.TestCase):
         result = doc.get_client_token(existing)
         self.assertEqual(result['docId'], existing)
 
+    async def test_get_url(self):
+        doc = DocumentManager(CONNECTION_STRING)
+        name = f'{self.random_string}-test-doc'
+        
+        doc.get_websocket_url(name)
 
 if __name__ == '__main__':
     unittest.main()

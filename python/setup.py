@@ -6,9 +6,6 @@ setup(
     packages=find_packages(),
     install_requires=[
         'requests~=2.32.2',
-        'websockets~=12',
-        'y-py~=0.6.2',
-        # 'ypy-websocket~=0.12.4',
     ],
     author='Paul Butler',
     author_email='paul@jamsocket.com',

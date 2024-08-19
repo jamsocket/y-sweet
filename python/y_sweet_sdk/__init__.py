@@ -4,10 +4,6 @@ import string
 from typing import Dict, Union, Optional
 from urllib.parse import urlparse
 import requests
-import y_py
-import y_py as Y
-import websockets
-from ypy_websocket import WebsocketProvider
 
 class YSweetError(Exception):
     def __init__(self, cause: Dict[str, Union[str, int]]):
@@ -96,27 +92,18 @@ class DocumentManager:
         response = requests.post(url, data=update, headers=headers)
         response.raise_for_status()
 
-    def get_ydoc(self, doc_id: str) -> y_py.YDoc:
+    def get_websocket_url(self, doc_id: str) -> str:
         self.create_doc(doc_id)
         conn = self.get_client_token(doc_id)
 
         url = conn["url"]
-        token = conn.get("token", "")
+        token = conn.get("token")
         doc_id = conn["docId"]
 
-        full_url = f"{url}/{doc_id}?token={token}"
-        ydoc = Y.YDoc()
-        data = ydoc.get_array("todolist")
-
-        def data_changed(event: Y.AfterTransactionEvent):
-            print(f"data changed: {data.to_json()}")
-
-        data.observe_deep(data_changed)
-
-        conn = websockets.connect(full_url)
-        WebsocketProvider(ydoc, conn)
-
-        return ydoc
+        if token:
+            return f"{url}/{doc_id}?token={token}"
+        else:
+            return f"{url}/{doc_id}"
 
 def get_or_create_doc_and_token(connection_string: str, doc_id: Optional[str] = None) -> Dict[str, str]:
     manager = DocumentManager(connection_string)
