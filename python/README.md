@@ -1,5 +1,37 @@
 # y_sweet_sdk
 
+## Usage
+
+```python
+from y_sweet_sdk import DocumentManager
+
+# Get the websocket url for a document.
+doc = DocumentManager('ys://localhost:8080')
+url = doc.get_websocket_url('my-document-id')
+
+# Connect to the document using y_py and ypy_websocket.
+# (Based on: https://davidbrochart.github.io/ypy-websocket/usage/client/)
+from ypy_websocket import WebsocketProvider
+import y_py as Y
+from websockets import connect
+import asyncio
+
+ydoc = Y.YDoc()
+
+# Simple example: log the array "todolist" to stdout every time it changes.
+data = ydoc.get_array("todolist")
+def data_changed(event: Y.AfterTransactionEvent):
+    print(f"data changed: {data.to_json()}")
+
+data.observe_deep(data_changed)
+
+async with (
+    connect(url) as websocket,
+    WebsocketProvider(ydoc, websocket),
+):
+    await asyncio.Future()  # run forever
+```
+
 ## Tests
 
 First run a y-sweet server:
