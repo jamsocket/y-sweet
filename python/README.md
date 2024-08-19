@@ -32,6 +32,10 @@ async with (
     await asyncio.Future()  # run forever
 ```
 
+`y_sweet_sdk` is only used to talk directly with the Y-Sweet server to obtain a WebSocket URL to pass to a client.
+Use a Yjs client like [ypy-websocket](https://davidbrochart.github.io/ypy-websocket/usage/client/) or [pycrdt](https://github.com/jupyter-server/pycrdt)
+in conjunction with `y_sweet_sdk` to access the actual Y.Doc data.
+
 ## Tests
 
 First run a y-sweet server:
