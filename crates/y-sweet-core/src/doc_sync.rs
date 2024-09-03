@@ -67,9 +67,7 @@ impl DocWithSyncKv {
 
         let txn = doc.transact();
 
-        let update = txn.encode_state_as_update_v1(&StateVector::default());
-
-        update
+        txn.encode_state_as_update_v1(&StateVector::default())
     }
 
     pub fn apply_update(&self, update: &[u8]) -> Result<()> {
