@@ -10,6 +10,7 @@ repository = "https://github.com/drifting-in-space/y-sweet"
 [features]
 default = ["sync"]
 sync = ["yrs/sync"]
+single-threaded = []
 
 [dependencies]
 anyhow = "1.0.72"
