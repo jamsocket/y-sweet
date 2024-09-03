@@ -145,7 +145,7 @@ async fn new_doc(
 
     if result.status_code() != 200 {
         let body = match result.body() {
-            ResponseBody::Body(body) => String::from_utf8_lossy(&body).to_string(),
+            ResponseBody::Body(body) => String::from_utf8_lossy(body).to_string(),
             _ => String::new(),
         };
 
@@ -289,7 +289,7 @@ async fn forward_to_durable_object_with_doc_id(
     doc_id: &str,
 ) -> Result<Response> {
     let durable_object = ctx.env.durable_object(DURABLE_OBJECT)?;
-    let stub = durable_object.id_from_name(&doc_id)?.get_stub()?;
+    let stub = durable_object.id_from_name(doc_id)?.get_stub()?;
 
     // Pass server context to durable object.
     let path = req.path();

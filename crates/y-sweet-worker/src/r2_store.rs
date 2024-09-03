@@ -32,7 +32,7 @@ impl Store for R2Store {
     async fn get(&self, key: &str) -> Result<Option<Vec<u8>>> {
         let object = self
             .bucket
-            .get(&self.prefixed_key(key))
+            .get(self.prefixed_key(key))
             .execute()
             .await
             .map_err(|_| StoreError::ConnectionError("Failed to get object".into()))?;
@@ -53,7 +53,7 @@ impl Store for R2Store {
 
     async fn set(&self, key: &str, value: Vec<u8>) -> Result<()> {
         self.bucket
-            .put(&self.prefixed_key(key), value)
+            .put(self.prefixed_key(key), value)
             .execute()
             .await
             .map_err(|e| StoreError::ConnectionError(format!("Failed to put object {e}")))?;
