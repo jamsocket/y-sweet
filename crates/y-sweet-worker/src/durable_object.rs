@@ -85,7 +85,7 @@ impl DurableObject for YServe {
     }
 
     async fn fetch(&mut self, req: Request) -> Result<Response> {
-        let env: Env = self.env.clone().into();
+        let env: Env = self.env.clone();
         let req = ServerContext::reconstruct_request(&req)?;
 
         Router::with_data(self)
@@ -113,7 +113,7 @@ impl DurableObject for YServe {
 async fn as_update(req: Request, ctx: RouteContext<&mut YServe>) -> Result<Response> {
     let doc_id = ctx
         .param("doc_id")
-        .ok_or_else(|| "Couldn't parse doc_id")?
+        .ok_or("Couldn't parse doc_id")?
         .to_owned();
     let doc = ctx
         .data
@@ -127,7 +127,7 @@ async fn as_update(req: Request, ctx: RouteContext<&mut YServe>) -> Result<Respo
 async fn update_doc(mut req: Request, ctx: RouteContext<&mut YServe>) -> Result<Response> {
     let doc_id = ctx
         .param("doc_id")
-        .ok_or_else(|| "Couldn't parse doc_id")?
+        .ok_or("Couldn't parse doc_id")?
         .to_owned();
     let doc = ctx
         .data
@@ -143,7 +143,7 @@ async fn update_doc(mut req: Request, ctx: RouteContext<&mut YServe>) -> Result<
 async fn handle_doc_create(req: Request, ctx: RouteContext<&mut YServe>) -> Result<Response> {
     let doc_id = ctx
         .param("doc_id")
-        .ok_or_else(|| "Couldn't parse doc_id")?
+        .ok_or("Couldn't parse doc_id")?
         .to_owned();
     ctx.data
         .get_doc(&req, &doc_id)
@@ -159,7 +159,7 @@ async fn websocket_connect(req: Request, ctx: RouteContext<&mut YServe>) -> Resu
 
     let doc_id = ctx
         .param("doc_id")
-        .ok_or_else(|| "Couldn't parse doc_id")?
+        .ok_or("Couldn't parse doc_id")?
         .to_owned();
     let awareness = ctx
         .data
