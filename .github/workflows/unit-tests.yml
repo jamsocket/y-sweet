@@ -2,9 +2,10 @@ name: Unit Tests
 
 on:
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
     paths:
       - "crates/**"
+      - ".github/workflows/unit-tests.yml"
 
 env:
   CARGO_TERM_COLOR: always
@@ -17,13 +18,14 @@ jobs:
         working-directory: ./crates
 
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
-      with:
-        node-version: 18
-    - uses: Swatinem/rust-cache@v2
-      with:
-        cache-on-failure: "true"
-
-    - name: Run unit tests
-      run: cargo test --verbose
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: "true"
+          workspaces: |
+            crates
+      - name: Run unit tests
+        run: cargo test --verbose
