@@ -74,6 +74,7 @@ enum ServSubcommand {
 
 const S3_ACCESS_KEY_ID: &str = "AWS_ACCESS_KEY_ID";
 const S3_SECRET_ACCESS_KEY: &str = "AWS_SECRET_ACCESS_KEY";
+const S3_SESSION_TOKEN: &str = "AWS_SESSION_TOKEN";
 const S3_REGION: &str = "AWS_REGION";
 const S3_ENDPOINT: &str = "AWS_ENDPOINT_URL_S3";
 const S3_BUCKET_PREFIX: &str = "S3_BUCKET_PREFIX";
@@ -99,6 +100,7 @@ fn parse_s3_config_from_env_and_args(
         secret: env::var(S3_SECRET_ACCESS_KEY)
             .map_err(|_| anyhow::anyhow!("AWS_SECRET_ACCESS_KEY env var not supplied"))?
             .to_string(),
+        token: env::var(S3_SESSION_TOKEN).ok(),
         bucket: {
             if let Ok(bucket_name) = env::var(S3_BUCKET_NAME) {
                 bucket_name

@@ -14,6 +14,7 @@ pub struct S3Config {
     pub key: String,
     pub endpoint: String,
     pub secret: String,
+    pub token: Option<String>,
     pub bucket: String,
     pub region: String,
     pub bucket_prefix: Option<String>,
@@ -31,10 +32,14 @@ pub struct S3Store {
 
 impl S3Store {
     pub fn new(config: S3Config) -> Self {
-        let credentials = Credentials::new(config.key, config.secret);
+        let credentials = if let Some(token) = config.token {
+            Credentials::new_with_token(config.key, config.secret, token)
+        } else {
+            Credentials::new(config.key, config.secret)
+        };
         let endpoint: Url = config.endpoint.parse().expect("endpoint is a valid url");
         let path_style =
-            // if endpoint is localhost then bucket url must be of forme http://localhost:<port>/<bucket>
+            // if endpoint is localhost then bucket url must be of form http://localhost:<port>/<bucket>
             // instead of <method>:://<bucket>.<endpoint>
             if endpoint.host_str().expect("endpoint Url should have host") == "localhost" {
                 rusty_s3::UrlStyle::Path
