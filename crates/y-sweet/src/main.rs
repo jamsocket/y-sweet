@@ -70,6 +70,17 @@ enum ServSubcommand {
     },
 
     Version,
+
+    ServeDoc {
+        #[clap(long, default_value = "8080", env = "Y_SWEET_PORT")]
+        port: u16,
+
+        #[clap(long, env = "Y_SWEET_HOST")]
+        host: Option<IpAddr>,
+
+        #[clap(long, default_value = "10", env = "Y_SWEET_CHECKPOINT_FREQ_SECONDS")]
+        checkpoint_freq_seconds: u64,
+    },
 }
 
 const S3_ACCESS_KEY_ID: &str = "AWS_ACCESS_KEY_ID";
@@ -235,6 +246,76 @@ async fn main() -> Result<()> {
         }
         ServSubcommand::Version => {
             println!("{}", VERSION);
+        }
+        ServSubcommand::ServeDoc {
+            port,
+            host,
+            checkpoint_freq_seconds,
+        } => {
+            let doc_id =
+                std::env::var("SESSION_BACKEND_KEY").expect("SESSION_BACKEND_KEY must be set");
+            let storage_path = std::env::var("STORAGE_PATH").expect("STORAGE_PATH must be set");
+
+            let s3_config = S3Config {
+                key: std::env::var("AWS_ACCESS_KEY_ID").expect("AWS_ACCESS_KEY_ID must be set"),
+                secret: std::env::var("AWS_SECRET_ACCESS_KEY")
+                    .expect("AWS_SECRET_ACCESS_KEY must be set"),
+                token: std::env::var("AWS_SESSION_TOKEN").ok(),
+                endpoint: std::env::var("AWS_ENDPOINT_URL_S3")
+                    .unwrap_or_else(|_| "https://s3.amazonaws.com".to_string()),
+                bucket: storage_path.split('/').next().unwrap().to_string(),
+                region: std::env::var("AWS_REGION").unwrap_or_else(|_| "us-east-1".to_string()),
+                bucket_prefix: Some(storage_path),
+            };
+
+            let store = S3Store::new(s3_config);
+            let cancellation_token = CancellationToken::new();
+            let server = y_sweet::server::Server::new(
+                Some(Box::new(store)),
+                std::time::Duration::from_secs(*checkpoint_freq_seconds),
+                None, // No authenticator
+                None, // No URL prefix
+                cancellation_token.clone(),
+            )
+            .await?;
+
+            // Load the one document we're operating with
+            server
+                .load_doc(&doc_id)
+                .await
+                .context("Failed to load document")?;
+
+            let addr = SocketAddr::new(
+                host.unwrap_or(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1))),
+                *port,
+            );
+
+            let server_handle = tokio::spawn(async move {
+                server.serve_doc(&addr, false).await.unwrap();
+            });
+
+            tracing::info!("Listening on http://{}", addr);
+
+            tokio::select! {
+                _ = tokio::signal::ctrl_c() => {
+                    tracing::info!("Received Ctrl+C, shutting down.");
+                },
+                _ = async {
+                    match tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate()) {
+                        Ok(mut signal) => signal.recv().await,
+                        Err(e) => {
+                            tracing::error!("Failed to install SIGTERM handler: {}", e);
+                            std::future::pending::<Option<()>>().await
+                        }
+                    }
+                } => {
+                    tracing::info!("Received SIGTERM, shutting down.");
+                }
+            }
+
+            cancellation_token.cancel();
+            server_handle.await?;
+            tracing::info!("Server shut down.");
         }
     }
 

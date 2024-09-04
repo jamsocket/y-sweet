@@ -319,28 +319,49 @@ impl Server {
             .with_state(self.clone())
     }
 
-    pub async fn serve(self, addr: &SocketAddr, redact_errors: bool) -> Result<()> {
+    pub fn single_doc_routes(self: &Arc<Self>) -> Router {
+        Router::new()
+            .route("/ws/:doc_id", get(handle_socket_upgrade_single))
+            .route("/as-update", get(get_doc_as_update_single))
+            .route("/update", post(update_doc_single))
+            .with_state(self.clone())
+    }
+
+    async fn serve_internal(
+        self: Arc<Self>,
+        addr: &SocketAddr,
+        redact_errors: bool,
+        routes: Router,
+    ) -> Result<()> {
         let listener = TcpListener::bind(addr).await?;
         let token = self.cancellation_token.clone();
-        let s = Arc::new(self);
 
-        let app = s.routes();
         let app = if redact_errors {
-            app
+            routes
         } else {
-            app.layer(middleware::from_fn(Self::redact_error_middleware))
+            routes.layer(middleware::from_fn(Self::redact_error_middleware))
         };
 
         axum::serve(listener, app.into_make_service())
-            // Wait for all outstanding connections to close, and then exit.
             .with_graceful_shutdown(async move { token.cancelled().await })
             .await?;
 
-        // Ensure all in-memory docs are saved before exiting.
-        s.doc_worker_tracker.close();
-        s.doc_worker_tracker.wait().await;
+        self.doc_worker_tracker.close();
+        self.doc_worker_tracker.wait().await;
 
         Ok(())
+    }
+
+    pub async fn serve(self, addr: &SocketAddr, redact_errors: bool) -> Result<()> {
+        let s = Arc::new(self);
+        let routes = s.routes();
+        s.serve_internal(addr, redact_errors, routes).await
+    }
+
+    pub async fn serve_doc(self, addr: &SocketAddr, redact_errors: bool) -> Result<()> {
+        let s = Arc::new(self);
+        let routes = s.single_doc_routes();
+        s.serve_internal(addr, redact_errors, routes).await
     }
 
     fn verify_doc_token(&self, token: Option<&str>, doc: &str) -> Result<(), AppError> {
@@ -355,6 +376,14 @@ impl Server {
         }
         Ok(())
     }
+
+    fn get_single_doc_id(&self) -> Result<String, AppError> {
+        self.docs
+            .iter()
+            .next()
+            .map(|entry| entry.key().clone())
+            .ok_or_else(|| AppError(StatusCode::NOT_FOUND, anyhow!("No document found")))
+    }
 }
 
 #[derive(Deserialize)]
@@ -363,8 +392,8 @@ struct HandlerParams {
 }
 
 async fn get_doc_as_update(
-    Path(doc_id): Path<String>,
     State(server_state): State<Arc<Server>>,
+    Path(doc_id): Path<String>,
     authorization: Option<TypedHeader<headers::Authorization<headers::authorization::Bearer>>>,
 ) -> Result<Response, AppError> {
     server_state.check_auth(authorization)?;
@@ -375,10 +404,16 @@ async fn get_doc_as_update(
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let update = dwskv.as_update();
-
-    println!("update: {:?}", update);
-
+    tracing::debug!("update: {:?}", update);
     Ok(update.into_response())
+}
+
+async fn get_doc_as_update_single(
+    State(server_state): State<Arc<Server>>,
+    authorization: Option<TypedHeader<headers::Authorization<headers::authorization::Bearer>>>,
+) -> Result<Response, AppError> {
+    let doc_id = server_state.get_single_doc_id()?;
+    get_doc_as_update(State(server_state), Path(doc_id), authorization).await
 }
 
 async fn update_doc(
@@ -402,6 +437,15 @@ async fn update_doc(
     Ok(StatusCode::OK.into_response())
 }
 
+async fn update_doc_single(
+    State(server_state): State<Arc<Server>>,
+    authorization: Option<TypedHeader<headers::Authorization<headers::authorization::Bearer>>>,
+    body: Bytes,
+) -> Result<Response, AppError> {
+    let doc_id = server_state.get_single_doc_id()?;
+    update_doc(Path(doc_id), State(server_state), authorization, body).await
+}
+
 async fn handle_socket_upgrade(
     ws: WebSocketUpgrade,
     Path(doc_id): Path<String>,
@@ -418,6 +462,22 @@ async fn handle_socket_upgrade(
     let cancellation_token = server_state.cancellation_token.clone();
 
     Ok(ws.on_upgrade(move |socket| handle_socket(socket, awareness, cancellation_token)))
+}
+
+async fn handle_socket_upgrade_single(
+    ws: WebSocketUpgrade,
+    Path(doc_id): Path<String>,
+    Query(params): Query<HandlerParams>,
+    State(server_state): State<Arc<Server>>,
+) -> Result<Response, AppError> {
+    let single_doc_id = server_state.get_single_doc_id()?;
+    if doc_id != single_doc_id {
+        return Err(AppError(
+            StatusCode::NOT_FOUND,
+            anyhow!("Document not found"),
+        ));
+    }
+    handle_socket_upgrade(ws, Path(single_doc_id), Query(params), State(server_state)).await
 }
 
 async fn handle_socket(
