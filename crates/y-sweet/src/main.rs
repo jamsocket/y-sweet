@@ -1,3 +1,4 @@
+use anyhow::Context;
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use serde_json::json;
@@ -94,38 +95,21 @@ fn parse_s3_config_from_env_and_args(
     bucket: Option<String>,
     prefix: Option<String>,
 ) -> anyhow::Result<S3Config> {
-    let region = env::var(S3_REGION).unwrap_or(DEFAULT_S3_REGION.into());
-
-    //default to using aws
-    let endpoint = env::var(S3_ENDPOINT).map_or_else(
-        |_| format!("https://s3.dualstack.{}.amazonaws.com", region),
-        |s| s.to_string(),
-    );
-
     Ok(S3Config {
         key: env::var(S3_ACCESS_KEY_ID)
-            .map_err(|_| anyhow::anyhow!("AWS_ACCESS_KEY_ID env var not supplied"))?
-            .to_string(),
-        region,
-        endpoint,
+            .map_err(|_| anyhow::anyhow!("{} env var not supplied", S3_ACCESS_KEY_ID))?,
+        region: env::var(S3_REGION).unwrap_or_else(|_| DEFAULT_S3_REGION.to_string()),
+        endpoint: env::var(S3_ENDPOINT).unwrap_or_else(|_| {
+            format!(
+                "https://s3.dualstack.{}.amazonaws.com",
+                env::var(S3_REGION).unwrap_or_else(|_| DEFAULT_S3_REGION.to_string())
+            )
+        }),
         secret: env::var(S3_SECRET_ACCESS_KEY)
-            .map_err(|_| anyhow::anyhow!("AWS_SECRET_ACCESS_KEY env var not supplied"))?
-            .to_string(),
+            .map_err(|_| anyhow::anyhow!("{} env var not supplied", S3_SECRET_ACCESS_KEY))?,
         token: env::var(S3_SESSION_TOKEN).ok(),
-        bucket: {
-            if let Ok(bucket_name) = env::var(S3_BUCKET_NAME) {
-                bucket_name
-            } else {
-                bucket.ok_or_else(|| anyhow::anyhow!("S3_BUCKET_NAME env var not supplied"))?
-            }
-        },
-        bucket_prefix: {
-            if let Ok(bucket_prefix) = env::var(S3_BUCKET_PREFIX) {
-                Some(bucket_prefix)
-            } else {
-                prefix
-            }
-        },
+        bucket,
+        bucket_prefix: Some(prefix),
     })
 }
 
@@ -252,23 +236,20 @@ async fn main() -> Result<()> {
             host,
             checkpoint_freq_seconds,
         } => {
-            let doc_id =
-                std::env::var("SESSION_BACKEND_KEY").expect("SESSION_BACKEND_KEY must be set");
-            let storage_path = std::env::var("STORAGE_PATH").expect("STORAGE_PATH must be set");
+            let doc_id = env::var("SESSION_BACKEND_KEY").expect("SESSION_BACKEND_KEY must be set");
 
-            let s3_config = S3Config {
-                key: std::env::var("AWS_ACCESS_KEY_ID").expect("AWS_ACCESS_KEY_ID must be set"),
-                secret: std::env::var("AWS_SECRET_ACCESS_KEY")
-                    .expect("AWS_SECRET_ACCESS_KEY must be set"),
-                token: std::env::var("AWS_SESSION_TOKEN").ok(),
-                endpoint: std::env::var("AWS_ENDPOINT_URL_S3")
-                    .unwrap_or_else(|_| "https://s3.amazonaws.com".to_string()),
-                bucket: storage_path.split('/').next().unwrap().to_string(),
-                region: std::env::var("AWS_REGION").unwrap_or_else(|_| "us-east-1".to_string()),
-                bucket_prefix: Some(storage_path),
-            };
+            let bucket = env::var("STORAGE_BUCKET").expect("STORAGE_BUCKET must be set");
+            let prefix = env::var("STORAGE_PREFIX").expect("STORAGE_PREFIX must be set");
+
+            let s3_config = parse_s3_config_from_env_and_args(Some(bucket), Some(prefix))
+                .context("Failed to parse S3 configuration")?;
 
             let store = S3Store::new(s3_config);
+            store
+                .init()
+                .await
+                .context("Failed to initialize S3 store")?;
+
             let cancellation_token = CancellationToken::new();
             let server = y_sweet::server::Server::new(
                 Some(Box::new(store)),
