@@ -89,12 +89,7 @@ const S3_SECRET_ACCESS_KEY: &str = "AWS_SECRET_ACCESS_KEY";
 const S3_SESSION_TOKEN: &str = "AWS_SESSION_TOKEN";
 const S3_REGION: &str = "AWS_REGION";
 const S3_ENDPOINT: &str = "AWS_ENDPOINT_URL_S3";
-const S3_BUCKET_PREFIX: &str = "S3_BUCKET_PREFIX";
-const S3_BUCKET_NAME: &str = "S3_BUCKET_NAME";
-fn parse_s3_config_from_env_and_args(
-    bucket: Option<String>,
-    prefix: Option<String>,
-) -> anyhow::Result<S3Config> {
+fn parse_s3_config_from_env_and_args(bucket: String, prefix: String) -> anyhow::Result<S3Config> {
     Ok(S3Config {
         key: env::var(S3_ACCESS_KEY_ID)
             .map_err(|_| anyhow::anyhow!("{} env var not supplied", S3_ACCESS_KEY_ID))?,
@@ -120,8 +115,8 @@ fn get_store_from_opts(store_path: &str) -> Result<Box<dyn Store>> {
             .host_str()
             .ok_or_else(|| anyhow::anyhow!("Invalid S3 URL"))?
             .to_owned();
-        let bucket_prefix = Some(url.path().trim_start_matches('/').to_owned());
-        let config = parse_s3_config_from_env_and_args(Some(bucket), bucket_prefix)?;
+        let bucket_prefix = url.path().trim_start_matches('/').to_owned();
+        let config = parse_s3_config_from_env_and_args(bucket, bucket_prefix)?;
         let store = S3Store::new(config);
         Ok(Box::new(store))
     } else {
@@ -241,7 +236,7 @@ async fn main() -> Result<()> {
             let bucket = env::var("STORAGE_BUCKET").expect("STORAGE_BUCKET must be set");
             let prefix = env::var("STORAGE_PREFIX").expect("STORAGE_PREFIX must be set");
 
-            let s3_config = parse_s3_config_from_env_and_args(Some(bucket), Some(prefix))
+            let s3_config = parse_s3_config_from_env_and_args(bucket, prefix)
                 .context("Failed to parse S3 configuration")?;
 
             let store = S3Store::new(s3_config);
