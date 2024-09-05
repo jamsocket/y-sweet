@@ -1,3 +1,4 @@
+use anyhow::Context;
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use serde_json::json;
@@ -70,6 +71,17 @@ enum ServSubcommand {
     },
 
     Version,
+
+    ServeDoc {
+        #[clap(long, default_value = "8080", env = "Y_SWEET_PORT")]
+        port: u16,
+
+        #[clap(long, env = "Y_SWEET_HOST")]
+        host: Option<IpAddr>,
+
+        #[clap(long, default_value = "10", env = "Y_SWEET_CHECKPOINT_FREQ_SECONDS")]
+        checkpoint_freq_seconds: u64,
+    },
 }
 
 const S3_ACCESS_KEY_ID: &str = "AWS_ACCESS_KEY_ID";
@@ -77,44 +89,22 @@ const S3_SECRET_ACCESS_KEY: &str = "AWS_SECRET_ACCESS_KEY";
 const S3_SESSION_TOKEN: &str = "AWS_SESSION_TOKEN";
 const S3_REGION: &str = "AWS_REGION";
 const S3_ENDPOINT: &str = "AWS_ENDPOINT_URL_S3";
-const S3_BUCKET_PREFIX: &str = "S3_BUCKET_PREFIX";
-const S3_BUCKET_NAME: &str = "S3_BUCKET_NAME";
-fn parse_s3_config_from_env_and_args(
-    bucket: Option<String>,
-    prefix: Option<String>,
-) -> anyhow::Result<S3Config> {
-    let region = env::var(S3_REGION).unwrap_or(DEFAULT_S3_REGION.into());
-
-    //default to using aws
-    let endpoint = env::var(S3_ENDPOINT).map_or_else(
-        |_| format!("https://s3.dualstack.{}.amazonaws.com", region),
-        |s| s.to_string(),
-    );
-
+fn parse_s3_config_from_env_and_args(bucket: String, prefix: String) -> anyhow::Result<S3Config> {
     Ok(S3Config {
         key: env::var(S3_ACCESS_KEY_ID)
-            .map_err(|_| anyhow::anyhow!("AWS_ACCESS_KEY_ID env var not supplied"))?
-            .to_string(),
-        region,
-        endpoint,
+            .map_err(|_| anyhow::anyhow!("{} env var not supplied", S3_ACCESS_KEY_ID))?,
+        region: env::var(S3_REGION).unwrap_or_else(|_| DEFAULT_S3_REGION.to_string()),
+        endpoint: env::var(S3_ENDPOINT).unwrap_or_else(|_| {
+            format!(
+                "https://s3.dualstack.{}.amazonaws.com",
+                env::var(S3_REGION).unwrap_or_else(|_| DEFAULT_S3_REGION.to_string())
+            )
+        }),
         secret: env::var(S3_SECRET_ACCESS_KEY)
-            .map_err(|_| anyhow::anyhow!("AWS_SECRET_ACCESS_KEY env var not supplied"))?
-            .to_string(),
+            .map_err(|_| anyhow::anyhow!("{} env var not supplied", S3_SECRET_ACCESS_KEY))?,
         token: env::var(S3_SESSION_TOKEN).ok(),
-        bucket: {
-            if let Ok(bucket_name) = env::var(S3_BUCKET_NAME) {
-                bucket_name
-            } else {
-                bucket.ok_or_else(|| anyhow::anyhow!("S3_BUCKET_NAME env var not supplied"))?
-            }
-        },
-        bucket_prefix: {
-            if let Ok(bucket_prefix) = env::var(S3_BUCKET_PREFIX) {
-                Some(bucket_prefix)
-            } else {
-                prefix
-            }
-        },
+        bucket,
+        bucket_prefix: Some(prefix),
     })
 }
 
@@ -125,8 +115,8 @@ fn get_store_from_opts(store_path: &str) -> Result<Box<dyn Store>> {
             .host_str()
             .ok_or_else(|| anyhow::anyhow!("Invalid S3 URL"))?
             .to_owned();
-        let bucket_prefix = Some(url.path().trim_start_matches('/').to_owned());
-        let config = parse_s3_config_from_env_and_args(Some(bucket), bucket_prefix)?;
+        let bucket_prefix = url.path().trim_start_matches('/').to_owned();
+        let config = parse_s3_config_from_env_and_args(bucket, bucket_prefix)?;
         let store = S3Store::new(config);
         Ok(Box::new(store))
     } else {
@@ -235,6 +225,73 @@ async fn main() -> Result<()> {
         }
         ServSubcommand::Version => {
             println!("{}", VERSION);
+        }
+        ServSubcommand::ServeDoc {
+            port,
+            host,
+            checkpoint_freq_seconds,
+        } => {
+            let doc_id = env::var("SESSION_BACKEND_KEY").expect("SESSION_BACKEND_KEY must be set");
+
+            let bucket = env::var("STORAGE_BUCKET").expect("STORAGE_BUCKET must be set");
+            let prefix = env::var("STORAGE_PREFIX").expect("STORAGE_PREFIX must be set");
+
+            let s3_config = parse_s3_config_from_env_and_args(bucket, prefix)
+                .context("Failed to parse S3 configuration")?;
+
+            let store = S3Store::new(s3_config);
+            store
+                .init()
+                .await
+                .context("Failed to initialize S3 store")?;
+
+            let cancellation_token = CancellationToken::new();
+            let server = y_sweet::server::Server::new(
+                Some(Box::new(store)),
+                std::time::Duration::from_secs(*checkpoint_freq_seconds),
+                None, // No authenticator
+                None, // No URL prefix
+                cancellation_token.clone(),
+            )
+            .await?;
+
+            // Load the one document we're operating with
+            server
+                .load_doc(&doc_id)
+                .await
+                .context("Failed to load document")?;
+
+            let addr = SocketAddr::new(
+                host.unwrap_or(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1))),
+                *port,
+            );
+
+            let server_handle = tokio::spawn(async move {
+                server.serve_doc(&addr, false).await.unwrap();
+            });
+
+            tracing::info!("Listening on http://{}", addr);
+
+            tokio::select! {
+                _ = tokio::signal::ctrl_c() => {
+                    tracing::info!("Received Ctrl+C, shutting down.");
+                },
+                _ = async {
+                    match tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate()) {
+                        Ok(mut signal) => signal.recv().await,
+                        Err(e) => {
+                            tracing::error!("Failed to install SIGTERM handler: {}", e);
+                            std::future::pending::<Option<()>>().await
+                        }
+                    }
+                } => {
+                    tracing::info!("Received SIGTERM, shutting down.");
+                }
+            }
+
+            cancellation_token.cancel();
+            server_handle.await?;
+            tracing::info!("Server shut down.");
         }
     }
 
