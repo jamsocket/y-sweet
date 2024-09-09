@@ -277,6 +277,7 @@ async fn main() -> Result<()> {
                     tracing::info!("Received Ctrl+C, shutting down.");
                 },
                 _ = async {
+                    #[cfg(unix)]
                     match tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate()) {
                         Ok(mut signal) => signal.recv().await,
                         Err(e) => {
@@ -284,6 +285,9 @@ async fn main() -> Result<()> {
                             std::future::pending::<Option<()>>().await
                         }
                     }
+
+                    #[cfg(not(unix))]
+                    std::future::pending::<Option<()>>().await
                 } => {
                     tracing::info!("Received SIGTERM, shutting down.");
                 }
