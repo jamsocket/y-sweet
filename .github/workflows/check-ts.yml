@@ -55,4 +55,4 @@ jobs:
       working-directory: scripts/
 
     - name: Check that workspace package versions match
-      run: npx ts-node scripts/set-js-versions.ts
+      run: npx tsx scripts/set-js-versions.ts
