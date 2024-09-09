@@ -25,7 +25,7 @@ jobs:
       run: npm ci
       working-directory: js-pkg/client
     - name: Test deps
-      run: npm ci || npm ci # required for stupid npm reasons
+      run: npm ci
       working-directory: tests
     - name: Run integration tests
       run: npm test
