@@ -21,6 +21,9 @@ jobs:
     - uses: actions/checkout@v4
     - name: Install latest rust toolchain
       run: rustup update && rustup default stable
+    - name: Install client
+      run: npm ci
+      working-directory: js-pkg/client
     - name: Test deps
       run: npm ci
       working-directory: tests
