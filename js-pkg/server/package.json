@@ -6,7 +6,7 @@
     "scripts": {
         "postinstall": "node src/install.js",
         "format": "prettier --write \"**/*.{ts,tsx,js,jsx}\"",
-        "prepare": "npm run build"
+        "prepublishOnly": "npm run build"
     },
     "version": "0.2.2",
     "description": "npm wrapper for y-sweet server",
