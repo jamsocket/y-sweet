@@ -4,9 +4,10 @@
     "build": "tsup",
     "clean": "rm -rf dist",
     "dev": "tsup --watch",
-    "format": "prettier --write \"**/*.{ts,tsx,js,jsx}\""
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx}\"",
+    "prepare": "npm run build"
   },
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Javascript/Typescript backend SDK for building collaboration features with y-sweet.",
   "main": "./dist/main.js",
   "types": "./dist/main.d.ts",

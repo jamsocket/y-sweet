@@ -5,9 +5,10 @@
     },
     "scripts": {
         "postinstall": "node src/install.js",
-        "format": "prettier --write \"**/*.{ts,tsx,js,jsx}\""
+        "format": "prettier --write \"**/*.{ts,tsx,js,jsx}\"",
+        "prepare": "npm run build"
     },
-    "version": "0.2.1",
+    "version": "0.2.2",
     "description": "npm wrapper for y-sweet server",
     "homepage": "https://github.com/drifting-in-space/y-sweet",
     "repository": {
