@@ -30,16 +30,16 @@ jobs:
       uses: actions-rs/cargo@v1
       with:
         command: build
-        args: --manifest-path=crates/Cargo.toml --target aarch64-apple-darwin
+        args: --manifest-path=crates/Cargo.toml --target aarch64-apple-darwin --release
 
     - name: strip binary
-      run: strip ./crates/target/aarch64-apple-darwin/debug/y-sweet
+      run: strip ./crates/target/aarch64-apple-darwin/release/y-sweet
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: macos-binary-arm64
-        path: ./crates/target/aarch64-apple-darwin/debug/y-sweet
+        path: ./crates/target/aarch64-apple-darwin/release/y-sweet
 
   build-macos-x64:
     runs-on: macos-latest
@@ -59,13 +59,13 @@ jobs:
       uses: actions-rs/cargo@v1
       with:
         command: build
-        args: --release --manifest-path=crates/Cargo.toml
+        args: --release --manifest-path=crates/Cargo.toml --target x86_64-apple-darwin
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: macos-binary-x64
-        path: ./crates/target/release/y-sweet 
+        path: ./crates/target/x86_64-apple-darwin/release/y-sweet 
 
   build-linux:
     runs-on: ubuntu-latest
@@ -90,7 +90,7 @@ jobs:
         args: --release --target x86_64-unknown-linux-musl --manifest-path=crates/Cargo.toml
         
     - name: Upload artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: linux-binary
         path: ./crates/target/x86_64-unknown-linux-musl/release/y-sweet 
@@ -123,7 +123,7 @@ jobs:
         args: --release --target aarch64-unknown-linux-musl --manifest-path=crates/Cargo.toml
         
     - name: Upload artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: linux-binary-arm64
         path: ./crates/target/aarch64-unknown-linux-musl/release/y-sweet 
@@ -154,7 +154,7 @@ jobs:
       run: ls ./crates/target/x86_64-pc-windows-gnu/release
       
     - name: Upload artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: windows-binary
         path: ./crates/target/x86_64-pc-windows-gnu/release/y-sweet.exe
