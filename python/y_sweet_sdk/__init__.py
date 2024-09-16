@@ -1,6 +1,4 @@
 import json
-import random
-import string
 from typing import Dict, Union, Optional
 from urllib.parse import urlparse
 import requests
@@ -43,7 +41,6 @@ class DocumentManager:
                 url,
                 headers=headers,
                 json=data,
-                params={'z': ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))}
             )
             response.raise_for_status()
         except requests.RequestException as e:
@@ -72,10 +69,18 @@ class DocumentManager:
         data = {'docId': doc_id} if doc_id else {}
         return self._do_request('doc/new', method='POST', data=data).json()
 
-    def get_client_token(self, doc_id: Union[str, Dict[str, str]]) -> Dict[str, str]:
-        if isinstance(doc_id, dict):
-            doc_id = doc_id['docId']
-        return self._do_request(f"doc/{doc_id}/auth", method='POST', data={}).json()
+    def get_client_token(self, doc: Union[str, Dict[str, str]]) -> Dict[str, str]:
+        if isinstance(doc, str):
+            doc = {'docId': doc}
+
+        doc_id = doc_id['docId']
+        cluster = doc_id.get('cluster')
+
+        data = {}
+        if cluster:
+            data['cluster'] = cluster
+
+        return self._do_request(f"doc/{doc_id}/auth", method='POST', data=data).json()
 
     def get_or_create_doc_and_token(self, doc_id: Optional[str] = None) -> Dict[str, str]:
         result = self.create_doc(doc_id)
