@@ -233,21 +233,31 @@ async fn main() -> Result<()> {
         } => {
             let doc_id = env::var("SESSION_BACKEND_KEY").expect("SESSION_BACKEND_KEY must be set");
 
-            let bucket = env::var("STORAGE_BUCKET").expect("STORAGE_BUCKET must be set");
-            let prefix = env::var("STORAGE_PREFIX").expect("STORAGE_PREFIX must be set");
+            let bucket = env::var("STORAGE_BUCKET").ok();
+            let prefix = env::var("STORAGE_PREFIX").ok();
 
-            let s3_config = parse_s3_config_from_env_and_args(bucket, prefix)
-                .context("Failed to parse S3 configuration")?;
-
-            let store = S3Store::new(s3_config);
-            store
-                .init()
-                .await
-                .context("Failed to initialize S3 store")?;
+            let store = match (bucket, prefix) {
+                (Some(bucket), Some(prefix)) => {
+                    let s3_config = parse_s3_config_from_env_and_args(bucket, prefix)
+                        .context("Failed to parse S3 configuration")?;
+                    let store = S3Store::new(s3_config);
+                    let store: Box<dyn Store> = Box::new(store);
+                    store
+                        .init()
+                        .await
+                        .context("Failed to initialize S3 store")?;
+                    Some(store)
+                }
+                (None, None) => {
+                    tracing::warn!("No store set. Documents will be stored in memory only.");
+                    None
+                }
+                _ => panic!("Invalid store configuration. Expected both STORAGE_BUCKET and STORAGE_PREFIX environment variables to be set."),
+            };
 
             let cancellation_token = CancellationToken::new();
             let server = y_sweet::server::Server::new(
-                Some(Box::new(store)),
+                store,
                 std::time::Duration::from_secs(*checkpoint_freq_seconds),
                 None, // No authenticator
                 None, // No URL prefix
