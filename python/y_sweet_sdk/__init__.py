@@ -1,6 +1,4 @@
 import json
-import random
-import string
 from typing import Dict, Union, Optional
 from urllib.parse import urlparse
 import requests
@@ -43,7 +41,6 @@ class DocumentManager:
                 url,
                 headers=headers,
                 json=data,
-                params={'z': ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))}
             )
             response.raise_for_status()
         except requests.RequestException as e:
