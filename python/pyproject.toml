@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "y_sweet_sdk"
+version = "0.1.0"
+description = "Python bindings for the Y-Sweet server"
+readme = "README.md"
+authors = [{ name = "Paul Butler", email = "paul@jamsocket.com" }]
+license = { text = "MIT" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = ["requests~=2.32.2"]
+
+[project.urls]
+Homepage = "https://github.com/jamsocket/y-sweet"
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.pytest.ini_options]
+addopts = "-ra -q"
+testpaths = ["tests"]

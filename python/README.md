@@ -36,6 +36,14 @@ async with (
 Use a Yjs client like [ypy-websocket](https://davidbrochart.github.io/ypy-websocket/usage/client/) or [pycrdt](https://github.com/jupyter-server/pycrdt)
 in conjunction with `y_sweet_sdk` to access the actual Y.Doc data.
 
+## Installation
+
+For development installation with test dependencies:
+
+```bash
+pip install -e ".[test]"
+```
+
 ## Tests
 
 First run a y-sweet server:
@@ -47,5 +55,5 @@ npx y-sweet serve
 Then run the tests:
 
 ```bash
-python -m unittest discover -s tests
+pytest
 ```
