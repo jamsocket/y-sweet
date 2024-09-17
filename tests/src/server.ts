@@ -53,7 +53,7 @@ export class Server {
 
     mkdirSync(outFilePath, { recursive: true })
 
-    this.outFileBase = join(outFilePath, configToString(configuration))
+    this.outFileBase = join(outFilePath, configToString(configuration) + '-' + this.port)
     mkdirSync(this.outFileBase, { recursive: true })
     this.dataDir = join(this.outFileBase, 'data')
     mkdirSync(this.dataDir, { recursive: true })

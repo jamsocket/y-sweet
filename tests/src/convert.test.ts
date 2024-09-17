@@ -46,6 +46,7 @@ async function connectToDoc(server: Server, docId: string): Promise<Y.Doc> {
 
 test('can convert an empty doc from an update', async () => {
   const server = new Server({ useAuth: false, server: 'native' })
+  await server.waitForReady()
   const doc = new Y.Doc()
   const docId = Math.random().toString(36).substring(7)
   await convertDoc(doc, docId, server.dataDir)

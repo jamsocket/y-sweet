@@ -1,17 +1,15 @@
 import { YSweetError } from './error'
+import { HttpClient } from './http'
 import type { DocCreationResult, ClientToken, CheckStoreResult } from './types'
 export type { DocCreationResult, ClientToken, CheckStoreResult } from './types'
 export { type YSweetErrorPayload, YSweetError } from './error'
 export { encodeClientToken, decodeClientToken } from './encoding'
 
-function generateRandomString(): string {
-  return Math.random().toString(36).substring(2)
-}
 
 /** Represents an interface to a y-sweet document management endpoint. */
 export class DocumentManager {
-  /** The base URL of the remote document manager API. */
-  private baseUrl: string
+  /** Wraps a fetch request with authorization and error handling. */
+  private client: HttpClient
 
   /** A string that grants the bearer access to the document management API. */
   private token?: string
@@ -24,7 +22,7 @@ export class DocumentManager {
   constructor(connectionString: string) {
     const parsedUrl = new URL(connectionString)
 
-    let token
+    let token = null
     if (parsedUrl.username) {
       // Decode the token from the URL.
       token = decodeURIComponent(parsedUrl.username)
@@ -40,78 +38,14 @@ export class DocumentManager {
     // NB: we manually construct the string here because node's URL implementation does
     //     not handle changing the protocol of a URL well.
     //     see: https://nodejs.org/api/url.html#urlprotocol
-    const url = `${protocol}//${parsedUrl.host}${parsedUrl.pathname}${parsedUrl.search}`
+    const url = `${protocol}//${parsedUrl.host}${parsedUrl.pathname}`
+    let baseUrl = url.replace(/\/$/, '') // Remove trailing slash
 
-    this.baseUrl = url.replace(/\/$/, '')
-    this.token = token
-  }
-
-  private async doFetch(url: string, method: 'GET'): Promise<Response>
-  private async doFetch(url: string, method: 'POST', body: Record<string, any>): Promise<Response>
-
-  /** Internal helper for making an authorized fetch request to the API.  */
-  private async doFetch(
-    url: string,
-    method: 'GET' | 'POST',
-    body?: Record<string, any>,
-  ): Promise<Response> {
-    let headers: [string, string][] = []
-    if (this.token) {
-      // Tokens come base64 encoded.
-      headers.push(['Authorization', `Bearer ${this.token}`])
-    }
-
-    let bodyJson
-    if (method === 'POST') {
-      headers.push(['Content-Type', 'application/json'])
-      bodyJson = JSON.stringify(body)
-    }
-
-    let result: Response
-
-    // NOTE: In some environments (e.g. NextJS), responses are cached by default. Disabling
-    // the cache using `cache: 'no-store'` causes fetch() to error in other environments
-    // (e.g. Cloudflare Workers). To work around this, we simply add a cache-busting query
-    // param.
-    const cacheBust = generateRandomString()
-    url = `${this.baseUrl}/${url}?z=${cacheBust}`
-    try {
-      result = await fetch(url, {
-        method,
-        body: bodyJson,
-        headers,
-      })
-    } catch (error: any) {
-      if (error.cause?.code === 'ECONNREFUSED') {
-        let { address, port } = error.cause
-        throw new YSweetError({ code: 'ServerRefused', address, port, url })
-      } else {
-        throw new YSweetError({ code: 'Unknown', message: error.toString() })
-      }
-    }
-
-    if (!result.ok) {
-      if (result.status === 401) {
-        if (this.token) {
-          throw new YSweetError({ code: 'InvalidAuthProvided' })
-        } else {
-          throw new YSweetError({ code: 'NoAuthProvided' })
-        }
-      }
-
-      throw new YSweetError({
-        code: 'ServerError',
-        status: result.status,
-        message: result.statusText,
-        url,
-      })
-    }
-
-    return result
+    this.client = new HttpClient(baseUrl, token)
   }
 
   public async checkStore(): Promise<CheckStoreResult> {
-    return await (await this.doFetch('check_store', 'GET')).json()
+    return await (await this.client.request('check_store', 'GET')).json()
   }
 
   /**
@@ -123,7 +57,7 @@ export class DocumentManager {
    */
   public async createDoc(docId?: string): Promise<DocCreationResult> {
     const body = docId ? { docId } : {}
-    const result = await this.doFetch('doc/new', 'POST', body)
+    const result = await this.client.request('doc/new', 'POST', body)
     if (!result.ok) {
       throw new Error(`Failed to create doc: ${result.status} ${result.statusText}`)
     }
@@ -146,7 +80,7 @@ export class DocumentManager {
       docId = docId.docId
     }
 
-    const result = await this.doFetch(`doc/${docId}/auth`, 'POST', {})
+    const result = await this.client.request(`doc/${docId}/auth`, 'POST', {})
     if (!result.ok) {
       throw new Error(`Failed to auth doc ${docId}: ${result.status} ${result.statusText}`)
     }
@@ -186,7 +120,7 @@ export class DocumentManager {
    * @returns
    */
   public async getDocAsUpdate(docId: string): Promise<Uint8Array> {
-    const result = await this.doFetch(`doc/${docId}/as-update`, 'GET')
+    const result = await this.client.request(`doc/${docId}/as-update`, 'GET')
     if (!result.ok) {
       throw new Error(`Failed to get doc ${docId}: ${result.status} ${result.statusText}`)
     }
@@ -218,11 +152,7 @@ export class DocumentManager {
       headers.push(['Authorization', `Bearer ${this.token}`])
     }
 
-    const result = await fetch(`${this.baseUrl}/doc/${docId}/update`, {
-      method: 'POST',
-      body: update,
-      headers,
-    })
+    const result = await this.client.request(`doc/${docId}/update`, 'POST', update)
 
     if (!result.ok) {
       throw new Error(`Failed to update doc ${docId}: ${result.status} ${result.statusText}`)
