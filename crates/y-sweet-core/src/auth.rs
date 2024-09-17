@@ -323,7 +323,7 @@ impl Authenticator {
                     Err(AuthError::InvalidResource)
                 }
             }
-            _ => Err(AuthError::InvalidResource),
+            Permission::Server => Ok(()), // Server tokens can access any doc.
         }
     }
 

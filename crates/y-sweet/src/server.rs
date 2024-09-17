@@ -298,6 +298,25 @@ impl Server {
         }
     }
 
+    pub fn check_doc_auth(
+        &self,
+        header: Option<TypedHeader<headers::Authorization<headers::authorization::Bearer>>>,
+        doc_id: &str,
+    ) -> Result<(), AppError> {
+        if let Some(auth) = &self.authenticator {
+            if let Some(TypedHeader(headers::Authorization(bearer))) = header {
+                if let Ok(()) =
+                    auth.verify_doc_token(bearer.token(), doc_id, current_time_epoch_millis())
+                {
+                    return Ok(());
+                }
+            }
+            Err((StatusCode::UNAUTHORIZED, anyhow!("Unauthorized.")))?
+        } else {
+            Ok(())
+        }
+    }
+
     pub async fn redact_error_middleware(req: Request, next: Next) -> impl IntoResponse {
         let resp = next.run(req).await;
         if resp.status().is_server_error() || resp.status().is_client_error() {
@@ -316,6 +335,8 @@ impl Server {
             .route("/doc/:doc_id/auth", post(auth_doc))
             .route("/doc/:doc_id/as-update", get(get_doc_as_update))
             .route("/doc/:doc_id/update", post(update_doc))
+            .route("/d/:doc_id/as-update", get(get_doc_as_update))
+            .route("/d/:doc_id/update", post(update_doc))
             .with_state(self.clone())
     }
 
@@ -396,7 +417,7 @@ async fn get_doc_as_update(
     Path(doc_id): Path<String>,
     authorization: Option<TypedHeader<headers::Authorization<headers::authorization::Bearer>>>,
 ) -> Result<Response, AppError> {
-    server_state.check_auth(authorization)?;
+    server_state.check_doc_auth(authorization, &doc_id)?;
 
     let dwskv = server_state
         .get_or_create_doc(&doc_id)
@@ -422,7 +443,7 @@ async fn update_doc(
     authorization: Option<TypedHeader<headers::Authorization<headers::authorization::Bearer>>>,
     body: Bytes,
 ) -> Result<Response, AppError> {
-    server_state.check_auth(authorization)?;
+    server_state.check_doc_auth(authorization, &doc_id)?;
 
     let dwskv = server_state
         .get_or_create_doc(&doc_id)
