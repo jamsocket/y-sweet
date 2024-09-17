@@ -26,9 +26,9 @@ class TestYSweet(unittest.TestCase):
         doc = DocumentManager(CONNECTION_STRING)
 
         # getting a non-existent token should raise an error
-        nonexistant = f"{self.random_string}-nonexistent"
+        nonexistent = f"{self.random_string}-nonexistent"
         with self.assertRaises(YSweetError):
-            doc.get_client_token(nonexistant)
+            doc.get_client_token(nonexistent)
 
         existing = f"{self.random_string}-existing"
         doc.create_doc(existing)
