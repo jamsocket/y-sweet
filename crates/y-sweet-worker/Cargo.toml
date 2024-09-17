@@ -20,9 +20,9 @@ y-sweet-core = { path = "../y-sweet-core", default-features=false }
 wasm-bindgen = "^0.2.91"
 wasm-bindgen-futures = "^0.4.39"
 web-sys = "0.3.63"
-worker = "0.1.0"
-worker-sys = "^0.1.0"
-anyhow = "1.0.72"
+worker = "^0.4.0"
+worker-sys = "^0.4.0"
+anyhow = "1.0.89"
 futures = "0.3.28"
 thiserror = "1.0.44"
 serde = { version = "1.0.177", features = ["derive"] }
