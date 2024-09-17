@@ -64,6 +64,28 @@ class TestYSweet(unittest.TestCase):
         text2 = doc2.get("text", type=Y.Text)
         self.assertEqual(text2.to_py(), "Hello, world!")
 
+    def test_get_update_direct(self):
+        dm = DocumentManager(CONNECTION_STRING)
+        name = f"{self.random_string}-test-doc"
+        dm.create_doc(name)
+
+        # Generate an update to apply
+        doc = Y.Doc()
+        text = doc.get("text", type=Y.Text)
+        text.insert(0, "Hello, world!")
+
+        # Get the update
+        update = doc.get_update()
+
+        dm.update_doc(name, update)
+
+        # Get the update from the server
+        update = dm.get_doc_as_update(name)
+        doc2 = Y.Doc()
+        doc2.apply_update(update)
+        text2 = doc2.get("text", type=Y.Text)
+        self.assertEqual(text2.to_py(), "Hello, world!")
+
 
 if __name__ == "__main__":
     unittest.main()

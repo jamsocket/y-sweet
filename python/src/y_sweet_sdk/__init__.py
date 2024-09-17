@@ -88,15 +88,12 @@ class DocumentManager:
         return self.get_client_token(result)
 
     def get_doc_as_update(self, doc_id: str) -> bytes:
-        return self._do_request(f"doc/{doc_id}/as-update").content
+        connection = self.get_connection(doc_id)
+        return connection.get_as_update()
 
     def update_doc(self, doc_id: str, update: bytes) -> None:
-        url = f"{self.base_url}/doc/{doc_id}/update"
-        headers = {"Content-Type": "application/octet-stream"}
-        if self.token:
-            headers["Authorization"] = f"Bearer {self.token}"
-        response = requests.post(url, data=update, headers=headers)
-        response.raise_for_status()
+        connection = self.get_connection(doc_id)
+        connection.update_doc(update)
 
     def get_websocket_url(self, doc_id: str) -> str:
         self.create_doc(doc_id)
