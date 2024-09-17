@@ -144,52 +144,51 @@ describe.each(CONFIGURATIONS)(
       await connection.updateDoc(Y.encodeStateAsUpdate(doc))
     })
 
+    test('Fetch doc as update', async () => {
+      const docResult = await DOCUMENT_MANANGER.createDoc()
+      const key = await DOCUMENT_MANANGER.getClientToken(docResult)
 
-    // test('Fetch doc as update', async () => {
-    //   const docResult = await DOCUMENT_MANANGER.createDoc()
-    //   const key = await DOCUMENT_MANANGER.getClientToken(docResult)
+      const doc = new Y.Doc()
+      const provider = createYjsProvider(doc, key, {})
 
-    //   const doc = new Y.Doc()
-    //   const provider = createYjsProvider(doc, key, {})
+      let map = doc.getMap('test')
+      map.set('foo', 'bar')
+      map.set('baz', 'qux')
 
-    //   let map = doc.getMap('test')
-    //   map.set('foo', 'bar')
-    //   map.set('baz', 'qux')
+      await waitForProviderSync(provider)
 
-    //   await waitForProviderSync(provider)
+      const update = await DOCUMENT_MANANGER.getDocAsUpdate(docResult.docId)
 
-    //   const update = await DOCUMENT_MANANGER.getDocAsUpdate(docResult.docId)
+      let newDoc = new Y.Doc()
+      newDoc.transact(() => {
+        Y.applyUpdate(newDoc, update)
+      })
 
-    //   let newDoc = new Y.Doc()
-    //   newDoc.transact(() => {
-    //     Y.applyUpdate(newDoc, update)
-    //   })
+      let newMap = newDoc.getMap('test')
+      expect(newMap.get('foo')).toBe('bar')
+      expect(newMap.get('baz')).toBe('qux')
+    })
 
-    //   let newMap = newDoc.getMap('test')
-    //   expect(newMap.get('foo')).toBe('bar')
-    //   expect(newMap.get('baz')).toBe('qux')
-    // })
+    test('Update doc over HTTP POST', async () => {
+      const docResult = await DOCUMENT_MANANGER.createDoc()
 
-    // test('Update doc over HTTP POST', async () => {
-    //   const docResult = await DOCUMENT_MANANGER.createDoc()
+      const doc = new Y.Doc()
 
-    //   const doc = new Y.Doc()
+      let map = doc.getMap('abc123')
+      map.set('123', '456')
 
-    //   let map = doc.getMap('abc123')
-    //   map.set('123', '456')
+      let update = Y.encodeStateAsUpdate(doc)
 
-    //   let update = Y.encodeStateAsUpdate(doc)
+      await DOCUMENT_MANANGER.updateDoc(docResult.docId, update)
 
-    //   await DOCUMENT_MANANGER.updateDoc(docResult.docId, update)
+      const key = await DOCUMENT_MANANGER.getClientToken(docResult)
 
-    //   const key = await DOCUMENT_MANANGER.getClientToken(docResult)
+      const provider = createYjsProvider(doc, key, {})
+      await waitForProviderSync(provider)
 
-    //   const provider = createYjsProvider(doc, key, {})
-    //   await waitForProviderSync(provider)
-
-    //   let newMap = doc.getMap('abc123')
-    //   expect(newMap.get('123')).toBe('456')
-    // })
+      let newMap = doc.getMap('abc123')
+      expect(newMap.get('123')).toBe('456')
+    })
 
     test('Create a doc by specifying a name', async () => {
       const docResult = await DOCUMENT_MANANGER.createDoc('mydoc123')
