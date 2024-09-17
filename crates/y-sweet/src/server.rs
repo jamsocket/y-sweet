@@ -611,7 +611,12 @@ async fn auth_doc(
         format!("http://{host}/d/{doc_id}")
     };
 
-    Ok(Json(ClientToken { url, base_url, doc_id, token }))
+    Ok(Json(ClientToken {
+        url,
+        base_url,
+        doc_id,
+        token,
+    }))
 }
 
 #[cfg(test)]
