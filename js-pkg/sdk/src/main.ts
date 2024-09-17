@@ -5,7 +5,6 @@ export type { DocCreationResult, ClientToken, CheckStoreResult } from './types'
 export { type YSweetErrorPayload, YSweetError } from './error'
 export { encodeClientToken, decodeClientToken } from './encoding'
 
-
 /** Represents an interface to a y-sweet document management endpoint. */
 export class DocumentManager {
   /** Wraps a fetch request with authorization and error handling. */
@@ -104,20 +103,8 @@ export class DocumentManager {
   /**
    * Returns an entire document, represented as a Yjs update byte string.
    *
-   * This can be turned back into a Yjs document as follows:
-   *
-   * ```typescript
-   * import * as Y from 'yjs'
-   *
-   * let update = await manager.getDocAsUpdate(docId)
-   * let doc = new Y.Doc()
-   * doc.transact(() => {
-   *  Y.applyUpdate(doc, update)
-   * })
-   * ```
-   *
-   * @param docId
-   * @returns
+   * @param docId The ID of the document to get.
+   * @returns The document as a Yjs update byte string
    */
   public async getDocAsUpdate(docId: string): Promise<Uint8Array> {
     const result = await this.client.request(`doc/${docId}/as-update`, 'GET')
@@ -132,26 +119,10 @@ export class DocumentManager {
   /**
    * Updates a document with the given Yjs update byte string.
    *
-   * This can be generated from a Yjs document as follows:
-   *
-   * ```typescript
-   * import * as Y from 'yjs'
-   *
-   * let doc = new Y.Doc()
-   * // Modify the document...
-   * let update = Y.encodeStateAsUpdate(doc)
-   * await manager.updateDoc(docId, update)
-   * ```
-   *
-   * @param docId
-   * @param update
+   * @param docId The ID of the document to update.
+   * @param update The Yjs update byte string to apply to the document.
    */
   public async updateDoc(docId: string, update: Uint8Array): Promise<void> {
-    let headers: [string, string][] = [['Content-Type', 'application/octet-stream']]
-    if (this.token) {
-      headers.push(['Authorization', `Bearer ${this.token}`])
-    }
-
     const result = await this.client.request(`doc/${docId}/update`, 'POST', update)
 
     if (!result.ok) {
