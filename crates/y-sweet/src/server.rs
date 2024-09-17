@@ -613,7 +613,7 @@ async fn auth_doc(
 
     Ok(Json(ClientToken {
         url,
-        base_url,
+        base_url: Some(base_url),
         doc_id,
         token,
     }))

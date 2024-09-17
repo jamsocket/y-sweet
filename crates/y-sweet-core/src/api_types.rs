@@ -44,7 +44,7 @@ pub struct ClientToken {
 
     /// The base URL for document-level endpoints.
     #[serde(rename = "baseUrl")]
-    pub base_url: String,
+    pub base_url: Option<String>,
 
     /// The document ID.
     #[serde(rename = "docId")]

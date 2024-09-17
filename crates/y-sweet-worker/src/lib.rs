@@ -248,6 +248,7 @@ async fn auth_doc(
 
     Ok(ClientToken {
         url,
+        base_url: None,
         doc_id: doc_id.to_string(),
         token,
     })
