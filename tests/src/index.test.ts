@@ -105,7 +105,7 @@ describe.each(CONFIGURATIONS)(
       // When running Cloudflare's workerd locally, sometimes the call following
       // the 404 will fail with a 500.
       // Not sure why, but this is a workaround.
-      await DOCUMENT_MANANGER.createDoc().catch(() => {})
+      await DOCUMENT_MANANGER.createDoc().catch(() => { })
     })
 
     test('Connection token should have baseUrl', async () => {
@@ -133,7 +133,7 @@ describe.each(CONFIGURATIONS)(
       })
     })
 
-    test('Update doc', async () => {
+    test('Update doc and fetch as update', async () => {
       const docResult = await DOCUMENT_MANANGER.createDoc()
       const connection = await DOCUMENT_MANANGER.getDocConnection(docResult.docId)
 
@@ -142,6 +142,17 @@ describe.each(CONFIGURATIONS)(
       text.insert(0, 'Hello, world!')
 
       await connection.updateDoc(Y.encodeStateAsUpdate(doc))
+
+      const update = await connection.getAsUpdate()
+      expect(update).toBeDefined()
+
+      const newDoc = new Y.Doc()
+      newDoc.transact(() => {
+        Y.applyUpdate(newDoc, update)
+      })
+
+      const newText = newDoc.getText('test')
+      expect(newText.toString()).toBe('Hello, world!')
     })
 
     test('Fetch doc as update', async () => {
