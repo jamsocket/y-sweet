@@ -105,13 +105,8 @@ export class DocumentManager {
    * @returns The document as a Yjs update byte string
    */
   public async getDocAsUpdate(docId: string): Promise<Uint8Array> {
-    const result = await this.client.request(`doc/${docId}/as-update`, 'GET')
-    if (!result.ok) {
-      throw new Error(`Failed to get doc ${docId}: ${result.status} ${result.statusText}`)
-    }
-
-    let buffer = await result.arrayBuffer()
-    return new Uint8Array(buffer)
+    const connection = await this.getDocConnection(docId)
+    return await connection.getAsUpdate()
   }
 
   /**
@@ -121,11 +116,8 @@ export class DocumentManager {
    * @param update The Yjs update byte string to apply to the document.
    */
   public async updateDoc(docId: string, update: Uint8Array): Promise<void> {
-    const result = await this.client.request(`doc/${docId}/update`, 'POST', update)
-
-    if (!result.ok) {
-      throw new Error(`Failed to update doc ${docId}: ${result.status} ${result.statusText}`)
-    }
+    const connection = await this.getDocConnection(docId)
+    return await connection.updateDoc(update)
   }
 
   public async getDocConnection(docId: string): Promise<DocConnection> {
