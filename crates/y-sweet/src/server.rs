@@ -605,7 +605,13 @@ async fn auth_doc(
         format!("ws://{host}/doc/ws")
     };
 
-    Ok(Json(ClientToken { url, doc_id, token }))
+    let base_url = if let Some(url_prefix) = &server_state.url_prefix {
+        format!("{url_prefix}/d/{doc_id}")
+    } else {
+        format!("http://{host}/d/{doc_id}")
+    };
+
+    Ok(Json(ClientToken { url, base_url, doc_id, token }))
 }
 
 #[cfg(test)]

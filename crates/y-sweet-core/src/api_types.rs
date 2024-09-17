@@ -38,9 +38,19 @@ pub struct AuthDocRequest {
 
 #[derive(Serialize)]
 pub struct ClientToken {
+    /// The URL compatible with the y-websocket provider. The provider will append
+    /// a document ID to this string and establish a WebSocket connection.
     pub url: String,
+
+    /// The base URL for document-level endpoints.
+    #[serde(rename = "baseUrl")]
+    pub base_url: String,
+
+    /// The document ID.
     #[serde(rename = "docId")]
     pub doc_id: String,
+
+    /// An optional token that can be used to authenticate the client to the server.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub token: Option<String>,
 }

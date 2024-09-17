@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeAll, afterAll } from 'vitest'
-import { DocumentManager } from '@y-sweet/sdk'
+import { ClientToken, DocumentManager } from '@y-sweet/sdk'
 import { createYjsProvider as createYjsProvider_, YSweetProviderParams } from '@y-sweet/react'
 import { WebSocket } from 'ws'
 import * as Y from 'yjs'
@@ -13,7 +13,7 @@ import { waitForProviderSync } from './util'
  */
 function createYjsProvider(
   doc: Y.Doc,
-  clientToken: { url: string; docId: string; token?: string },
+  clientToken: ClientToken,
   extraOptions: YSweetProviderParams,
 ) {
   extraOptions = {
@@ -106,6 +106,12 @@ describe.each(CONFIGURATIONS)(
       // the 404 will fail with a 500.
       // Not sure why, but this is a workaround.
       await DOCUMENT_MANANGER.createDoc().catch(() => {})
+    })
+
+    test('Connection token should have baseUrl', async () => {
+      let token = await DOCUMENT_MANANGER.getOrCreateDocAndToken('foobar')
+
+      expect(token.baseUrl).toBeDefined()
     })
 
     test('Create and connect to doc', async () => {
