@@ -133,6 +133,28 @@ describe.each(CONFIGURATIONS)(
       })
     })
 
+    test('Update doc and fetch as update', async () => {
+      const docResult = await DOCUMENT_MANANGER.createDoc()
+      const connection = await DOCUMENT_MANANGER.getDocConnection(docResult.docId)
+
+      const doc = new Y.Doc()
+      const text = doc.getText('test')
+      text.insert(0, 'Hello, world!')
+
+      await connection.updateDoc(Y.encodeStateAsUpdate(doc))
+
+      const update = await connection.getAsUpdate()
+      expect(update).toBeDefined()
+
+      const newDoc = new Y.Doc()
+      newDoc.transact(() => {
+        Y.applyUpdate(newDoc, update)
+      })
+
+      const newText = newDoc.getText('test')
+      expect(newText.toString()).toBe('Hello, world!')
+    })
+
     test('Fetch doc as update', async () => {
       const docResult = await DOCUMENT_MANANGER.createDoc()
       const key = await DOCUMENT_MANANGER.getClientToken(docResult)
