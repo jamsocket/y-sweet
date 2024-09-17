@@ -20,7 +20,11 @@ dependencies = ["requests~=2.32.2"]
 Homepage = "https://github.com/jamsocket/y-sweet"
 
 [project.optional-dependencies]
-test = ["pytest"]
+dev = [
+    "pytest~=8.3.3",
+    "ruff~=0.6.5",
+    "pycrdt~=0.9.11",
+]
 
 [tool.setuptools]
 package-dir = { "" = "src" }

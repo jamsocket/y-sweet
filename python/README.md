@@ -41,7 +41,7 @@ in conjunction with `y_sweet_sdk` to access the actual Y.Doc data.
 For development installation with test dependencies:
 
 ```bash
-pip install -e ".[test]"
+pip install -e ".[dev]"
 ```
 
 ## Tests
@@ -57,3 +57,7 @@ Then run the tests:
 ```bash
 pytest
 ```
+
+## Development
+
+Run `ruff format` to format before committing changes.
