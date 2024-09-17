@@ -1,11 +1,13 @@
 import { HttpClient } from './http'
 import { ClientToken } from './types'
 
-export class YSweetConnection {
+export class DocConnection {
   private client: HttpClient
+  private docId: string
 
   constructor(clientToken: ClientToken) {
-    this.client = new HttpClient(clientToken.url, clientToken.token ?? null)
+    this.client = new HttpClient(clientToken.baseUrl, clientToken.token ?? null)
+    this.docId = clientToken.docId
   }
 
   /**
@@ -23,13 +25,12 @@ export class YSweetConnection {
    * })
    * ```
    *
-   * @param docId
    * @returns
    */
-  public async getDocAsUpdate(docId: string): Promise<Uint8Array> {
-    const result = await this.client.request(`doc/${docId}/as-update`, 'GET')
+  public async getAsUpdate(): Promise<Uint8Array> {
+    const result = await this.client.request(`as-update`, 'GET')
     if (!result.ok) {
-      throw new Error(`Failed to get doc ${docId}: ${result.status} ${result.statusText}`)
+      throw new Error(`Failed to get doc ${this.docId}: ${result.status} ${result.statusText}`)
     }
 
     let buffer = await result.arrayBuffer()
@@ -50,14 +51,13 @@ export class YSweetConnection {
    * await manager.updateDoc(docId, update)
    * ```
    *
-   * @param docId
    * @param update
    */
-  public async updateDoc(docId: string, update: Uint8Array): Promise<void> {
-    const result = await this.client.request(`doc/${docId}/update`, 'POST', update)
+  public async updateDoc(update: Uint8Array): Promise<void> {
+    const result = await this.client.request(`update`, 'POST', update)
 
     if (!result.ok) {
-      throw new Error(`Failed to update doc ${docId}: ${result.status} ${result.statusText}`)
+      throw new Error(`Failed to update doc ${this.docId}: ${result.status} ${result.statusText}`)
     }
   }
 }

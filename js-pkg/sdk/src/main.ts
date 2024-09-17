@@ -1,4 +1,4 @@
-import { YSweetConnection } from './connection'
+import { DocConnection } from './connection'
 import { YSweetError } from './error'
 import { HttpClient } from './http'
 import type { DocCreationResult, ClientToken, CheckStoreResult } from './types'
@@ -10,9 +10,6 @@ export { encodeClientToken, decodeClientToken } from './encoding'
 export class DocumentManager {
   /** Wraps a fetch request with authorization and error handling. */
   private client: HttpClient
-
-  /** A string that grants the bearer access to the document management API. */
-  private token?: string
 
   /**
    * Create a new {@link DocumentManager}.
@@ -131,9 +128,9 @@ export class DocumentManager {
     }
   }
 
-  public async getConnection(docId: string): Promise<YSweetConnection> {
+  public async getDocConnection(docId: string): Promise<DocConnection> {
     const clientToken = await this.getClientToken(docId)
-    return new YSweetConnection(clientToken)
+    return new DocConnection(clientToken)
   }
 }
 
