@@ -1,3 +1,4 @@
+import { YSweetConnection } from './connection'
 import { YSweetError } from './error'
 import { HttpClient } from './http'
 import type { DocCreationResult, ClientToken, CheckStoreResult } from './types'
@@ -128,6 +129,11 @@ export class DocumentManager {
     if (!result.ok) {
       throw new Error(`Failed to update doc ${docId}: ${result.status} ${result.statusText}`)
     }
+  }
+
+  public async getConnection(docId: string): Promise<YSweetConnection> {
+    const clientToken = await this.getClientToken(docId)
+    return new YSweetConnection(clientToken)
   }
 }
 
