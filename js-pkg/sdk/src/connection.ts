@@ -6,7 +6,9 @@ export class DocConnection {
   private docId: string
 
   constructor(clientToken: ClientToken) {
-    this.client = new HttpClient(clientToken.baseUrl, clientToken.token ?? null)
+    // Strip trailing slash from baseUrl
+    let baseUrl = clientToken.baseUrl.replace(/\/$/, '')
+    this.client = new HttpClient(baseUrl, clientToken.token ?? null)
     this.docId = clientToken.docId
   }
 
