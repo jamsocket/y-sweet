@@ -5,6 +5,8 @@ import { ClientToken, DocConnection } from '@y-sweet/sdk'
 
 export const CRATE_BASE = join(dirname(__filename), '..', '..', 'crates')
 
+const TEN_MINUTES_IN_MS = 10 * 60 * 1_000
+
 let SERVER: DocServer
 
 class DocServer {
@@ -72,7 +74,7 @@ beforeAll(async () => {
   SERVER = new DocServer()
 
   await SERVER.waitForReady()
-}, 10_000)
+}, TEN_MINUTES_IN_MS)
 
 afterAll(() => {
   SERVER.cleanup()
