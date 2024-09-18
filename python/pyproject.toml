@@ -14,7 +14,10 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-dependencies = ["requests~=2.32.2"]
+dependencies = [
+    "requests~=2.32.2",
+    "pycrdt~=0.9.11",
+]
 
 [project.urls]
 Homepage = "https://github.com/jamsocket/y-sweet"
@@ -23,7 +26,6 @@ Homepage = "https://github.com/jamsocket/y-sweet"
 dev = [
     "pytest~=8.3.3",
     "ruff~=0.6.5",
-    "pycrdt~=0.9.11",
 ]
 
 [tool.setuptools]
