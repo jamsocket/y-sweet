@@ -9,7 +9,7 @@ import pycrdt
 
 class UpdateContext:
     """
-    Context manager for retreiving a Yjs document from a connection, applying updates
+    Context manager for retrieving a Yjs document from a connection, applying updates
     to it, and then sending the updates to the server.
 
     Usage:
