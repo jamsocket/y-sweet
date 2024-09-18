@@ -18,3 +18,4 @@ var/
 *.egg
 .pytest_cache/
 .venv/
+.ruff_cache/
