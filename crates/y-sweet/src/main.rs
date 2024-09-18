@@ -179,6 +179,7 @@ async fn main() -> Result<()> {
                 auth,
                 url_prefix.clone(),
                 token.clone(),
+                true,
             )
             .await?;
 
@@ -262,6 +263,7 @@ async fn main() -> Result<()> {
                 None, // No authenticator
                 None, // No URL prefix
                 cancellation_token.clone(),
+                false,
             )
             .await?;
 

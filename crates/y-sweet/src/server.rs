@@ -77,6 +77,9 @@ pub struct Server {
     authenticator: Option<Authenticator>,
     url_prefix: Option<Url>,
     cancellation_token: CancellationToken,
+    /// Whether to garbage collect docs that are no longer in use.
+    /// Disabled for single-doc mode, since we only have one doc.
+    doc_gc: bool,
 }
 
 impl Server {
@@ -86,6 +89,7 @@ impl Server {
         authenticator: Option<Authenticator>,
         url_prefix: Option<Url>,
         cancellation_token: CancellationToken,
+        doc_gc: bool,
     ) -> Result<Self> {
         Ok(Self {
             docs: Arc::new(DashMap::new()),
@@ -95,6 +99,7 @@ impl Server {
             authenticator,
             url_prefix,
             cancellation_token,
+            doc_gc,
         })
     }
 
@@ -151,16 +156,18 @@ impl Server {
                 .instrument(span!(Level::INFO, "save_loop", doc_id=?doc_id)),
             );
 
-            self.doc_worker_tracker.spawn(
-                Self::doc_gc_worker(
-                    self.docs.clone(),
-                    doc_id.clone(),
-                    checkpoint_freq,
-                    persistence_cancellation_token,
-                    self.cancellation_token.clone(),
-                )
-                .instrument(span!(Level::INFO, "gc_loop", doc_id=?doc_id)),
-            );
+            if self.doc_gc {
+                self.doc_worker_tracker.spawn(
+                    Self::doc_gc_worker(
+                        self.docs.clone(),
+                        doc_id.clone(),
+                        checkpoint_freq,
+                        persistence_cancellation_token,
+                        self.cancellation_token.clone(),
+                    )
+                    .instrument(span!(Level::INFO, "gc_loop", doc_id=?doc_id)),
+                );
+            }
         }
 
         self.docs.insert(doc_id.to_string(), dwskv);
@@ -654,6 +661,7 @@ mod test {
             None,
             None,
             CancellationToken::new(),
+            true,
         )
         .await
         .unwrap();
@@ -690,6 +698,7 @@ mod test {
             None,
             Some(prefix),
             CancellationToken::new(),
+            true,
         )
         .await
         .unwrap();
