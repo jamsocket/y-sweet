@@ -1,10 +1,12 @@
 import requests
 from typing import Dict, Optional
 
+from .update import UpdateContext
+
 
 class DocConnection:
     def __init__(self, client_token: Dict[str, str]):
-        self.base_url = client_token["baseUrl"]
+        self.base_url = client_token["baseUrl"].rstrip("/")
         self.token = client_token.get("token")
         self.doc_id = client_token["docId"]
         self.headers = {"Authorization": f"Bearer {self.token}"} if self.token else {}
@@ -35,3 +37,6 @@ class DocConnection:
             update (bytes): The Yjs update as bytes.
         """
         self._do_request("update", method="POST", data=update)
+
+    def for_update(self) -> UpdateContext:
+        return UpdateContext(self)
