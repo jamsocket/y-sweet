@@ -3,7 +3,7 @@ import { ChildProcess, spawn } from 'child_process'
 import { dirname, join } from 'path'
 import { ClientToken, DocConnection } from '@y-sweet/sdk'
 
-export const CRATE_BASE = join(dirname(__filename), '..', '..', 'crates')
+const CRATE_BASE = join(dirname(__filename), '..', '..', 'crates')
 
 const TEN_MINUTES_IN_MS = 10 * 60 * 1_000
 
