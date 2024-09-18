@@ -37,7 +37,7 @@ enum ServSubcommand {
         #[clap(env = "Y_SWEET_STORE")]
         store: Option<String>,
 
-        #[clap(long, default_value = "8080", env = "Y_SWEET_PORT")]
+        #[clap(long, default_value = "8080", env = "PORT")]
         port: u16,
         #[clap(long, env = "Y_SWEET_HOST")]
         host: Option<IpAddr>,
@@ -73,7 +73,7 @@ enum ServSubcommand {
     Version,
 
     ServeDoc {
-        #[clap(long, default_value = "8080", env = "Y_SWEET_PORT")]
+        #[clap(long, default_value = "8080", env = "PORT")]
         port: u16,
 
         #[clap(long, env = "Y_SWEET_HOST")]
