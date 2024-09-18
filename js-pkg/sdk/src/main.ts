@@ -1,5 +1,5 @@
 import { DocConnection } from './connection'
-import { YSweetError } from './error'
+export { DocConnection } from './connection'
 import { HttpClient } from './http'
 import type { DocCreationResult, ClientToken, CheckStoreResult } from './types'
 export type { DocCreationResult, ClientToken, CheckStoreResult } from './types'

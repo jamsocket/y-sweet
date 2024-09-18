@@ -1,6 +1,5 @@
 import { ChildProcess, execSync, spawn } from 'child_process'
 import { rmSync, mkdirSync } from 'fs'
-import { tmpdir } from 'os'
 import { dirname, join } from 'path'
 
 export type ServerType = 'native' | 'worker'
