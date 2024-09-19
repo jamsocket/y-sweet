@@ -1,24 +1,24 @@
 {
-    "name": "y-sweet",
-    "bin": {
-        "y-sweet": "./src/run.js"
-    },
-    "scripts": {
-        "postinstall": "node src/install.js",
-        "format": "prettier --write \"**/*.{ts,tsx,js,jsx}\""
-    },
-    "version": "0.2.2",
-    "description": "npm wrapper for y-sweet server",
-    "homepage": "https://github.com/drifting-in-space/y-sweet",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/drifting-in-space/y-sweet.git"
-    },
-    "license": "MIT",
-    "devDependencies": {
-        "prettier": "^3.0.0"
-    },
-    "bugs": {
-        "url": "https://github.com/drifting-in-space/y-sweet/issues"
-    }
+  "name": "y-sweet",
+  "bin": {
+    "y-sweet": "./src/run.js"
+  },
+  "scripts": {
+    "postinstall": "node src/install.js",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx}\""
+  },
+  "version": "0.3.0",
+  "description": "npm wrapper for y-sweet server",
+  "homepage": "https://github.com/drifting-in-space/y-sweet",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/drifting-in-space/y-sweet.git"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "prettier": "^3.0.0"
+  },
+  "bugs": {
+    "url": "https://github.com/drifting-in-space/y-sweet/issues"
+  }
 }
