@@ -1,0 +1,12 @@
+[package]
+name = "releaser"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.89"
+reqwest = { version = "0.12.7", features = ["blocking", "json"] }
+semver = { version = "1.0.23", features = ["serde"] }
+serde = { version = "1.0.210", features = ["derive"] }
+serde_json = "1.0.128"
+toml = "0.8.19"
