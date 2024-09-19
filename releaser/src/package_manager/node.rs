@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 use semver::Version;
 use serde::Deserialize;
 use serde_json::{Map, Value};
-use std::{fs, path::Path};
+use std::{fs, path::Path, process::Command};
 
 pub struct NodePackageManager;
 
@@ -79,6 +79,18 @@ impl PackageManager for NodePackageManager {
         }
 
         Ok(updated)
+    }
+
+    fn update_lockfile(&self, path: &Path) -> Result<()> {
+        let working_dir = path.parent().unwrap();
+        let status = Command::new("npm")
+            .arg("install")
+            .current_dir(working_dir)
+            .status()?;
+        if !status.success() {
+            return Err(anyhow::anyhow!("Failed to update lockfile"));
+        }
+        Ok(())
     }
 }
 

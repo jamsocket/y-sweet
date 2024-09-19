@@ -59,6 +59,11 @@ impl PackageManager for PythonPackageManager {
 
         Ok(false)
     }
+
+    fn update_lockfile(&self, path: &Path) -> Result<()> {
+        // no lockfile for python?
+        Ok(())
+    }
 }
 
 #[derive(Debug, Deserialize)]

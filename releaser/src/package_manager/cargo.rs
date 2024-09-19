@@ -3,7 +3,7 @@ use crate::package_manager::get_client;
 use anyhow::{Context, Result};
 use semver::Version;
 use serde::Deserialize;
-use std::{fs, path::Path};
+use std::{fs, path::Path, process::Command};
 use toml_edit::{value, DocumentMut, Table};
 
 pub struct CargoPackageManager;
@@ -77,6 +77,19 @@ impl PackageManager for CargoPackageManager {
         }
 
         Ok(updated)
+    }
+
+    fn update_lockfile(&self, path: &Path) -> Result<()> {
+        // run cargo check to update the lockfile
+        let working_dir = path.parent().unwrap();
+        let status = Command::new("cargo")
+            .arg("check")
+            .current_dir(&working_dir)
+            .status()?;
+        if !status.success() {
+            return Err(anyhow::anyhow!("Failed to update lockfile"));
+        }
+        Ok(())
     }
 }
 
