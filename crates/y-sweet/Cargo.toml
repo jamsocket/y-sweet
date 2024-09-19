@@ -1,6 +1,6 @@
 [package]
 name = "y-sweet"
-version = "0.2.2"
+version = "0.3.0"
 edition = "2021"
 description = "A standalone Yjs CRDT server with built-in persistence and auth."
 license = "MIT"
@@ -27,7 +27,7 @@ tokio-util = { version = "0.7.11", features = ["rt"] }
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter", "fmt"] }
 url = "2.4.0"
-y-sweet-core = { version="0.2.0", path = "../y-sweet-core", features=["sync"] }
+y-sweet-core = { version= "0.3.0", path = "../y-sweet-core", features=["sync"] }
 yrs = { version = "0.19.1" }
 yrs-kvstore = "0.3.0"
 

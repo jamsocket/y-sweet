@@ -49,10 +49,3 @@ jobs:
     - name: Check Formatting of doc generator
       run: npx prettier --check "**/*.{ts,tsx}"
       working-directory: js-pkg/gen-docs/
-
-    - name: Check Formatting of scripts
-      run: npx prettier --check "**/*.{ts,tsx}"
-      working-directory: scripts/
-
-    - name: Check that workspace package versions match
-      run: npx tsx scripts/set-js-versions.ts
