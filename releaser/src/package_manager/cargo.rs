@@ -4,6 +4,7 @@ use anyhow::{Context, Result};
 use semver::Version;
 use serde::Deserialize;
 use std::{fs, path::Path};
+use toml_edit::{value, Document, DocumentMut};
 
 pub struct CargoPackageManager;
 
@@ -40,6 +41,15 @@ impl PackageManager for CargoPackageManager {
         let cargo_toml: CargoToml = toml::from_str(&cargo_toml)?;
         let version = Version::parse(&cargo_toml.package.version)?;
         Ok(version)
+    }
+
+    fn set_repo_version(&self, path: &Path, version: &Version) -> Result<()> {
+        // use toml_edit to set the version
+        let cargo_toml = fs::read_to_string(path.join("Cargo.toml"))?;
+        let mut doc = cargo_toml.parse::<DocumentMut>()?;
+        doc["package"]["version"] = value(version.to_string());
+        fs::write(path.join("Cargo.toml"), doc.to_string())?;
+        Ok(())
     }
 }
 

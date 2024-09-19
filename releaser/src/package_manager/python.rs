@@ -37,6 +37,10 @@ impl PackageManager for PythonPackageManager {
         let version = Version::parse(&pyproject_toml.project.version)?;
         Ok(version)
     }
+
+    fn set_repo_version(&self, path: &Path, version: &Version) -> Result<()> {
+        panic!();
+    }
 }
 
 #[derive(Debug, Deserialize)]

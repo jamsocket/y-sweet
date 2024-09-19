@@ -39,6 +39,10 @@ impl PackageManager for NodePackageManager {
         let version = Version::parse(&package_json.version)?;
         Ok(version)
     }
+
+    fn set_repo_version(&self, path: &Path, version: &Version) -> Result<()> {
+        panic!();
+    }
 }
 
 #[derive(Debug, Deserialize)]

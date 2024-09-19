@@ -7,7 +7,7 @@ pub fn wrapped_select<T: Clone>(items: Vec<(T, String)>) -> T {
         .items(
             &items
                 .iter()
-                .map(|(item, name)| name.to_string())
+                .map(|(_, name)| name.to_string())
                 .collect::<Vec<String>>(),
         )
         .interact()

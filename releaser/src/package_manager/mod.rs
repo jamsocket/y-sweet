@@ -12,6 +12,8 @@ trait PackageManager {
     fn get_public_version(&self, package: &str) -> Result<Version>;
 
     fn get_repo_version(&self, path: &Path) -> Result<Version>;
+
+    fn set_repo_version(&self, path: &Path, version: &Version) -> Result<()>;
 }
 
 pub enum PackageType {
@@ -47,6 +49,12 @@ impl Package {
         self.package_type
             .get_package_manager()
             .get_repo_version(&self.path)
+    }
+
+    pub fn set_repo_version(&self, version: &Version) -> Result<()> {
+        self.package_type
+            .get_package_manager()
+            .set_repo_version(&self.path, version)
     }
 }
 
