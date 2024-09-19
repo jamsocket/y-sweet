@@ -8,7 +8,7 @@ pub mod cargo;
 pub mod node;
 pub mod python;
 
-trait PackageManager {
+pub trait PackageManager {
     fn get_public_version(&self, package: &str) -> Result<Version>;
 
     fn get_repo_version(&self, path: &Path) -> Result<Version>;
