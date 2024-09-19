@@ -3,6 +3,7 @@ use crate::package_manager::get_client;
 use anyhow::{Context, Result};
 use semver::Version;
 use serde::Deserialize;
+use serde_json::{Map, Value};
 use std::{fs, path::Path};
 
 pub struct NodePackageManager;
@@ -41,7 +42,24 @@ impl PackageManager for NodePackageManager {
     }
 
     fn set_repo_version(&self, path: &Path, version: &Version) -> Result<()> {
-        panic!();
+        let package_json = fs::read_to_string(path.join("package.json"))?;
+        let mut doc: Map<String, Value> = serde_json::from_str(&package_json)?;
+        match doc.get_mut("package") {
+            Some(Value::Object(package_map)) => {
+                package_map.insert("version".to_string(), Value::String(version.to_string()));
+            }
+            None => {
+                return Err(anyhow::anyhow!("package.json is missing the package key"));
+            }
+            _ => {
+                return Err(anyhow::anyhow!("package.json is not a valid JSON object"));
+            }
+        }
+        fs::write(
+            path.join("package.json"),
+            serde_json::to_string_pretty(&doc)?,
+        )?;
+        Ok(())
     }
 }
 
