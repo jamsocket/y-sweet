@@ -51,6 +51,29 @@ impl PackageManager for NodePackageManager {
         fs::write(path.join("package.json"), &pretty_json)?;
         Ok(())
     }
+
+    fn update_dependencies(&self, _deps: &[String], _version: &Version) -> Result<bool> {
+        let package_json = fs::read_to_string("package.json")?;
+        let mut updated: bool = false;
+
+        let mut doc: Map<String, Value> = serde_json::from_str(&package_json)?;
+        if let Some(deps) = doc.get_mut("dependencies") {
+            for dep in _deps {
+                if let Some(dep_version) = deps.get_mut(dep) {
+                    *dep_version = Value::String(_version.to_string());
+                    updated = true;
+                }
+            }
+        }
+
+        if updated {
+            let mut pretty_json = serde_json::to_string_pretty(&doc)?;
+            pretty_json.push('\n');
+            fs::write("package.json", &pretty_json)?;
+        }
+
+        Ok(updated)
+    }
 }
 
 #[derive(Debug, Deserialize)]

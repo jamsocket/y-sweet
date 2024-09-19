@@ -1,4 +1,5 @@
 use crate::{
+    package_manager::PackageType,
     packages::PackageList,
     util::{wrapped_select, BumpType},
 };
@@ -18,11 +19,15 @@ impl Releaser {
 
     pub fn bump(&self, version: Option<Version>) -> Result<()> {
         let mut versions: HashMap<String, Version> = HashMap::new();
+        let mut deps: HashMap<PackageType, Vec<String>> = HashMap::new();
 
         for package in self.packages.iter() {
             let repo_version = package.get_repo_version().unwrap();
 
             versions.insert(package.name.clone(), repo_version);
+            deps.entry(package.package_type.clone())
+                .or_insert_with(Vec::new)
+                .push(package.name.clone());
         }
 
         let bump_version = if let Some(version) = version {
@@ -49,6 +54,25 @@ impl Releaser {
                     style(&package.package_type).bold().red(),
                     style(&package.name).bold().cyan(),
                     style(&bump_version).bold().yellow()
+                );
+            }
+        }
+
+        // Bump dependencies
+        for package in self.packages.iter() {
+            let package_type = package.package_type;
+            let Some(deps) = deps.get(&package_type) else {
+                continue;
+            };
+            let result = package
+                .package_type
+                .get_package_manager()
+                .update_dependencies(deps, &bump_version)?;
+            if result {
+                println!(
+                    "Updated dependencies for {} package {}",
+                    style(&package.package_type).bold().red(),
+                    style(&package.name).bold().cyan()
                 );
             }
         }

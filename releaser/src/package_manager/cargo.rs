@@ -50,6 +50,38 @@ impl PackageManager for CargoPackageManager {
         fs::write(path.join("Cargo.toml"), doc.to_string())?;
         Ok(())
     }
+
+    fn update_dependencies(&self, deps: &[String], version: &Version) -> Result<bool> {
+        // update the dependencies in Cargo.toml to the specified version
+        // only update dependencies that the package actually has
+        // use toml_edit to update the dependencies
+        let mut updated = false;
+
+        let cargo_toml = fs::read_to_string("Cargo.toml")?;
+        let mut doc = cargo_toml.parse::<DocumentMut>()?;
+        if let Some(dep_table) = doc["dependencies"].as_table_mut() {
+            for dep in deps {
+                if let Some(dep_version) = dep_table.get_mut(dep) {
+                    *dep_version = value(version.to_string());
+                    updated = true;
+                }
+            }
+        }
+        if let Some(dep_table) = doc["dev-dependencies"].as_table_mut() {
+            for dep in deps {
+                if let Some(dep_version) = dep_table.get_mut(dep) {
+                    *dep_version = value(version.to_string());
+                    updated = true;
+                }
+            }
+        }
+
+        if updated {
+            fs::write("Cargo.toml", doc.to_string())?;
+        }
+
+        Ok(updated)
+    }
 }
 
 #[derive(Debug, Deserialize)]
