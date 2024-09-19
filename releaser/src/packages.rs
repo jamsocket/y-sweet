@@ -1,5 +1,5 @@
-use std::path::PathBuf;
 use crate::package_manager::{Package, PackageType};
+use std::path::PathBuf;
 
 pub struct PackageList {
     base_dir: PathBuf,

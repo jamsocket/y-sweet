@@ -12,10 +12,7 @@ impl PackageManager for PythonPackageManager {
         let client = get_client();
 
         let url = format!("https://pypi.org/pypi/{}/json", package);
-        let response = client
-            .get(url)
-            .send()
-            .context("Making request to PyPI")?;
+        let response = client.get(url).send().context("Making request to PyPI")?;
 
         if !response.status().is_success() {
             return Err(anyhow::anyhow!(

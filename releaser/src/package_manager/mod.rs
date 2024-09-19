@@ -53,6 +53,7 @@ impl Package {
 pub fn get_client() -> reqwest::blocking::Client {
     let client = reqwest::blocking::Client::builder()
         .user_agent(APP_USER_AGENT)
-        .build().unwrap();
+        .build()
+        .unwrap();
     client
 }
