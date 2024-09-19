@@ -16,7 +16,7 @@ jobs:
     runs-on: macos-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v4
 
     - name: Install latest rust toolchain
       uses: actions-rs/toolchain@v1
@@ -45,7 +45,7 @@ jobs:
     runs-on: macos-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v4
 
     - name: Install latest rust toolchain
       uses: actions-rs/toolchain@v1
@@ -165,7 +165,7 @@ jobs:
     if: github.event_name != 'pull_request'
     steps:
     - name: Download artifacts
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v4
     - name: Compress binary
       run: >
         gzip -9 --keep --force 
