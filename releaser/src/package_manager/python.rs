@@ -9,7 +9,7 @@ use toml_edit::{value, DocumentMut};
 pub struct PythonPackageManager;
 
 impl PackageManager for PythonPackageManager {
-    fn get_public_version(&self, package: &str) -> Result<Version> {
+    fn get_published_version(&self, package: &str) -> Result<Version> {
         let client = get_client();
 
         let url = format!("https://pypi.org/pypi/{}/json", package);

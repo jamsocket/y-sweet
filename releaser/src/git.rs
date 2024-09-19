@@ -1,6 +1,6 @@
-use std::path::Path;
 use anyhow::Result;
 use git2::Repository;
+use std::path::Path;
 
 struct Git {
     repo: Repository,
@@ -15,7 +15,9 @@ impl Git {
     pub fn ensure_clean(&self) -> Result<()> {
         let head = self.repo.head()?;
         let head_commit = self.repo.find_commit(head.target().unwrap())?;
-        let diff = self.repo.diff_tree_to_workdir_with_index(Some(&head_commit.tree()?), None)?;
+        let diff = self
+            .repo
+            .diff_tree_to_workdir_with_index(Some(&head_commit.tree()?), None)?;
         if diff.deltas().len() > 0 {
             anyhow::bail!("Repository is not clean");
         }

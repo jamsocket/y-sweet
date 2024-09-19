@@ -1,6 +1,9 @@
 use anyhow::Result;
 use semver::Version;
-use std::{fmt::Display, path::{Path, PathBuf}};
+use std::{
+    fmt::Display,
+    path::{Path, PathBuf},
+};
 
 const APP_USER_AGENT: &str = "YSweet releaser";
 
@@ -9,7 +12,8 @@ pub mod node;
 pub mod python;
 
 pub trait PackageManager {
-    fn get_public_version(&self, package: &str) -> Result<Version>;
+    /// Get the latest published version of a package from the registry.
+    fn get_published_version(&self, package: &str) -> Result<Version>;
 
     fn get_repo_version(&self, path: &Path) -> Result<Version>;
 
@@ -49,10 +53,10 @@ pub struct Package {
 }
 
 impl Package {
-    pub fn get_public_version(&self) -> Result<Version> {
+    pub fn get_published_version(&self) -> Result<Version> {
         self.package_type
             .get_package_manager()
-            .get_public_version(&self.name)
+            .get_published_version(&self.name)
     }
 
     pub fn get_repo_version(&self) -> Result<Version> {

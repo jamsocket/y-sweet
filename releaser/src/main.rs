@@ -3,11 +3,11 @@ use packages::PackageList;
 use releaser::Releaser;
 use semver::Version;
 
+mod git;
 mod package_manager;
 mod packages;
 mod releaser;
 mod util;
-mod git;
 
 #[derive(Parser)]
 #[clap(version = "0.1.0", author = "Y-sweet")]
@@ -28,6 +28,7 @@ enum Command {
 fn main() {
     let mut packages = PackageList::new();
     packages.register_cargo_package("y-sweet", "crates/y-sweet");
+    packages.register_cargo_package("y-sweet-core", "crates/y-sweet-core");
     packages.register_node_package("y-sweet", "js-pkg/server");
     packages.register_node_package("@y-sweet/sdk", "js-pkg/sdk");
     packages.register_node_package("@y-sweet/client", "js-pkg/client");
