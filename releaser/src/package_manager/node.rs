@@ -44,21 +44,11 @@ impl PackageManager for NodePackageManager {
     fn set_repo_version(&self, path: &Path, version: &Version) -> Result<()> {
         let package_json = fs::read_to_string(path.join("package.json"))?;
         let mut doc: Map<String, Value> = serde_json::from_str(&package_json)?;
-        match doc.get_mut("package") {
-            Some(Value::Object(package_map)) => {
-                package_map.insert("version".to_string(), Value::String(version.to_string()));
-            }
-            None => {
-                return Err(anyhow::anyhow!("package.json is missing the package key"));
-            }
-            _ => {
-                return Err(anyhow::anyhow!("package.json is not a valid JSON object"));
-            }
-        }
-        fs::write(
-            path.join("package.json"),
-            serde_json::to_string_pretty(&doc)?,
-        )?;
+        doc["version"] = Value::String(version.to_string());
+        let mut pretty_json = serde_json::to_string_pretty(&doc)?;
+        pretty_json.push('\n');
+
+        fs::write(path.join("package.json"), &pretty_json)?;
         Ok(())
     }
 }
