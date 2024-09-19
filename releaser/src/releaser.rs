@@ -1,23 +1,43 @@
 use crate::{
+    git::Git,
     package_manager::PackageType,
     packages::PackageList,
-    util::{wrapped_select, BumpType},
+    util::{get_root_dir, wrapped_select, BumpType},
 };
 use anyhow::{Context, Result};
 use console::style;
+use dialoguer::Confirm;
 use semver::Version;
 use std::collections::HashMap;
 
 pub struct Releaser {
     packages: PackageList,
+    git: Git,
+}
+
+pub fn ensure_repo_ready(git: &Git) -> Result<()> {
+    if !git.clean()? {
+        anyhow::bail!("Repository is not clean");
+    }
+
+    let branch = git.get_branch()?;
+    if branch != "main" {
+        anyhow::bail!("Git branch is not main");
+    }
+
+    Ok(())
 }
 
 impl Releaser {
     pub fn new(packages: PackageList) -> Self {
-        Releaser { packages }
+        let root_dir = get_root_dir();
+        let git = Git::new(&root_dir).unwrap();
+        Releaser { packages, git }
     }
 
     pub fn bump(&self, version: Option<Version>) -> Result<()> {
+        ensure_repo_ready(&self.git)?;
+
         let mut versions: HashMap<String, Version> = HashMap::new();
         let mut deps: HashMap<PackageType, Vec<String>> = HashMap::new();
 
@@ -98,6 +118,26 @@ impl Releaser {
                 .get_package_manager()
                 .update_lockfile(&package.path)?;
         }
+
+        // Prompt to confirm commit to git.
+        let confirm = Confirm::new()
+            .with_prompt("Commit changes to git?")
+            .default(false)
+            .interact()?;
+        if !confirm {
+            return Ok(());
+        }
+
+        // Check out a branch
+        let branch_name = format!("release/{}", bump_version);
+        self.git.checkout_new_branch(&branch_name)?;
+
+        // Commit changes
+        self.git
+            .commit_all(&format!("Bump version to {}", bump_version))?;
+
+        // Push changes
+        self.git.push()?;
 
         Ok(())
     }

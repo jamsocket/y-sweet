@@ -1,4 +1,7 @@
-use crate::package_manager::{Package, PackageType};
+use crate::{
+    package_manager::{Package, PackageType},
+    util::get_root_dir,
+};
 use std::path::PathBuf;
 
 pub struct PackageList {
@@ -45,18 +48,5 @@ impl PackageList {
 
     pub fn iter(&self) -> impl Iterator<Item = &Package> {
         self.packages.iter()
-    }
-}
-
-fn get_root_dir() -> PathBuf {
-    // crawl up the directory tree until we find a .git directory
-    let mut path = PathBuf::from(".").canonicalize().unwrap();
-    loop {
-        if path.join(".git").exists() {
-            return path;
-        }
-        if !path.pop() {
-            panic!("Could not find root directory");
-        }
     }
 }

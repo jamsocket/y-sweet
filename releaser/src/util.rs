@@ -1,6 +1,6 @@
 use dialoguer::{self, Select};
 use semver::Version;
-use std::fmt::Display;
+use std::{fmt::Display, path::PathBuf};
 
 pub fn wrapped_select<T: Clone>(items: Vec<(T, String)>) -> T {
     let selection = Select::new()
@@ -50,5 +50,18 @@ impl BumpType {
         }
 
         version
+    }
+}
+
+pub fn get_root_dir() -> PathBuf {
+    // crawl up the directory tree until we find a .git directory
+    let mut path = PathBuf::from(".").canonicalize().unwrap();
+    loop {
+        if path.join(".git").exists() {
+            return path;
+        }
+        if !path.pop() {
+            panic!("Could not find root directory");
+        }
     }
 }

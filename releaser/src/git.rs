@@ -1,8 +1,8 @@
 use anyhow::Result;
 use git2::Repository;
-use std::path::Path;
+use std::{path::Path, process::Command};
 
-struct Git {
+pub struct Git {
     repo: Repository,
 }
 
@@ -12,16 +12,17 @@ impl Git {
         Ok(Self { repo })
     }
 
-    pub fn ensure_clean(&self) -> Result<()> {
+    pub fn clean(&self) -> Result<bool> {
         let head = self.repo.head()?;
         let head_commit = self.repo.find_commit(head.target().unwrap())?;
         let diff = self
             .repo
             .diff_tree_to_workdir_with_index(Some(&head_commit.tree()?), None)?;
         if diff.deltas().len() > 0 {
-            anyhow::bail!("Repository is not clean");
+            Ok(false)
+        } else {
+            Ok(true)
         }
-        Ok(())
     }
 
     pub fn get_branch(&self) -> Result<String> {
@@ -32,6 +33,16 @@ impl Git {
         } else {
             anyhow::bail!("Git HEAD is not pointing to a branch")
         }
+    }
+
+    pub fn commit_all(&self, message: &str) -> Result<()> {
+        // This uses the running user's git config, so it's easier to do it with
+        // the CLI than libgit2.
+        Command::new("git").args(&["add", "."]).status()?;
+        Command::new("git")
+            .args(&["commit", "-m", message])
+            .status()?;
+        Ok(())
     }
 
     pub fn checkout_new_branch(&self, branch: &str) -> Result<()> {
