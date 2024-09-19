@@ -3,7 +3,7 @@ use crate::{
     packages::PackageList,
     util::{wrapped_select, BumpType},
 };
-use anyhow::Result;
+use anyhow::{Context, Result};
 use console::style;
 use semver::Version;
 use std::collections::HashMap;
@@ -64,10 +64,16 @@ impl Releaser {
             let Some(deps) = deps.get(&package_type) else {
                 continue;
             };
+            println!(
+                "Updating dependencies for {} package {}",
+                style(&package.package_type).bold().red(),
+                style(&package.name).bold().cyan()
+            );
             let result = package
                 .package_type
                 .get_package_manager()
-                .update_dependencies(deps, &bump_version)?;
+                .update_dependencies(&package.path, deps, &bump_version)
+                .context("Updating dependencies")?;
             if result {
                 println!(
                     "Updated dependencies for {} package {}",

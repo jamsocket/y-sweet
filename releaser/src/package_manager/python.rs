@@ -47,7 +47,12 @@ impl PackageManager for PythonPackageManager {
         Ok(())
     }
 
-    fn update_dependencies(&self, _deps: &[String], _version: &Version) -> Result<bool> {
+    fn update_dependencies(
+        &self,
+        _path: &Path,
+        _deps: &[String],
+        _version: &Version,
+    ) -> Result<bool> {
         if _deps.len() > 1 {
             return Err(anyhow::anyhow!("Python dependencies not supported"));
         }

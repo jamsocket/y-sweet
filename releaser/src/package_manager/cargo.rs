@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 use semver::Version;
 use serde::Deserialize;
 use std::{fs, path::Path};
-use toml_edit::{value, DocumentMut};
+use toml_edit::{value, DocumentMut, Table};
 
 pub struct CargoPackageManager;
 
@@ -51,37 +51,54 @@ impl PackageManager for CargoPackageManager {
         Ok(())
     }
 
-    fn update_dependencies(&self, deps: &[String], version: &Version) -> Result<bool> {
+    fn update_dependencies(&self, path: &Path, deps: &[String], version: &Version) -> Result<bool> {
         // update the dependencies in Cargo.toml to the specified version
         // only update dependencies that the package actually has
         // use toml_edit to update the dependencies
         let mut updated = false;
 
-        let cargo_toml = fs::read_to_string("Cargo.toml")?;
+        let cargo_file = path.join("Cargo.toml");
+        let cargo_toml = fs::read_to_string(&cargo_file)?;
         let mut doc = cargo_toml.parse::<DocumentMut>()?;
-        if let Some(dep_table) = doc["dependencies"].as_table_mut() {
-            for dep in deps {
-                if let Some(dep_version) = dep_table.get_mut(dep) {
-                    *dep_version = value(version.to_string());
-                    updated = true;
-                }
-            }
-        }
-        if let Some(dep_table) = doc["dev-dependencies"].as_table_mut() {
-            for dep in deps {
-                if let Some(dep_version) = dep_table.get_mut(dep) {
-                    *dep_version = value(version.to_string());
-                    updated = true;
-                }
-            }
-        }
+
+        updated |= update_dep_table(
+            &mut doc["dependencies"].as_table_mut().unwrap(),
+            deps,
+            version,
+        );
+        updated |= update_dep_table(
+            &mut doc["dev-dependencies"].as_table_mut().unwrap(),
+            deps,
+            version,
+        );
 
         if updated {
-            fs::write("Cargo.toml", doc.to_string())?;
+            fs::write(&cargo_file, doc.to_string())?;
         }
 
         Ok(updated)
     }
+}
+
+fn update_dep_table(table: &mut Table, deps: &[String], version: &Version) -> bool {
+    let mut updated = false;
+    for dep in deps {
+        if let Some(dep_version) = table.get_mut(dep) {
+            // if the dep_version is an object, we want to edit the version field of it
+            // otherwise, we want to replace the value with a string
+
+            if let Some(version) = dep_version.as_str() {
+                *dep_version = value(version.to_string());
+            } else if let Some(table) = dep_version.as_table_like_mut() {
+                table.insert("version", value(version.to_string()));
+            } else {
+                continue;
+            };
+
+            updated = true;
+        }
+    }
+    updated
 }
 
 #[derive(Debug, Deserialize)]

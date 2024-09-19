@@ -52,8 +52,14 @@ impl PackageManager for NodePackageManager {
         Ok(())
     }
 
-    fn update_dependencies(&self, _deps: &[String], _version: &Version) -> Result<bool> {
-        let package_json = fs::read_to_string("package.json")?;
+    fn update_dependencies(
+        &self,
+        path: &Path,
+        _deps: &[String],
+        _version: &Version,
+    ) -> Result<bool> {
+        let package_file = path.join("package.json");
+        let package_json = fs::read_to_string(&package_file)?;
         let mut updated: bool = false;
 
         let mut doc: Map<String, Value> = serde_json::from_str(&package_json)?;
@@ -69,7 +75,7 @@ impl PackageManager for NodePackageManager {
         if updated {
             let mut pretty_json = serde_json::to_string_pretty(&doc)?;
             pretty_json.push('\n');
-            fs::write("package.json", &pretty_json)?;
+            fs::write(&package_file, &pretty_json)?;
         }
 
         Ok(updated)

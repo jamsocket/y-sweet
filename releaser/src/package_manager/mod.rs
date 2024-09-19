@@ -22,7 +22,7 @@ pub trait PackageManager {
     /// Update the dependencies of a package to the specified version.
     /// Only updates dependencies that the package actually has.
     /// Returns Ok(true) if any dependencies were updated.
-    fn update_dependencies(&self, deps: &[String], version: &Version) -> Result<bool>;
+    fn update_dependencies(&self, path: &Path, deps: &[String], version: &Version) -> Result<bool>;
 }
 
 #[derive(Hash, PartialEq, Eq, Clone, Copy)]
