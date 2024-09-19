@@ -4,6 +4,7 @@ use anyhow::{Context, Result};
 use semver::Version;
 use serde::Deserialize;
 use std::{fs, path::Path};
+use toml_edit::{value, DocumentMut};
 
 pub struct PythonPackageManager;
 
@@ -39,7 +40,11 @@ impl PackageManager for PythonPackageManager {
     }
 
     fn set_repo_version(&self, path: &Path, version: &Version) -> Result<()> {
-        panic!();
+        let cargo_toml = fs::read_to_string(path.join("pyproject.toml"))?;
+        let mut doc = cargo_toml.parse::<DocumentMut>()?;
+        doc["project"]["version"] = value(version.to_string());
+        fs::write(path.join("pyproject.toml"), doc.to_string())?;
+        Ok(())
     }
 }
 

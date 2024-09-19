@@ -44,7 +44,6 @@ impl PackageManager for CargoPackageManager {
     }
 
     fn set_repo_version(&self, path: &Path, version: &Version) -> Result<()> {
-        // use toml_edit to set the version
         let cargo_toml = fs::read_to_string(path.join("Cargo.toml"))?;
         let mut doc = cargo_toml.parse::<DocumentMut>()?;
         doc["package"]["version"] = value(version.to_string());
