@@ -33,10 +33,25 @@ impl Releaser {
         };
 
         for package in self.packages.iter() {
-            package.set_repo_version(&bump_version)?;
+            let old_version = &versions[&package.name];
+            if old_version < &bump_version {
+                println!(
+                    "Bumping {} package {} from {} to {}",
+                    style(&package.package_type).bold().red(),
+                    style(&package.name).bold().cyan(),
+                    style(&old_version).bold().magenta(),
+                    style(&bump_version).bold().green()
+                );
+                package.set_repo_version(&bump_version)?;
+            } else {
+                println!(
+                    "{} package {} is already at {}",
+                    style(&package.package_type).bold().red(),
+                    style(&package.name).bold().cyan(),
+                    style(&bump_version).bold().yellow()
+                );
+            }
         }
-
-        println!("bump version: {}", bump_version);
 
         Ok(())
     }
@@ -45,7 +60,7 @@ impl Releaser {
 fn prompt_bump_version(max_version: Version) -> Version {
     println!(
         "Select a version to bump to. The current version is {}",
-        style(&max_version).bold().cyan()
+        style(&max_version).bold().magenta()
     );
 
     let mut candidate_versions = Vec::new();

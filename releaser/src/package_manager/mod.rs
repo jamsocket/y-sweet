@@ -1,6 +1,6 @@
 use anyhow::Result;
 use semver::Version;
-use std::path::{Path, PathBuf};
+use std::{fmt::Display, path::{Path, PathBuf}};
 
 const APP_USER_AGENT: &str = "YSweet releaser";
 
@@ -20,6 +20,16 @@ pub enum PackageType {
     Cargo,
     Node,
     Python,
+}
+
+impl Display for PackageType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PackageType::Cargo => write!(f, "Cargo"),
+            PackageType::Node => write!(f, "Node"),
+            PackageType::Python => write!(f, "Python"),
+        }
+    }
 }
 
 impl PackageType {
