@@ -83,6 +83,22 @@ impl Releaser {
             }
         }
 
+        // Update lockfiles
+        for package in self.packages.iter() {
+            if package.package_type == PackageType::Python {
+                continue;
+            }
+            println!(
+                "Updating lockfile for {} package {}",
+                style(&package.package_type).bold().red(),
+                style(&package.name).bold().cyan()
+            );
+            package
+                .package_type
+                .get_package_manager()
+                .update_lockfile(&package.path)?;
+        }
+
         Ok(())
     }
 }
