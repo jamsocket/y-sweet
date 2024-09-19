@@ -139,6 +139,11 @@ impl Releaser {
         // Push changes
         self.git.push()?;
 
+        println!(
+            "Pushed to Git. To create a PR, visit https://github.com/jamsocket/y-sweet/pull/new/{}",
+            branch_name
+        );
+
         Ok(())
     }
 }

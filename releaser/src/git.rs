@@ -56,8 +56,9 @@ impl Git {
     }
 
     pub fn push(&self) -> Result<()> {
-        let mut remote = self.repo.find_remote("origin")?;
-        remote.push::<&str>(&[], None)?;
+        Command::new("git")
+            .args(&["push", "--set-upstream", "origin", "main"])
+            .status()?;
         Ok(())
     }
 }
