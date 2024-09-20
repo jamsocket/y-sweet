@@ -86,6 +86,21 @@ class TestYSweet(unittest.TestCase):
         text2 = doc2.get("text", type=Y.Text)
         self.assertEqual(text2.to_py(), "Hello, world!")
 
+    def test_update_context(self):
+        dm = DocumentManager(CONNECTION_STRING)
+        name = f"{self.random_string}-test-doc"
+        dm.create_doc(name)
+        conn = dm.get_connection(name)
+
+        with conn.for_update() as doc:
+            text = doc.get("text", type=Y.Text)
+            text.insert(0, "Hello, world!")
+
+        update = dm.get_doc_as_update(name)
+        doc2 = Y.Doc()
+        doc2.apply_update(update)
+        text2 = doc2.get("text", type=Y.Text)
+        self.assertEqual(text2.to_py(), "Hello, world!")
 
 if __name__ == "__main__":
     unittest.main()
