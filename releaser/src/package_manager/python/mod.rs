@@ -74,7 +74,7 @@ impl PackageManager for PythonPackageManager {
         Ok(false)
     }
 
-    fn update_lockfile(&self, path: &Path) -> Result<()> {
+    fn update_lockfile(&self, _path: &Path) -> Result<()> {
         // no lockfile for python?
         Ok(())
     }
@@ -88,7 +88,7 @@ impl PackageManager for PythonPackageManager {
         Command::new(python)
             .arg("-m")
             .arg("build")
-            .current_dir(&path)
+            .current_dir(path)
             .output()?;
 
         // Upload the package
@@ -97,7 +97,7 @@ impl PackageManager for PythonPackageManager {
             .arg("twine")
             .arg("upload")
             .arg("dist/*")
-            .current_dir(&path)
+            .current_dir(path)
             .output()?;
 
         Ok(())

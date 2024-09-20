@@ -38,6 +38,7 @@ pub trait PackageManager {
 
 #[derive(Debug, Clone)]
 pub struct PackageInfo {
+    #[allow(unused)]
     pub name: String,
     pub version: Version,
     pub private: bool,
@@ -102,9 +103,8 @@ impl Package {
 }
 
 pub fn get_client() -> reqwest::blocking::Client {
-    let client = reqwest::blocking::Client::builder()
+    reqwest::blocking::Client::builder()
         .user_agent(APP_USER_AGENT)
         .build()
-        .unwrap();
-    client
+        .unwrap()
 }

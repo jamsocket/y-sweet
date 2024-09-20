@@ -41,9 +41,9 @@ impl Git {
     pub fn commit_all(&self, message: &str) -> Result<()> {
         // This uses the running user's git config, so it's easier to do it with
         // the CLI than libgit2.
-        Command::new("git").args(&["add", "."]).status()?;
+        Command::new("git").args(["add", "."]).status()?;
         Command::new("git")
-            .args(&["commit", "-m", message])
+            .args(["commit", "-m", message])
             .status()?;
         Ok(())
     }
@@ -55,14 +55,14 @@ impl Git {
         let commit = self.repo.find_commit(oid)?;
         let branch_ref = self.repo.branch(branch, &commit, false)?;
         self.repo.set_head(branch_ref.get().name().unwrap())?;
-        self.repo.checkout_tree(&commit.as_object(), None)?;
+        self.repo.checkout_tree(commit.as_object(), None)?;
         Ok(())
     }
 
     /// Push the current branch to the remote repository.
     pub fn push(&self) -> Result<()> {
         Command::new("git")
-            .args(&["push", "--set-upstream", "origin", "main"])
+            .args(["push", "--set-upstream", "origin", "main"])
             .status()?;
         Ok(())
     }

@@ -67,13 +67,9 @@ impl PackageManager for CargoPackageManager {
         let cargo_toml = fs::read_to_string(&cargo_file)?;
         let mut doc = cargo_toml.parse::<DocumentMut>()?;
 
+        updated |= update_dep_table(doc["dependencies"].as_table_mut().unwrap(), deps, version);
         updated |= update_dep_table(
-            &mut doc["dependencies"].as_table_mut().unwrap(),
-            deps,
-            version,
-        );
-        updated |= update_dep_table(
-            &mut doc["dev-dependencies"].as_table_mut().unwrap(),
+            doc["dev-dependencies"].as_table_mut().unwrap(),
             deps,
             version,
         );
@@ -90,7 +86,7 @@ impl PackageManager for CargoPackageManager {
         let working_dir = path.parent().unwrap();
         let status = Command::new("cargo")
             .arg("check")
-            .current_dir(&working_dir)
+            .current_dir(working_dir)
             .status()?;
         if !status.success() {
             return Err(anyhow::anyhow!("Failed to update lockfile"));
@@ -101,7 +97,7 @@ impl PackageManager for CargoPackageManager {
     fn publish(&self, path: &Path) -> Result<()> {
         let status = Command::new("cargo")
             .arg("publish")
-            .current_dir(&path)
+            .current_dir(path)
             .status()?;
         if !status.success() {
             return Err(anyhow::anyhow!("Failed to publish package"));
@@ -156,7 +152,9 @@ struct CratesResponse {
 
 #[derive(Debug, Deserialize)]
 struct CratesCrate {
+    #[allow(unused)]
     newest_version: Version,
     max_version: Version,
+    #[allow(unused)]
     max_stable_version: Version,
 }

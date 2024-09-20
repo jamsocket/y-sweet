@@ -46,8 +46,8 @@ impl Releaser {
             let repo_version = package_info.version;
 
             versions.insert(package.name.clone(), repo_version);
-            deps.entry(package.package_type.clone())
-                .or_insert_with(Vec::new)
+            deps.entry(package.package_type)
+                .or_default()
                 .push(package.name.clone());
         }
 

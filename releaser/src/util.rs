@@ -36,14 +36,14 @@ impl BumpType {
     pub fn bump(&self, mut version: Version) -> Version {
         match self {
             BumpType::Patch => {
-                version.patch = version.patch + 1;
+                version.patch += 1;
             }
             BumpType::Minor => {
-                version.minor = version.minor + 1;
+                version.minor += 1;
                 version.patch = 0;
             }
             BumpType::Major => {
-                version.major = version.major + 1;
+                version.major += 1;
                 version.minor = 0;
                 version.patch = 0;
             }
