@@ -80,7 +80,6 @@ impl PackageManager for PythonPackageManager {
     }
 
     fn publish(&self, path: &Path) -> Result<()> {
-        let working_dir = path.parent().unwrap();
         let env = VirtualEnv::new(&["build", "twine"])?;
 
         let python = env.python();
@@ -89,19 +88,19 @@ impl PackageManager for PythonPackageManager {
         Command::new(python)
             .arg("-m")
             .arg("build")
-            .current_dir(&working_dir)
+            .current_dir(&path)
             .output()?;
 
         // Upload the package
-        // Command::new(python)
-        //     .arg("-m")
-        //     .arg("twine")
-        //     .arg("upload")
-        //     .arg("dist/*")
-        //     .current_dir(working_dir)
-        //     .output()?;
+        Command::new(python)
+            .arg("-m")
+            .arg("twine")
+            .arg("upload")
+            .arg("dist/*")
+            .current_dir(&path)
+            .output()?;
 
-        todo!()
+        Ok(())
     }
 }
 

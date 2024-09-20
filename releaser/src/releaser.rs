@@ -41,7 +41,7 @@ impl Releaser {
         let mut packages_to_publish: Vec<(Package, Version, Version)> = Vec::new();
 
         for package in self.packages.iter() {
-            let package_info = package.get_package_info().unwrap();
+            let package_info = package.get_package_info().context("Getting package info")?;
             if package_info.private {
                 println!(
                     "Skipping private package {}",
@@ -51,7 +51,9 @@ impl Releaser {
             }
             let repo_version = package_info.version;
 
-            let published_version = package.get_published_version().unwrap();
+            let published_version = package
+                .get_published_version()
+                .context("Getting published version")?;
             if repo_version > published_version {
                 packages_to_publish.push((package.clone(), published_version, repo_version));
             } else {
@@ -83,7 +85,9 @@ impl Releaser {
         }
 
         for (package, _, _) in packages_to_publish.iter() {
-            package.publish()?;
+            package
+                .publish()
+                .with_context(|| format!("Publishing package {}", package.name))?;
         }
 
         Ok(())

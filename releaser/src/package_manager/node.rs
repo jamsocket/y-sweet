@@ -100,10 +100,9 @@ impl PackageManager for NodePackageManager {
     }
 
     fn publish(&self, path: &Path) -> Result<()> {
-        let working_dir = path.parent().unwrap();
         let status = Command::new("npm")
             .arg("publish")
-            .current_dir(working_dir)
+            .current_dir(&path)
             .status()?;
         if !status.success() {
             return Err(anyhow::anyhow!("Failed to publish package"));

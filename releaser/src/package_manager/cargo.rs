@@ -99,11 +99,9 @@ impl PackageManager for CargoPackageManager {
     }
 
     fn publish(&self, path: &Path) -> Result<()> {
-        // run cargo publish
-        let working_dir = path.parent().unwrap();
         let status = Command::new("cargo")
             .arg("publish")
-            .current_dir(&working_dir)
+            .current_dir(&path)
             .status()?;
         if !status.success() {
             return Err(anyhow::anyhow!("Failed to publish package"));
