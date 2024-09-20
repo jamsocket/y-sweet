@@ -12,9 +12,11 @@ fn random_dir() -> PathBuf {
     base.join(random_string)
 }
 
+/// A virtual environment created from a static set of dependencies.
+/// This is used to create a temporary build environment for Python packages.
+/// When the VirtualEnv is dropped, the environment is destroyed.
 pub struct VirtualEnv {
     path: PathBuf,
-    pip: PathBuf,
     python: PathBuf,
 }
 
@@ -45,13 +47,10 @@ impl VirtualEnv {
 
         println!("Virtual environment created at: {}", path.display());
 
-        Ok(Self { path, pip, python })
+        Ok(Self { path, python })
     }
 
-    pub fn pip(&self) -> &Path {
-        &self.pip
-    }
-
+    /// Get the path to the Python executable for this virtual environment.
     pub fn python(&self) -> &Path {
         &self.python
     }
@@ -71,7 +70,6 @@ mod tests {
     #[test]
     fn test_virtualenv() {
         let virtualenv = VirtualEnv::new(&["requests"]).unwrap();
-        assert!(virtualenv.pip().exists());
         assert!(virtualenv.python().exists());
     }
 }
