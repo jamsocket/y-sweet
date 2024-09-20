@@ -1,4 +1,4 @@
-use super::PackageManager;
+use super::{PackageInfo, PackageManager};
 use crate::package_manager::get_client;
 use anyhow::{Context, Result};
 use semver::Version;
@@ -34,11 +34,17 @@ impl PackageManager for NodePackageManager {
         Ok(Version::parse(&version)?)
     }
 
-    fn get_repo_version(&self, path: &Path) -> Result<Version> {
+    fn get_package_info(&self, path: &Path) -> Result<PackageInfo> {
         let package_json = fs::read_to_string(path.join("package.json"))?;
         let package_json: PackageJson = serde_json::from_str(&package_json)?;
         let version = Version::parse(&package_json.version)?;
-        Ok(version)
+        let name = package_json.name;
+        let private = package_json.private;
+        Ok(PackageInfo {
+            version,
+            private,
+            name,
+        })
     }
 
     fn set_repo_version(&self, path: &Path, version: &Version) -> Result<()> {
@@ -108,4 +114,7 @@ struct DistTags {
 #[derive(Debug, Deserialize)]
 struct PackageJson {
     version: String,
+    name: String,
+    #[serde(default)]
+    private: bool,
 }

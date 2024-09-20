@@ -1,4 +1,4 @@
-use super::PackageManager;
+use super::{PackageInfo, PackageManager};
 use crate::package_manager::get_client;
 use anyhow::{Context, Result};
 use semver::Version;
@@ -36,11 +36,17 @@ impl PackageManager for CargoPackageManager {
         Ok(version)
     }
 
-    fn get_repo_version(&self, path: &Path) -> Result<Version> {
+    fn get_package_info(&self, path: &Path) -> Result<PackageInfo> {
         let cargo_toml = fs::read_to_string(path.join("Cargo.toml"))?;
         let cargo_toml: CargoToml = toml::from_str(&cargo_toml)?;
         let version = Version::parse(&cargo_toml.package.version)?;
-        Ok(version)
+        let private = !cargo_toml.package.publish;
+        let name = cargo_toml.package.name;
+        Ok(PackageInfo {
+            version,
+            private,
+            name,
+        })
     }
 
     fn set_repo_version(&self, path: &Path, version: &Version) -> Result<()> {
@@ -122,6 +128,13 @@ struct CargoToml {
 #[derive(Debug, Deserialize)]
 struct CargoPackage {
     version: String,
+    name: String,
+    #[serde(default = "default_publish")]
+    publish: bool,
+}
+
+fn default_publish() -> bool {
+    true
 }
 
 #[derive(Debug, Deserialize)]

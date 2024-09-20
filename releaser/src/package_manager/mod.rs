@@ -15,7 +15,7 @@ pub trait PackageManager {
     /// Get the latest published version of a package from the registry.
     fn get_published_version(&self, package: &str) -> Result<Version>;
 
-    fn get_repo_version(&self, path: &Path) -> Result<Version>;
+    fn get_package_info(&self, path: &Path) -> Result<PackageInfo>;
 
     fn set_repo_version(&self, path: &Path, version: &Version) -> Result<()>;
 
@@ -25,6 +25,13 @@ pub trait PackageManager {
     fn update_dependencies(&self, path: &Path, deps: &[String], version: &Version) -> Result<bool>;
 
     fn update_lockfile(&self, path: &Path) -> Result<()>;
+}
+
+#[derive(Debug, Clone)]
+pub struct PackageInfo {
+    pub name: String,
+    pub version: Version,
+    pub private: bool,
 }
 
 #[derive(Hash, PartialEq, Eq, Clone, Copy, Debug)]
@@ -68,10 +75,10 @@ impl Package {
             .get_published_version(&self.name)
     }
 
-    pub fn get_repo_version(&self) -> Result<Version> {
+    pub fn get_package_info(&self) -> Result<PackageInfo> {
         self.package_type
             .get_package_manager()
-            .get_repo_version(&self.path)
+            .get_package_info(&self.path)
     }
 
     pub fn set_repo_version(&self, version: &Version) -> Result<()> {

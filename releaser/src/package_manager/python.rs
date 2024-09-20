@@ -1,4 +1,4 @@
-use super::PackageManager;
+use super::{PackageInfo, PackageManager};
 use crate::package_manager::get_client;
 use anyhow::{Context, Result};
 use semver::Version;
@@ -31,12 +31,23 @@ impl PackageManager for PythonPackageManager {
         Ok(Version::parse(&version)?)
     }
 
-    fn get_repo_version(&self, path: &Path) -> Result<Version> {
+    fn get_package_info(&self, path: &Path) -> Result<super::PackageInfo> {
         // use pyproject.toml to get the version
         let pyproject_toml = fs::read_to_string(path.join("pyproject.toml"))?;
         let pyproject_toml: PyProjectToml = toml::from_str(&pyproject_toml)?;
         let version = Version::parse(&pyproject_toml.project.version)?;
-        Ok(version)
+        let name = pyproject_toml.project.name;
+        // Ref: https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#classifiers
+        let private = pyproject_toml
+            .project
+            .classifiers
+            .iter()
+            .any(|c| c.starts_with("Private ::"));
+        Ok(PackageInfo {
+            version,
+            private,
+            name,
+        })
     }
 
     fn set_repo_version(&self, path: &Path, version: &Version) -> Result<()> {
@@ -74,6 +85,8 @@ struct PyProjectToml {
 #[derive(Debug, Deserialize)]
 struct Project {
     version: String,
+    name: String,
+    classifiers: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]

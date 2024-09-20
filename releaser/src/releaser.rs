@@ -1,6 +1,6 @@
 use crate::{
     git::Git,
-    package_manager::PackageType,
+    package_manager::{Package, PackageType},
     packages::PackageList,
     util::{get_root_dir, wrapped_select, BumpType},
 };
@@ -35,6 +35,56 @@ impl Releaser {
         Releaser { packages, git }
     }
 
+    pub fn publish(&self) -> Result<()> {
+        // ensure_repo_ready(&self.git)?;
+
+        let mut packages_to_publish: Vec<(Package, Version, Version)> = Vec::new();
+
+        for package in self.packages.iter() {
+            let package_info = package.get_package_info().unwrap();
+            if package_info.private {
+                println!(
+                    "Skipping private package {}",
+                    style(&package.name).bold().cyan()
+                );
+                continue;
+            }
+            let repo_version = package_info.version;
+
+            let published_version = package.get_published_version().unwrap();
+            if repo_version > published_version {
+                packages_to_publish.push((package.clone(), published_version, repo_version));
+            } else {
+                println!(
+                    "Package {} is already published at {}",
+                    style(&package.name).bold().cyan(),
+                    style(&published_version).bold().magenta()
+                );
+            }
+        }
+
+        println!("Packages to publish:");
+        for (package, published_version, repo_version) in packages_to_publish.iter() {
+            println!(
+                "  {} package {} is currently {} and will be bumped to {}",
+                style(&package.package_type).bold().red(),
+                style(&package.name).bold().cyan(),
+                style(&published_version).bold().magenta(),
+                style(&repo_version).bold().green()
+            );
+        }
+
+        let confirm = Confirm::new()
+            .with_prompt("Publish packages?")
+            .default(false)
+            .interact()?;
+        if !confirm {
+            return Ok(());
+        }
+
+        Ok(())
+    }
+
     pub fn bump(&self, version: Option<Version>) -> Result<()> {
         ensure_repo_ready(&self.git)?;
 
@@ -42,7 +92,8 @@ impl Releaser {
         let mut deps: HashMap<PackageType, Vec<String>> = HashMap::new();
 
         for package in self.packages.iter() {
-            let repo_version = package.get_repo_version().unwrap();
+            let package_info = package.get_package_info().unwrap();
+            let repo_version = package_info.version;
 
             versions.insert(package.name.clone(), repo_version);
             deps.entry(package.package_type.clone())

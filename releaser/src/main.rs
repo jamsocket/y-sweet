@@ -48,9 +48,21 @@ fn main() {
             releaser.bump(version).unwrap();
         }
         Command::Publish => {
-            let server_pkg_version = server_pkg.get_published_version().unwrap();
-            println!("Server package version: {}", server_pkg_version);
-            check_binaries(&server_pkg_version).unwrap();
+            let server_pkg_version = server_pkg.get_package_info().unwrap().version;
+            println!(
+                "Server package version: {}. Checking that binaries have been released..",
+                server_pkg_version
+            );
+            if !check_binaries(&server_pkg_version).unwrap() {
+                println!("Binaries have not been released.");
+                println!("To release the binaries:");
+                println!("1. Run the release workflow on GitHub Actions (https://github.com/jamsocket/y-sweet/actions/workflows/release.yml)");
+                println!("2. Go to https://github.com/jamsocket/y-sweet/releases and complete the draft release.");
+                println!("Then, re-run this command.");
+                return;
+            }
+
+            releaser.publish().unwrap();
         }
     }
 }

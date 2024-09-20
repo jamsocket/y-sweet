@@ -23,8 +23,7 @@ pub fn check_binaries(version: &Version) -> Result<bool> {
     let version_str = version.to_string();
 
     for binary in BINARIES_TO_CHECK {
-        let url = format!("{BINARY_URL_PREFIX}{version_str}/{binary}");
-        println!("Checking {}", url);
+        let url = format!("{BINARY_URL_PREFIX}v{version_str}/{binary}");
         if !is_url_ok(&url)? {
             println!("Binary {} is not found", binary);
             return Ok(false);
