@@ -82,6 +82,10 @@ impl Releaser {
             return Ok(());
         }
 
+        for (package, _, _) in packages_to_publish.iter() {
+            package.publish()?;
+        }
+
         Ok(())
     }
 

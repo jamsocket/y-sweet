@@ -97,6 +97,19 @@ impl PackageManager for CargoPackageManager {
         }
         Ok(())
     }
+
+    fn publish(&self, path: &Path) -> Result<()> {
+        // run cargo publish
+        let working_dir = path.parent().unwrap();
+        let status = Command::new("cargo")
+            .arg("publish")
+            .current_dir(&working_dir)
+            .status()?;
+        if !status.success() {
+            return Err(anyhow::anyhow!("Failed to publish package"));
+        }
+        Ok(())
+    }
 }
 
 fn update_dep_table(table: &mut Table, deps: &[String], version: &Version) -> bool {

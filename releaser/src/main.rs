@@ -30,14 +30,23 @@ enum Command {
 }
 
 fn main() {
+    // Note: these packages must be in a publishable order, i.e. dependencies must be published before dependents.
     let mut packages = PackageList::new();
-    packages.register_cargo_package("y-sweet", "crates/y-sweet");
+
+    // Cargo server packages
     packages.register_cargo_package("y-sweet-core", "crates/y-sweet-core");
+    packages.register_cargo_package("y-sweet", "crates/y-sweet");
+
+    // Node server package
     let server_pkg = packages.register_node_package("y-sweet", "js-pkg/server");
+
+    // Node client/sdk packages
     packages.register_node_package("@y-sweet/sdk", "js-pkg/sdk");
     packages.register_node_package("@y-sweet/client", "js-pkg/client");
     packages.register_node_package("@y-sweet/react", "js-pkg/react");
     packages.register_node_package("y-sweet-tests", "tests");
+
+    // Python package
     packages.register_python_package("y_sweet_sdk", "python");
 
     let releaser = Releaser::new(packages);

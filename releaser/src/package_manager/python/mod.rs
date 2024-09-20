@@ -3,10 +3,13 @@ use crate::package_manager::get_client;
 use anyhow::{Context, Result};
 use semver::Version;
 use serde::Deserialize;
-use std::{fs, path::Path};
+use std::{fs, path::Path, process::Command};
 use toml_edit::{value, DocumentMut};
+use virtualenv::VirtualEnv;
 
 pub struct PythonPackageManager;
+
+mod virtualenv;
 
 impl PackageManager for PythonPackageManager {
     fn get_published_version(&self, package: &str) -> Result<Version> {
@@ -74,6 +77,31 @@ impl PackageManager for PythonPackageManager {
     fn update_lockfile(&self, path: &Path) -> Result<()> {
         // no lockfile for python?
         Ok(())
+    }
+
+    fn publish(&self, path: &Path) -> Result<()> {
+        let working_dir = path.parent().unwrap();
+        let env = VirtualEnv::new(&["build", "twine"])?;
+
+        let python = env.python();
+
+        // Build the package
+        Command::new(python)
+            .arg("-m")
+            .arg("build")
+            .current_dir(&working_dir)
+            .output()?;
+
+        // Upload the package
+        // Command::new(python)
+        //     .arg("-m")
+        //     .arg("twine")
+        //     .arg("upload")
+        //     .arg("dist/*")
+        //     .current_dir(working_dir)
+        //     .output()?;
+
+        todo!()
     }
 }
 

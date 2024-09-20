@@ -25,6 +25,8 @@ pub trait PackageManager {
     fn update_dependencies(&self, path: &Path, deps: &[String], version: &Version) -> Result<bool>;
 
     fn update_lockfile(&self, path: &Path) -> Result<()>;
+
+    fn publish(&self, path: &Path) -> Result<()>;
 }
 
 #[derive(Debug, Clone)]
@@ -85,6 +87,10 @@ impl Package {
         self.package_type
             .get_package_manager()
             .set_repo_version(&self.path, version)
+    }
+
+    pub fn publish(&self) -> Result<()> {
+        self.package_type.get_package_manager().publish(&self.path)
     }
 }
 

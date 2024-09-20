@@ -98,6 +98,18 @@ impl PackageManager for NodePackageManager {
         }
         Ok(())
     }
+
+    fn publish(&self, path: &Path) -> Result<()> {
+        let working_dir = path.parent().unwrap();
+        let status = Command::new("npm")
+            .arg("publish")
+            .current_dir(working_dir)
+            .status()?;
+        if !status.success() {
+            return Err(anyhow::anyhow!("Failed to publish package"));
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug, Deserialize)]
