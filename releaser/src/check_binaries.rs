@@ -3,6 +3,8 @@ use semver::Version;
 
 const BINARY_URL_PREFIX: &str = "https://github.com/jamsocket/y-sweet/releases/download/";
 
+/// The list of binaries to check for a given version.
+/// This should match the artifacts produced by .github/workflows/release.yml
 const BINARIES_TO_CHECK: &[&str] = &[
     "y-sweet-linux-x64.gz",
     "y-sweet-linux-arm64.gz",

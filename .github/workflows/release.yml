@@ -1,5 +1,7 @@
 name: Build Rust binary and create release
 
+# Note: If you add or remove binaries, you should also update the list in releaser/src/check_binaries.rs
+
 on:
   workflow_dispatch:
     inputs:

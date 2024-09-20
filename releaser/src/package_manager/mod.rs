@@ -11,21 +11,28 @@ pub mod cargo;
 pub mod node;
 pub mod python;
 
+/// This trait captures the common functionality across package systems, both for accessing
+/// local package files and for interacting with the remote package registries.
 pub trait PackageManager {
     /// Get the latest published version of a package from the registry.
     fn get_published_version(&self, package: &str) -> Result<Version>;
 
+    /// Get information about a package from a local path. Does not talk to the remote
+    /// registry, and can be used for non-published packages.
     fn get_package_info(&self, path: &Path) -> Result<PackageInfo>;
 
+    /// Set the version of a package locally in the repository.
     fn set_repo_version(&self, path: &Path, version: &Version) -> Result<()>;
 
     /// Update the dependencies of a package to the specified version.
-    /// Only updates dependencies that the package actually has.
     /// Returns Ok(true) if any dependencies were updated.
     fn update_dependencies(&self, path: &Path, deps: &[String], version: &Version) -> Result<bool>;
 
+    /// Update the lockfile for a package, usually by running a build command.
     fn update_lockfile(&self, path: &Path) -> Result<()>;
 
+    /// Publish a package to the remote registry. The underlying registry command may prompt
+    /// for user credentials.
     fn publish(&self, path: &Path) -> Result<()>;
 }
 

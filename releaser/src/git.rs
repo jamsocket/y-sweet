@@ -2,6 +2,7 @@ use anyhow::Result;
 use git2::Repository;
 use std::{path::Path, process::Command};
 
+/// Wraps some git commands and libgit2 calls.
 pub struct Git {
     repo: Repository,
 }
@@ -12,6 +13,7 @@ impl Git {
         Ok(Self { repo })
     }
 
+    /// Check if the repository is clean (i.e. no uncommitted changes).
     pub fn clean(&self) -> Result<bool> {
         let head = self.repo.head()?;
         let head_commit = self.repo.find_commit(head.target().unwrap())?;
@@ -35,6 +37,7 @@ impl Git {
         }
     }
 
+    /// Commit all changes in the current directory with the given message.
     pub fn commit_all(&self, message: &str) -> Result<()> {
         // This uses the running user's git config, so it's easier to do it with
         // the CLI than libgit2.
@@ -45,6 +48,7 @@ impl Git {
         Ok(())
     }
 
+    /// Checkout a new branch with the given name.
     pub fn checkout_new_branch(&self, branch: &str) -> Result<()> {
         let head = self.repo.head()?;
         let oid = head.target().unwrap();
@@ -55,6 +59,7 @@ impl Git {
         Ok(())
     }
 
+    /// Push the current branch to the remote repository.
     pub fn push(&self) -> Result<()> {
         Command::new("git")
             .args(&["push", "--set-upstream", "origin", "main"])
