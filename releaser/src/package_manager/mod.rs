@@ -27,7 +27,7 @@ pub trait PackageManager {
     fn update_lockfile(&self, path: &Path) -> Result<()>;
 }
 
-#[derive(Hash, PartialEq, Eq, Clone, Copy)]
+#[derive(Hash, PartialEq, Eq, Clone, Copy, Debug)]
 pub enum PackageType {
     Cargo,
     Node,
@@ -54,6 +54,7 @@ impl PackageType {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct Package {
     pub name: String,
     pub path: PathBuf,

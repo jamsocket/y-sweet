@@ -1,8 +1,10 @@
+use check_binaries::check_binaries;
 use clap::{Parser, Subcommand};
 use packages::PackageList;
 use releaser::Releaser;
 use semver::Version;
 
+mod check_binaries;
 mod git;
 mod package_manager;
 mod packages;
@@ -23,13 +25,15 @@ enum Command {
         #[clap(long)]
         version: Option<Version>,
     },
+
+    Publish,
 }
 
 fn main() {
     let mut packages = PackageList::new();
     packages.register_cargo_package("y-sweet", "crates/y-sweet");
     packages.register_cargo_package("y-sweet-core", "crates/y-sweet-core");
-    packages.register_node_package("y-sweet", "js-pkg/server");
+    let server_pkg = packages.register_node_package("y-sweet", "js-pkg/server");
     packages.register_node_package("@y-sweet/sdk", "js-pkg/sdk");
     packages.register_node_package("@y-sweet/client", "js-pkg/client");
     packages.register_node_package("@y-sweet/react", "js-pkg/react");
@@ -42,6 +46,11 @@ fn main() {
     match args.command {
         Command::Bump { version } => {
             releaser.bump(version).unwrap();
+        }
+        Command::Publish => {
+            let server_pkg_version = server_pkg.get_published_version().unwrap();
+            println!("Server package version: {}", server_pkg_version);
+            check_binaries(&server_pkg_version).unwrap();
         }
     }
 }
