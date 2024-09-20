@@ -94,7 +94,9 @@ mySharedMap.observe((event) => {
 | Package Manager | Name | Version | Path |
 | --- | ---- | ---- | ---- |
 | npm | `@y-sweet/sdk` | [![npm](https://img.shields.io/npm/v/@y-sweet/sdk)](https://www.npmjs.com/package/@y-sweet/sdk) | `js-pkg/sdk` |
+| npm | `@y-sweet/client` | [![npm](https://img.shields.io/npm/v/@y-sweet/client)](https://www.npmjs.com/package/@y-sweet/client) | `js-pkg/client` |
 | npm | `@y-sweet/react` | [![npm](https://img.shields.io/npm/v/@y-sweet/react)](https://www.npmjs.com/package/@y-sweet/react) | `js-pkg/react` |
+| pypi | `y-sweet-sdk` | [![pypi](https://img.shields.io/pypi/v/y-sweet-sdk)](https://pypi.org/project/y-sweet-sdk/) | `python/y_sweet_sdk` |
 
 ## Y-Sweet Cloud
 
