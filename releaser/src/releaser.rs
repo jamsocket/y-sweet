@@ -150,7 +150,7 @@ impl Releaser {
     }
 
     pub fn publish(&self) -> Result<()> {
-        // ensure_repo_ready(&self.git)?;
+        ensure_repo_ready(&self.git, "main")?;
 
         let mut packages_to_publish: Vec<(Package, Version, Version)> = Vec::new();
 
