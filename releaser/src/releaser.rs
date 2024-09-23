@@ -42,7 +42,7 @@ impl Releaser {
         let mut deps: HashMap<PackageType, Vec<String>> = HashMap::new();
 
         for package in self.packages.iter() {
-            let package_info = package.get_package_info().unwrap();
+            let package_info = package.get_package_info()?;
             let repo_version = package_info.version;
 
             versions.insert(package.name.clone(), repo_version);
