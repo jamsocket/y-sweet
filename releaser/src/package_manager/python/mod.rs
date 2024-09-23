@@ -85,11 +85,20 @@ impl PackageManager for PythonPackageManager {
         let python = env.python();
 
         // Build the package
-        Command::new(python)
+        let build_output = Command::new(python)
             .arg("-m")
             .arg("build")
             .current_dir(path)
-            .output()?;
+            .output()
+            .context("Failed to execute build command")?;
+
+        if !build_output.status.success() {
+            return Err(anyhow::anyhow!(
+                "Build failed with status: {}.\nStderr: {}",
+                build_output.status,
+                String::from_utf8_lossy(&build_output.stderr)
+            ));
+        }
 
         // Upload the package
         Command::new(python)
