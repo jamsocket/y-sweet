@@ -10,7 +10,7 @@ pub struct CargoPackageManager;
 
 impl PackageManager for CargoPackageManager {
     fn get_published_version(&self, package: &str) -> Result<Version> {
-        let client = get_client();
+        let client = get_client()?;
 
         // using reqwest and the crates.io API, get the latest version of the package
         // and parse it into a Version

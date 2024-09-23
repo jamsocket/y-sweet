@@ -10,7 +10,7 @@ pub struct NodePackageManager;
 
 impl PackageManager for NodePackageManager {
     fn get_published_version(&self, package: &str) -> Result<Version> {
-        let client = get_client();
+        let client = get_client()?;
 
         let url = format!("https://registry.npmjs.org/{}", package);
         let response = client

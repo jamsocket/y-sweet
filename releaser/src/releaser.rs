@@ -54,7 +54,7 @@ impl Releaser {
         let bump_version = if let Some(version) = version {
             version
         } else {
-            let bump_version = if let Some(version) = version {
+            if let Some(version) = version {
                 version
             } else {
                 if let Some(max_version) = versions.values().max() {
@@ -62,7 +62,7 @@ impl Releaser {
                 } else {
                     anyhow::bail!("No packages found to determine the version.");
                 }
-            };
+            }
         };
 
         for package in self.packages.iter() {

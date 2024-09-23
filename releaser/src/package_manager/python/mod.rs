@@ -13,7 +13,7 @@ mod virtualenv;
 
 impl PackageManager for PythonPackageManager {
     fn get_published_version(&self, package: &str) -> Result<Version> {
-        let client = get_client();
+        let client = get_client()?;
 
         let url = format!("https://pypi.org/pypi/{}/json", package);
         let response = client.get(url).send().context("Making request to PyPI")?;
@@ -54,8 +54,8 @@ impl PackageManager for PythonPackageManager {
     }
 
     fn set_repo_version(&self, path: &Path, version: &Version) -> Result<()> {
-        let cargo_toml = fs::read_to_string(path.join("pyproject.toml"))?;
-        let mut doc = cargo_toml.parse::<DocumentMut>()?;
+        let pyproject_toml = fs::read_to_string(path.join("pyproject.toml"))?;
+        let mut doc = pyproject_toml.parse::<DocumentMut>()?;
         doc["project"]["version"] = value(version.to_string());
         fs::write(path.join("pyproject.toml"), doc.to_string())?;
         Ok(())
