@@ -23,8 +23,9 @@ impl PackageManager for CargoPackageManager {
 
         if !response.status().is_success() {
             return Err(anyhow::anyhow!(
-                "Failed to get public version for package {}",
-                package
+                "Failed to get public version for package {}: HTTP Status {}",
+                package,
+                response.status()
             ));
         }
 
