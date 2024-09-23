@@ -53,8 +53,6 @@ impl Releaser {
 
         let bump_version = if let Some(version) = version {
             version
-        } else if let Some(version) = version {
-            version
         } else if let Some(max_version) = versions.values().max() {
             prompt_bump_version(max_version.clone())
         } else {
