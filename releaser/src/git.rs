@@ -61,8 +61,9 @@ impl Git {
 
     /// Push the current branch to the remote repository.
     pub fn push(&self) -> Result<()> {
+        let branch = self.get_branch()?;
         Command::new("git")
-            .args(["push", "--set-upstream", "origin", "main"])
+            .args(["push", "--set-upstream", "origin", &branch])
             .status()?;
         Ok(())
     }
