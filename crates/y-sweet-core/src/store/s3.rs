@@ -45,6 +45,9 @@ impl S3Store {
         let path_style = if config.path_style {
             rusty_s3::UrlStyle::Path
         } else if endpoint.host_str() == Some("localhost") {
+            // Preserve the old behavior for now.
+            // This is moot for users of the y-sweet binary anyway, since it will automatically
+            // use path-style URLs when the endpoint is overridden.
             rusty_s3::UrlStyle::Path
         } else {
             rusty_s3::UrlStyle::VirtualHost
