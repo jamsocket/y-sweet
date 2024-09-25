@@ -41,7 +41,7 @@ exports.getBinary = async () => {
   let bindir = path.normalize(path.join(__dirname, '..', 'bin'))
   fs.mkdirSync(bindir, { recursive: true })
 
-  let binpath = path.join(bindir, `y-sweet`)
+  let binpath = path.join(bindir, 'y-sweet')
 
   if (fs.existsSync(binpath)) return binpath
 
