@@ -89,7 +89,10 @@ const S3_SECRET_ACCESS_KEY: &str = "AWS_SECRET_ACCESS_KEY";
 const S3_SESSION_TOKEN: &str = "AWS_SESSION_TOKEN";
 const S3_REGION: &str = "AWS_REGION";
 const S3_ENDPOINT: &str = "AWS_ENDPOINT_URL_S3";
-fn parse_s3_config_from_env_and_args(bucket: String, prefix: Option<String>) -> anyhow::Result<S3Config> {
+fn parse_s3_config_from_env_and_args(
+    bucket: String,
+    prefix: Option<String>,
+) -> anyhow::Result<S3Config> {
     Ok(S3Config {
         key: env::var(S3_ACCESS_KEY_ID)
             .map_err(|_| anyhow::anyhow!("{} env var not supplied", S3_ACCESS_KEY_ID))?,
