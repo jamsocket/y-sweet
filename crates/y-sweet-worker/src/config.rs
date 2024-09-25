@@ -88,6 +88,7 @@ fn parse_s3_config(env: &Env) -> anyhow::Result<S3Config> {
             .map_err(|_| anyhow::anyhow!("S3_BUCKET_NAME env var not supplied"))?
             .to_string(),
         bucket_prefix: env.var(S3_BUCKET_PREFIX).ok().map(|t| t.to_string()),
+        path_style: false,
     })
 }
 
