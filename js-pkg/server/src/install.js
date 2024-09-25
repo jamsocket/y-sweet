@@ -1,3 +1,3 @@
-const { getBinary } = require("./get-binary");
+const { getBinary } = require('./get-binary')
 
 getBinary()
