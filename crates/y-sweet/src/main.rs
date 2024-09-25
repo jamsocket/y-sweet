@@ -105,6 +105,8 @@ fn parse_s3_config_from_env_and_args(bucket: String, prefix: String) -> anyhow::
         token: env::var(S3_SESSION_TOKEN).ok(),
         bucket,
         bucket_prefix: Some(prefix),
+        // If the endpoint is overridden, we assume that the user wants path-style URLs.
+        path_style: env::var(S3_ENDPOINT).is_ok(),
     })
 }
 
