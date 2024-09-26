@@ -9,11 +9,16 @@ const QUERY_PARAM = 'doc'
 async function main() {
   // First, fetch a client token that can access the docId in the URL.
   // Or, if the URL does not contain a docId, get a client token for a new doc.
-  const url = new URL('http://localhost:9090/client-token')
   const searchParams = new URLSearchParams(window.location.search)
   const docId = searchParams.get(QUERY_PARAM)
-  if (docId) url.searchParams.set(QUERY_PARAM, docId)
-  const res = await fetch(url.toString())
+
+  const body = docId ? JSON.stringify({ docId }) : null
+  console.log('body', body)
+  const res = await fetch('http://localhost:9090/y-sweet-auth', {
+    method: 'POST',
+    body,
+    headers: { 'Content-Type': 'application/json' },
+  })
   const clientToken = await res.json()
 
   // Update the URL to include the docId if it was not already present.

@@ -4,6 +4,7 @@ import { getOrCreateDocAndToken } from '@y-sweet/sdk'
 
 const app = express()
 app.use(cors())
+app.use(express.json())
 
 const PORT = 9090
 const CONNECTION_STRING = process.env.CONNECTION_STRING
@@ -23,13 +24,16 @@ if (!CONNECTION_STRING) {
   process.exit(1)
 }
 
-app.get('/client-token', async (req, res) => {
-  const docId = req.query.doc ?? undefined
+app.post('/y-sweet-auth', async (req, res) => {
+  const docId = req.body?.docId ?? null
   if (docId) {
     console.log('Received client token request for doc', docId)
   } else {
     console.log('Received client token request for new doc')
   }
+
+  // -------- DO AN AUTH CHECK HERE TO SEE IF THE USER CAN ACCESS THIS DOC --------
+
   const clientToken = await getOrCreateDocAndToken(CONNECTION_STRING, docId)
   res.send(clientToken)
 })
