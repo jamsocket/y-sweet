@@ -24,7 +24,9 @@ Homepage = "https://github.com/jamsocket/y-sweet"
 
 [project.optional-dependencies]
 dev = [
+    "build==1.2.2",
     "pytest~=8.3.3",
+    "twine~=5.1.1",
     "ruff~=0.6.5",
 ]
 

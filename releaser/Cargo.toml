@@ -1,0 +1,18 @@
+[package]
+name = "ysweet-releaser"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.89"
+clap = { version = "4.5.17", features = ["derive"] }
+console = "0.15.8"
+dialoguer = "0.11.0"
+git2 = "0.19.0"
+rand = "0.8.5"
+reqwest = { version = "0.12.7", features = ["blocking", "json"] }
+semver = { version = "1.0.23", features = ["serde"] }
+serde = { version = "1.0.210", features = ["derive"] }
+serde_json = { version = "1.0.128", features = ["preserve_order"] }
+toml = "0.8.19"
+toml_edit = "0.22.21"
