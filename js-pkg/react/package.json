@@ -7,7 +7,7 @@
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx}\"",
     "prepublishOnly": "npm run build"
   },
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "React library for building collaboration features with y-sweet.",
   "main": "./dist/main.js",
   "types": "./dist/main.d.ts",
@@ -47,8 +47,8 @@
     "yjs": "^13.0.0"
   },
   "dependencies": {
-    "@y-sweet/client": "0.3.0",
-    "@y-sweet/sdk": "0.3.0",
+    "@y-sweet/client": "0.3.1",
+    "@y-sweet/sdk": "0.3.1",
     "y-protocols": "^1.0.5"
   }
 }
