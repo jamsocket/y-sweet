@@ -38,7 +38,11 @@ async function downloadFile(url, filePath) {
 }
 
 exports.getBinary = async () => {
-  let binpath = path.normalize(path.join(__dirname, '..', 'bin'))
+  let bindir = path.normalize(path.join(__dirname, '..', 'bin'))
+  fs.mkdirSync(bindir, { recursive: true })
+
+  let binpath = path.join(bindir, 'y-sweet')
+
   if (fs.existsSync(binpath)) return binpath
 
   let url = binaryUrl(VERSION, process.platform, process.arch)
