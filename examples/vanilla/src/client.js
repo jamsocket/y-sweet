@@ -19,7 +19,7 @@ async function main() {
   // Update the URL to include the docId if it was not already present.
   if (!docId) {
     const url = new URL(window.location.href)
-    url.searchParams.set(QUERY_PARAM, clientToken.doc)
+    url.searchParams.set(QUERY_PARAM, clientToken.docId)
     window.history.replaceState({}, '', url.toString())
   }
 
