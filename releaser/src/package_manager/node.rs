@@ -36,7 +36,8 @@ impl PackageManager for NodePackageManager {
 
     fn get_package_info(&self, path: &Path) -> Result<PackageInfo> {
         let package_json = fs::read_to_string(path.join("package.json"))?;
-        let package_json: PackageJson = serde_json::from_str(&package_json)?;
+        let package_json: PackageJson = serde_json::from_str(&package_json)
+            .with_context(|| format!("Parsing {}/package.json", path.display()))?;
         let version = Version::parse(&package_json.version)?;
         let name = package_json.name;
         let private = package_json.private;

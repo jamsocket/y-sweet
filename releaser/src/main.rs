@@ -14,6 +14,9 @@ mod util;
 #[derive(Parser)]
 #[clap(version = "0.1.0", author = "Y-sweet")]
 struct Args {
+    #[clap(long)]
+    allow_dirty: bool,
+
     #[clap(subcommand)]
     command: Command,
 }
@@ -52,8 +55,8 @@ fn main() {
     // Python package
     packages.register_python_package("y_sweet_sdk", "python");
 
-    let releaser = Releaser::new(packages);
     let args = Args::parse();
+    let releaser = Releaser::new(packages, args.allow_dirty);
 
     match args.command {
         Command::Bump { version } => {

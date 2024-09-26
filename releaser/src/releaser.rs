@@ -13,6 +13,7 @@ use std::collections::HashMap;
 pub struct Releaser {
     packages: PackageList,
     git: Git,
+    allow_dirty: bool,
 }
 
 pub fn ensure_repo_ready(git: &Git) -> Result<()> {
@@ -29,14 +30,20 @@ pub fn ensure_repo_ready(git: &Git) -> Result<()> {
 }
 
 impl Releaser {
-    pub fn new(packages: PackageList) -> Self {
+    pub fn new(packages: PackageList, allow_dirty: bool) -> Self {
         let root_dir = get_root_dir();
         let git = Git::new(&root_dir).unwrap();
-        Releaser { packages, git }
+        Releaser {
+            packages,
+            git,
+            allow_dirty,
+        }
     }
 
     pub fn bump(&self, version: Option<Version>) -> Result<()> {
-        ensure_repo_ready(&self.git)?;
+        if !self.allow_dirty {
+            ensure_repo_ready(&self.git)?;
+        }
 
         let mut versions: HashMap<String, Version> = HashMap::new();
         let mut deps: HashMap<PackageType, Vec<String>> = HashMap::new();
@@ -150,7 +157,9 @@ impl Releaser {
     }
 
     pub fn publish(&self) -> Result<()> {
-        ensure_repo_ready(&self.git)?;
+        if !self.allow_dirty {
+            ensure_repo_ready(&self.git)?;
+        }
 
         let mut packages_to_publish: Vec<(Package, Version, Version)> = Vec::new();
 
