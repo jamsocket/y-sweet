@@ -18,6 +18,9 @@ pub struct S3Config {
     pub bucket: String,
     pub region: String,
     pub bucket_prefix: Option<String>,
+
+    // Use old path-style URLs, needed to support some S3-compatible APIs (including some minio setups)
+    pub path_style: bool,
 }
 
 const PRESIGNED_URL_DURATION: Duration = Duration::from_secs(60 * 60);
@@ -38,14 +41,18 @@ impl S3Store {
             Credentials::new(config.key, config.secret)
         };
         let endpoint: Url = config.endpoint.parse().expect("endpoint is a valid url");
-        let path_style =
-            // if endpoint is localhost then bucket url must be of form http://localhost:<port>/<bucket>
-            // instead of <method>:://<bucket>.<endpoint>
-            if endpoint.host_str().expect("endpoint Url should have host") == "localhost" {
-                rusty_s3::UrlStyle::Path
-            } else {
-                rusty_s3::UrlStyle::VirtualHost
-            };
+
+        let path_style = if config.path_style {
+            rusty_s3::UrlStyle::Path
+        } else if endpoint.host_str() == Some("localhost") {
+            // Since this was the old behavior before we added AWS_S3_USE_PATH_STYLE,
+            // we continue to support it, but complain a bit.
+            tracing::warn!("Inferring path-style URLs for localhost for backwards-compatibility. This behavior may change in the future. Set AWS_S3_USE_PATH_STYLE=true to ensure that path-style URLs are used.");
+            rusty_s3::UrlStyle::Path
+        } else {
+            rusty_s3::UrlStyle::VirtualHost
+        };
+
         let bucket = Bucket::new(endpoint, path_style, config.bucket, config.region)
             .expect("Url has a valid scheme and host");
         let client = Client::new();

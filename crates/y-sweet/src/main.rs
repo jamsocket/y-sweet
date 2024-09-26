@@ -89,7 +89,26 @@ const S3_SECRET_ACCESS_KEY: &str = "AWS_SECRET_ACCESS_KEY";
 const S3_SESSION_TOKEN: &str = "AWS_SESSION_TOKEN";
 const S3_REGION: &str = "AWS_REGION";
 const S3_ENDPOINT: &str = "AWS_ENDPOINT_URL_S3";
-fn parse_s3_config_from_env_and_args(bucket: String, prefix: String) -> anyhow::Result<S3Config> {
+const S3_USE_PATH_STYLE: &str = "AWS_S3_USE_PATH_STYLE";
+fn parse_s3_config_from_env_and_args(
+    bucket: String,
+    prefix: Option<String>,
+) -> anyhow::Result<S3Config> {
+    let use_path_style = env::var(S3_USE_PATH_STYLE).ok();
+    let path_style = if let Some(use_path_style) = use_path_style {
+        if use_path_style.to_lowercase() == "true" {
+            true
+        } else if use_path_style.to_lowercase() == "false" || use_path_style.is_empty() {
+            false
+        } else {
+            anyhow::bail!(
+                "If AWS_S3_USE_PATH_STYLE is set, it must be either \"true\" or \"false\""
+            )
+        }
+    } else {
+        false
+    };
+
     Ok(S3Config {
         key: env::var(S3_ACCESS_KEY_ID)
             .map_err(|_| anyhow::anyhow!("{} env var not supplied", S3_ACCESS_KEY_ID))?,
@@ -104,7 +123,9 @@ fn parse_s3_config_from_env_and_args(bucket: String, prefix: String) -> anyhow::
             .map_err(|_| anyhow::anyhow!("{} env var not supplied", S3_SECRET_ACCESS_KEY))?,
         token: env::var(S3_SESSION_TOKEN).ok(),
         bucket,
-        bucket_prefix: Some(prefix),
+        bucket_prefix: prefix,
+        // If the endpoint is overridden, we assume that the user wants path-style URLs.
+        path_style,
     })
 }
 
@@ -116,6 +137,7 @@ fn get_store_from_opts(store_path: &str) -> Result<Box<dyn Store>> {
             .ok_or_else(|| anyhow::anyhow!("Invalid S3 URL"))?
             .to_owned();
         let bucket_prefix = url.path().trim_start_matches('/').to_owned();
+        let bucket_prefix = (!bucket_prefix.is_empty()).then(|| bucket_prefix); // "" => None
         let config = parse_s3_config_from_env_and_args(bucket, bucket_prefix)?;
         let store = S3Store::new(config);
         Ok(Box::new(store))
@@ -239,6 +261,7 @@ async fn main() -> Result<()> {
 
             let store = match (bucket, prefix) {
                 (Some(bucket), Some(prefix)) => {
+                    let prefix = (!prefix.is_empty()).then(|| prefix);
                     let s3_config = parse_s3_config_from_env_and_args(bucket, prefix)
                         .context("Failed to parse S3 configuration")?;
                     let store = S3Store::new(s3_config);
