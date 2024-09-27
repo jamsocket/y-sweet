@@ -274,10 +274,6 @@ async fn main() -> Result<()> {
                         None
                     }
                 } else {
-                    if env::var("STORAGE_PREFIX").is_ok() {
-                        anyhow::bail!("If STORAGE_PREFIX is set, STORAGE_BUCKET must also be set.");
-                    }
-
                     None
                 };
 
@@ -287,6 +283,10 @@ async fn main() -> Result<()> {
                 store.init().await?;
                 Some(store)
             } else {
+                if env::var("STORAGE_PREFIX").is_ok() {
+                    anyhow::bail!("If STORAGE_PREFIX is set, STORAGE_BUCKET must also be set.");
+                }
+
                 None
             };
 
