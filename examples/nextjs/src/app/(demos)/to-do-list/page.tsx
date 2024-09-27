@@ -1,17 +1,15 @@
-import { CONNECTION_STRING } from '@/lib/config'
-import { ToDoList } from './ToDoList'
+'use client'
+
 import { YDocProvider } from '@y-sweet/react'
-import { getOrCreateDocAndToken } from '@y-sweet/sdk'
+import { useSearchParams } from 'next/navigation'
+import { ToDoList } from './ToDoList'
+import { randomId } from '@/lib/utils'
 
-type HomeProps = {
-  searchParams: Record<string, string>
-}
-
-export default async function Home({ searchParams }: HomeProps) {
-  const clientToken = await getOrCreateDocAndToken(CONNECTION_STRING, searchParams.doc)
-
+export default function Home() {
+  const searchParams = useSearchParams()
+  const docId = searchParams.get('doc') ?? randomId()
   return (
-    <YDocProvider clientToken={clientToken} setQueryParam="doc">
+    <YDocProvider docId={docId} setQueryParam="doc" authEndpoint="/api/auth">
       <ToDoList />
     </YDocProvider>
   )
