@@ -154,7 +154,10 @@ export function useYjsStore() {
 
       // Sync yjs awareness changes to the store
       const handleUpdate = (update: { added: number[]; updated: number[]; removed: number[] }) => {
-        const states = provider.awareness.getStates() as Map<number, { presence: TLInstancePresence }>
+        const states = provider.awareness.getStates() as Map<
+          number,
+          { presence: TLInstancePresence }
+        >
 
         const toRemove: TLInstancePresence['id'][] = []
         const toPut: TLInstancePresence[] = []
