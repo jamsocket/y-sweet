@@ -256,27 +256,34 @@ async fn main() -> Result<()> {
         } => {
             let doc_id = env::var("SESSION_BACKEND_KEY").expect("SESSION_BACKEND_KEY must be set");
 
-            let bucket = env::var("STORAGE_BUCKET").ok();
-            let prefix = env::var("STORAGE_PREFIX").ok();
+            let store = if let Ok(bucket) = env::var("STORAGE_BUCKET") {
+                let prefix = if let Ok(prefix) = env::var("STORAGE_PREFIX") {
+                    // If the prefix is set, it should contain the document ID as its last '/'-separated part.
+                    // We want to pop that, because we will add it back when accessing the doc.
+                    let mut parts: Vec<&str> = prefix.split('/').collect();
+                    if let Some(last) = parts.pop() {
+                        if last != doc_id {
+                            anyhow::bail!("STORAGE_PREFIX must end with the document ID. Found: {} Expected: {}", last, doc_id);
+                        }
 
-            let store = match (bucket, prefix) {
-                (Some(bucket), Some(prefix)) => {
-                    let prefix = (!prefix.is_empty()).then(|| prefix);
-                    let s3_config = parse_s3_config_from_env_and_args(bucket, prefix)
-                        .context("Failed to parse S3 configuration")?;
-                    let store = S3Store::new(s3_config);
-                    let store: Box<dyn Store> = Box::new(store);
-                    store
-                        .init()
-                        .await
-                        .context("Failed to initialize S3 store")?;
-                    Some(store)
-                }
-                (None, None) => {
-                    tracing::warn!("No store set. Documents will be stored in memory only.");
+                        let prefix = parts.join("/");
+
+                        Some(prefix)
+                    } else {
+                        // As far as y-sweet is concerned, `STORAGE_BUCKET` = "" is equivalent to `STORAGE_BUCKET` not being set.
+                        None
+                    }
+                } else {
                     None
-                }
-                _ => panic!("Invalid store configuration. Expected both STORAGE_BUCKET and STORAGE_PREFIX environment variables to be set."),
+                };
+
+                let s3_config = parse_s3_config_from_env_and_args(bucket, prefix)?;
+                let store = S3Store::new(s3_config);
+                let store: Box<dyn Store> = Box::new(store);
+                store.init().await?;
+                Some(store)
+            } else {
+                None
             };
 
             let cancellation_token = CancellationToken::new();
