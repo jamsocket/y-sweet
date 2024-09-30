@@ -1,6 +1,6 @@
 {
   "name": "y-sweet-debugger",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -13,8 +13,8 @@
     "@types/node": "20.4.8",
     "@types/react": "18.2.18",
     "@types/react-dom": "18.2.7",
-    "@y-sweet/react": "0.3.1",
-    "@y-sweet/sdk": "0.3.1",
+    "@y-sweet/react": "0.4.0",
+    "@y-sweet/sdk": "0.4.0",
     "autoprefixer": "10.4.14",
     "eslint": "8.46.0",
     "eslint-config-next": "13.4.12",
