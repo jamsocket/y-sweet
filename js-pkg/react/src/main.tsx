@@ -183,7 +183,7 @@ export type YDocProviderProps = {
 }
 
 /**
- * A React component that provides a Y.Doc instance to its children.
+ * A React component that provides a Y.Doc instance to its children given an auth endpoint and a doc id.
  */
 export function YDocProvider(props: YDocProviderProps) {
   const { children, docId, authEndpoint } = props

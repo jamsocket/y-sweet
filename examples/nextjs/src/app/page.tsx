@@ -1,11 +1,7 @@
 import Link from 'next/link'
 import Title from '@/components/Title'
 
-type HomeProps = {
-  searchParams: Record<string, string>
-}
-
-export default async function Home({ searchParams }: HomeProps) {
+export default function Home() {
   return (
     <div className="lg:h-full space-y-4 p-4 lg:p-8 relative w-auto bg-[radial-gradient(at_bottom_left,_var(--tw-gradient-stops))] from-white/90 via-pink-50/90 to-pink-100/90 rounded-lg">
       <Title>Demos</Title>
