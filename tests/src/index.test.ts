@@ -1,6 +1,10 @@
 import { describe, expect, test, beforeAll, afterAll } from 'vitest'
-import { ClientToken, DocumentManager } from '@y-sweet/sdk'
-import { createYjsProvider as createYjsProvider_, YSweetProviderParams } from '@y-sweet/react'
+import { DocumentManager } from '@y-sweet/sdk'
+import {
+  createYjsProvider as createYjsProvider_,
+  YSweetProviderParams,
+  AuthEndpoint,
+} from '@y-sweet/react'
 import { WebSocket } from 'ws'
 import * as Y from 'yjs'
 import { Server, ServerConfiguration } from './server'
@@ -13,7 +17,8 @@ import { waitForProviderSync } from './util'
  */
 function createYjsProvider(
   doc: Y.Doc,
-  clientToken: ClientToken,
+  docId: string,
+  authEndpoint: AuthEndpoint,
   extraOptions: YSweetProviderParams,
 ) {
   extraOptions = {
@@ -22,7 +27,7 @@ function createYjsProvider(
     disableBc: true,
     ...extraOptions,
   }
-  return createYjsProvider_(doc, clientToken, extraOptions)
+  return createYjsProvider_(doc, docId, authEndpoint, extraOptions)
 }
 
 const CONFIGURATIONS: ServerConfiguration[] = [
@@ -116,20 +121,14 @@ describe.each(CONFIGURATIONS)(
 
     test('Create and connect to doc', async () => {
       const docResult = await DOCUMENT_MANANGER.createDoc()
-      const key = await DOCUMENT_MANANGER.getClientToken(docResult)
-
-      if (configuration.useAuth) {
-        expect(key.token).toBeDefined()
-      } else {
-        expect(key.token).toBeUndefined()
-      }
+      const getClientToken = async () => await DOCUMENT_MANANGER.getClientToken(docResult)
 
       const doc = new Y.Doc()
-      const provider = createYjsProvider(doc, key, {})
+      const provider = await createYjsProvider(doc, docResult.docId, getClientToken, {})
 
       await new Promise((resolve, reject) => {
-        provider.on('synced', resolve)
-        provider.on('syncing', reject)
+        provider.observable.on('synced', resolve)
+        provider.observable.on('syncing', reject)
       })
     })
 
@@ -157,10 +156,10 @@ describe.each(CONFIGURATIONS)(
 
     test('Fetch doc as update', async () => {
       const docResult = await DOCUMENT_MANANGER.createDoc()
-      const key = await DOCUMENT_MANANGER.getClientToken(docResult)
+      const getClientToken = async () => await DOCUMENT_MANANGER.getClientToken(docResult)
 
       const doc = new Y.Doc()
-      const provider = createYjsProvider(doc, key, {})
+      const provider = await createYjsProvider(doc, docResult.docId, getClientToken, {})
 
       let map = doc.getMap('test')
       map.set('foo', 'bar')
@@ -192,9 +191,9 @@ describe.each(CONFIGURATIONS)(
 
       await DOCUMENT_MANANGER.updateDoc(docResult.docId, update)
 
-      const key = await DOCUMENT_MANANGER.getClientToken(docResult)
+      const getClientToken = async () => await DOCUMENT_MANANGER.getClientToken(docResult)
 
-      const provider = createYjsProvider(doc, key, {})
+      const provider = await createYjsProvider(doc, docResult.docId, getClientToken, {})
       await waitForProviderSync(provider)
 
       let newMap = doc.getMap('abc123')
@@ -213,12 +212,12 @@ describe.each(CONFIGURATIONS)(
 
     test('Offline changes are synced to doc', async () => {
       const docResult = await DOCUMENT_MANANGER.createDoc()
-      const key = await DOCUMENT_MANANGER.getClientToken(docResult)
+      const getClientToken = async () => await DOCUMENT_MANANGER.getClientToken(docResult)
 
       const doc = new Y.Doc()
 
       // Connect to the doc.
-      const provider = createYjsProvider(doc, key, {})
+      const provider = await createYjsProvider(doc, docResult.docId, getClientToken, {})
 
       await waitForProviderSync(provider)
 
@@ -228,7 +227,7 @@ describe.each(CONFIGURATIONS)(
 
       await new Promise<void>((resolve, reject) => {
         setTimeout(() => reject('Expected to disconnect.'), 1_000)
-        provider.on('connection-close', () => {
+        provider.observable.on('connection-close', () => {
           resolve()
         })
       })
@@ -241,7 +240,7 @@ describe.each(CONFIGURATIONS)(
       // Reconnect to the doc.
       provider.connect()
       await new Promise<void>((resolve, reject) => {
-        provider.on('status', (event: { status: string }) => {
+        provider.observable.on('status', (event: { status: string }) => {
           if (event.status === 'connected') {
             resolve()
           } else {
@@ -257,8 +256,7 @@ describe.each(CONFIGURATIONS)(
       const doc2 = new Y.Doc()
 
       // Connect to the doc.
-      const key2 = await DOCUMENT_MANANGER.getClientToken(docResult)
-      const provider2 = createYjsProvider(doc2, key2, { WebSocketPolyfill: require('ws') })
+      const provider2 = await createYjsProvider(doc2, docResult.docId, getClientToken, {})
 
       expect(doc2.getMap('test').get('foo')).toBeUndefined()
 

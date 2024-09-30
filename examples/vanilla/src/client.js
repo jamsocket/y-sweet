@@ -9,23 +9,17 @@ const QUERY_PARAM = 'doc'
 async function main() {
   // First, fetch a client token that can access the docId in the URL.
   // Or, if the URL does not contain a docId, get a client token for a new doc.
-  const url = new URL('http://localhost:9090/client-token')
   const searchParams = new URLSearchParams(window.location.search)
-  const docId = searchParams.get(QUERY_PARAM)
-  if (docId) url.searchParams.set(QUERY_PARAM, docId)
-  const res = await fetch(url.toString())
-  const clientToken = await res.json()
+  const docId = searchParams.get(QUERY_PARAM) ?? Math.random().toString(36).substring(2, 15)
 
-  // Update the URL to include the docId if it was not already present.
-  if (!docId) {
-    const url = new URL(window.location.href)
-    url.searchParams.set(QUERY_PARAM, clientToken.doc)
-    window.history.replaceState({}, '', url.toString())
-  }
+  // Update the URL to include the docId in case it's not already present.
+  const url = new URL(window.location.href)
+  url.searchParams.set(QUERY_PARAM, docId)
+  window.history.replaceState({}, '', url.toString())
 
   // Create a Yjs document and connect it to the Y-Sweet server.
   const doc = new Y.Doc()
-  createYjsProvider(doc, clientToken, { disableBc: true })
+  createYjsProvider(doc, docId, 'http://localhost:9090/y-sweet-auth')
   const sharedColorMap = doc.getMap('colorgrid')
 
   // Create the UI for the color grid.

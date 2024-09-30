@@ -35,7 +35,7 @@ export function useYjsStore() {
   })
 
   const yDoc = useYDoc()
-  const room = useYjsProvider()
+  const provider = useYjsProvider()
 
   const yStore = useMemo(() => {
     const yArr = yDoc.getArray<{ key: string; val: TLRecord }>(`tl_room`)
@@ -119,7 +119,7 @@ export function useYjsStore() {
 
       /* -------------------- Awareness ------------------- */
 
-      const yClientId = room.awareness.clientID.toString()
+      const yClientId = provider.awareness.clientID.toString()
       setUserPreferences({ id: yClientId })
 
       const userPreferences = computed<{
@@ -140,21 +140,24 @@ export function useYjsStore() {
       const presenceDerivation = createPresenceStateDerivation(userPreferences, presenceId)(store)
 
       // Set our initial presence from the derivation's current value
-      room.awareness.setLocalStateField('presence', presenceDerivation.value)
+      provider.awareness.setLocalStateField('presence', presenceDerivation.value)
 
       // When the derivation change, sync presence to to yjs awareness
       unsubs.push(
         react('when presence changes', () => {
           const presence = presenceDerivation.value
           requestAnimationFrame(() => {
-            room.awareness.setLocalStateField('presence', presence)
+            provider.awareness.setLocalStateField('presence', presence)
           })
         }),
       )
 
       // Sync yjs awareness changes to the store
       const handleUpdate = (update: { added: number[]; updated: number[]; removed: number[] }) => {
-        const states = room.awareness.getStates() as Map<number, { presence: TLInstancePresence }>
+        const states = provider.awareness.getStates() as Map<
+          number,
+          { presence: TLInstancePresence }
+        >
 
         const toRemove: TLInstancePresence['id'][] = []
         const toPut: TLInstancePresence[] = []
@@ -185,8 +188,8 @@ export function useYjsStore() {
         })
       }
 
-      room.awareness.on('update', handleUpdate)
-      unsubs.push(() => room.awareness.off('update', handleUpdate))
+      provider.awareness.on('update', handleUpdate)
+      unsubs.push(() => provider.awareness.off('update', handleUpdate))
 
       // 2.
       // Initialize the store with the yjs doc records—or, if the yjs doc
@@ -229,24 +232,24 @@ export function useYjsStore() {
         return
       }
 
-      room.off('synced', handleSync)
+      provider.observable.off('sync', handleSync)
 
       if (status === 'connected') {
         if (hasConnectedBefore) return
         hasConnectedBefore = true
-        room.on('synced', handleSync)
-        unsubs.push(() => room.off('synced', handleSync))
+        provider.observable.on('sync', handleSync)
+        unsubs.push(() => provider.observable.off('sync', handleSync))
       }
     }
 
-    room.on('status', handleStatusChange)
-    unsubs.push(() => room.off('status', handleStatusChange))
+    provider.observable.on('status', handleStatusChange)
+    unsubs.push(() => provider.observable.off('status', handleStatusChange))
 
     return () => {
       unsubs.forEach((fn) => fn())
       unsubs.length = 0
     }
-  }, [room, yDoc, store, yStore])
+  }, [provider, yDoc, store, yStore])
 
   return storeWithStatus
 }

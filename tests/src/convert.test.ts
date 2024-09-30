@@ -29,12 +29,14 @@ async function convertDoc(doc: Y.Doc, docId: string, store: string) {
 
 async function connectToDoc(server: Server, docId: string): Promise<Y.Doc> {
   const docManager = new DocumentManager(server.connectionString())
-  const clientToken = await docManager.getClientToken(docId)
+  const getClientToken = async () => await docManager.getClientToken(docId)
   const doc = new Y.Doc()
-  const provider = createYjsProvider(doc, clientToken, { WebSocketPolyfill: require('ws') })
+  const provider = await createYjsProvider(doc, docId, getClientToken, {
+    WebSocketPolyfill: require('ws'),
+  })
 
   await new Promise<void>((resolve, reject) => {
-    provider.on('synced', resolve)
+    provider.observable.on('synced', resolve)
 
     setTimeout(() => {
       reject('Timed out waiting for sync')

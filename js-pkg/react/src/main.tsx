@@ -6,17 +6,23 @@ import {
   createYjsProvider,
   debuggerUrl,
 } from '@y-sweet/client'
-import { ClientToken } from '@y-sweet/sdk'
+import type { AuthEndpoint, YSweetProviderWithClientToken } from '@y-sweet/client'
 import type { ReactNode } from 'react'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
-export { createYjsProvider, YSweetProvider, debuggerUrl, type YSweetProviderParams }
+export {
+  createYjsProvider,
+  YSweetProvider,
+  debuggerUrl,
+  type YSweetProviderParams,
+  type YSweetProviderWithClientToken,
+  type AuthEndpoint,
+}
 
 type YjsContextType = {
   doc: Y.Doc
-  provider: YSweetProvider
-  clientToken: ClientToken
+  provider: YSweetProviderWithClientToken
 }
 
 const YjsContext = createContext<YjsContextType | null>(null)
@@ -35,7 +41,7 @@ export function useYDoc(options?: YDocOptions): Y.Doc {
 
   useEffect(() => {
     if (!options?.hideDebuggerLink && yjsCtx) {
-      const url = debuggerUrl(yjsCtx.clientToken)
+      const url = debuggerUrl(yjsCtx.provider.clientToken)
       console.log(
         `%cOpen this in Y-Sweet Debugger ⮕ ${url}`,
         'font-size: 1.5em; display: block; padding: 10px;',
@@ -63,7 +69,7 @@ export function useYSweetDebugUrl(): string {
   if (!yjsCtx) {
     throw new Error('Yjs hooks must be used within a YDocProvider')
   }
-  return debuggerUrl(yjsCtx.clientToken)
+  return debuggerUrl(yjsCtx.provider.clientToken)
 }
 
 /**
@@ -166,7 +172,10 @@ export type YDocProviderProps = {
   children: ReactNode
 
   /** Response of a `getConnectionKey` call, passed from server to client. */
-  clientToken: ClientToken
+  docId: string
+
+  /** The endpoint to use for authentication. */
+  authEndpoint: AuthEndpoint
 
   /** If set to a string, the URL query parameter with this name
    * will be set to the doc id from connectionKey. */
@@ -177,33 +186,44 @@ export type YDocProviderProps = {
  * A React component that provides a Y.Doc instance to its children.
  */
 export function YDocProvider(props: YDocProviderProps) {
-  const { children, clientToken } = props
+  const { children, docId, authEndpoint } = props
 
   const [ctx, setCtx] = useState<YjsContextType | null>(null)
 
   useEffect(() => {
+    let canceled = false
+    let provider: YSweetProviderWithClientToken | null = null
     const doc = new Y.Doc()
-    const provider = createYjsProvider(doc, clientToken, {
-      // TODO: this disables local cross-tab communication, which makes
-      // debugging easier, but should be re-enabled eventually
-      disableBc: true,
-    })
 
-    setCtx({ doc, provider, clientToken })
+    ;(async () => {
+      provider = await createYjsProvider(doc, docId, authEndpoint, {
+        // TODO: this disables local cross-tab communication, which makes
+        // debugging easier, but should be re-enabled eventually
+        disableBc: true,
+      })
+
+      if (canceled) {
+        provider.destroy()
+        return
+      }
+
+      setCtx({ doc, provider })
+    })()
 
     return () => {
-      provider.destroy()
+      canceled = true
+      provider?.destroy()
       doc.destroy()
     }
-  }, [clientToken.token, clientToken.url, clientToken.docId])
+  }, [docId])
 
   useEffect(() => {
     if (props.setQueryParam) {
       const url = new URL(window.location.href)
-      url.searchParams.set(props.setQueryParam, clientToken.docId)
+      url.searchParams.set(props.setQueryParam, docId)
       window.history.replaceState({}, '', url.toString())
     }
-  }, [props.setQueryParam, clientToken.docId])
+  }, [props.setQueryParam, docId])
 
   if (ctx === null) return null
 

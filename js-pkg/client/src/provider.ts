@@ -5,6 +5,7 @@
  */
 
 import * as Y from 'yjs' // eslint-disable-line
+import type { ClientToken } from '@y-sweet/sdk'
 import * as bc from 'lib0/broadcastchannel'
 import * as time from 'lib0/time'
 import * as encoding from 'lib0/encoding'
@@ -73,6 +74,9 @@ messageHandlers[messageAuth] = (_encoder, decoder, provider, _emitSynced, _messa
 // @todo - this should depend on awareness.outdatedTime
 const messageReconnectTimeout = 30000
 
+// the number of times we try to reconnect before recreating the provider
+const recreateThreshold = 5
+
 const permissionDeniedHandler = (provider: YSweetProvider, reason: string) =>
   console.warn(`Permission denied to access ${provider.url}.\n${reason}`)
 
@@ -110,10 +114,10 @@ const setupWS = (provider: YSweetProvider) => {
       }
     }
     websocket.onerror = (event) => {
-      provider.emit('connection-error', [event, provider])
+      provider.observable.emit('connection-error', [event, provider])
     }
     websocket.onclose = (event) => {
-      provider.emit('connection-close', [event, provider])
+      provider.observable.emit('connection-close', [event, provider])
       provider.ws = null
       provider.wsconnecting = false
       if (provider.wsconnected) {
@@ -127,7 +131,7 @@ const setupWS = (provider: YSweetProvider) => {
           ),
           provider,
         )
-        provider.emit('status', [
+        provider.observable.emit('status', [
           {
             status: 'disconnected',
           },
@@ -135,6 +139,15 @@ const setupWS = (provider: YSweetProvider) => {
       } else {
         provider.wsUnsuccessfulReconnects++
       }
+
+      if (provider.wsUnsuccessfulReconnects > recreateThreshold) {
+        provider.destroy()
+        while (provider.onFailureHandlers.length > 0) {
+          provider.onFailureHandlers.pop()!()
+        }
+        return
+      }
+
       // Start with no reconnect timeout and increase timeout by
       // using exponential backoff starting with 100ms
       setTimeout(
@@ -148,7 +161,7 @@ const setupWS = (provider: YSweetProvider) => {
       provider.wsconnecting = false
       provider.wsconnected = true
       provider.wsUnsuccessfulReconnects = 0
-      provider.emit('status', [
+      provider.observable.emit('status', [
         {
           status: 'connected',
         },
@@ -169,7 +182,7 @@ const setupWS = (provider: YSweetProvider) => {
         websocket.send(encoding.toUint8Array(encoderAwarenessState))
       }
     }
-    provider.emit('status', [
+    provider.observable.emit('status', [
       {
         status: 'connecting',
       },
@@ -196,6 +209,11 @@ type WebSocketPolyfillType = {
   readonly OPEN: number
 }
 
+export type AuthEndpoint = string | (() => Promise<ClientToken>)
+export type YSweetProviderWithClientToken = YSweetProvider & {
+  clientToken: ClientToken
+}
+
 export type YSweetProviderParams = {
   connect?: boolean
   awareness?: awarenessProtocol.Awareness
@@ -206,6 +224,7 @@ export type YSweetProviderParams = {
   resyncInterval?: number
   maxBackoffTime?: number
   disableBc?: boolean
+  observable?: Observable<string>
 }
 
 /**
@@ -218,14 +237,15 @@ export type YSweetProviderParams = {
  * import { YSweetProvider } from 'y-websocket'
  * const doc = new Y.Doc()
  * const provider = new YSweetProvider('http://localhost:1234', 'my-document-name', doc)
- * @extends {Observable<string>}
  */
-export class YSweetProvider extends Observable<string> {
+export class YSweetProvider {
+  onFailureHandlers: Array<() => void> = []
   maxBackoffTime: number
   bcChannel: string
   url: string
   roomname: string
   doc: Y.Doc
+  observable: Observable<string>
   _WS: WebSocketPolyfillType
   awareness: awarenessProtocol.Awareness
   wsconnected: boolean
@@ -257,6 +277,7 @@ export class YSweetProvider extends Observable<string> {
    * @param opts.resyncInterval - resync interval
    * @param opts.maxBackoffTime - maximum backoff time
    * @param opts.disableBc - disable broadcast channel
+   * @param opts.observable - an observable instance to emit events on
    */
   constructor(
     serverUrl: string,
@@ -270,14 +291,15 @@ export class YSweetProvider extends Observable<string> {
       resyncInterval = -1,
       maxBackoffTime = 2500,
       disableBc = false,
+      observable = new Observable<string>(),
     }: YSweetProviderParams = {},
   ) {
-    super()
     // ensure that url is always ends with /
     while (serverUrl[serverUrl.length - 1] === '/') {
       serverUrl = serverUrl.slice(0, serverUrl.length - 1)
     }
     const encodedParams = url.encodeQueryParams(params)
+    this.observable = observable
     this.maxBackoffTime = maxBackoffTime
     this.bcChannel = serverUrl + '/' + roomname
     this.url = serverUrl + '/' + roomname + (encodedParams.length === 0 ? '' : '?' + encodedParams)
@@ -385,8 +407,8 @@ export class YSweetProvider extends Observable<string> {
   set synced(state) {
     if (this._synced !== state) {
       this._synced = state
-      this.emit('synced', [state])
-      this.emit('sync', [state])
+      this.observable.emit('synced', [state])
+      this.observable.emit('sync', [state])
     }
   }
 
@@ -403,7 +425,6 @@ export class YSweetProvider extends Observable<string> {
     }
     this.awareness.off('update', this._awarenessUpdateHandler)
     this.doc.off('update', this._updateHandler)
-    super.destroy()
   }
 
   connectBc() {
@@ -469,4 +490,134 @@ export class YSweetProvider extends Observable<string> {
       this.connectBc()
     }
   }
+
+  addOnFailureHandler(handler: () => void): () => void {
+    this.onFailureHandlers.push(handler)
+    return () => {
+      this.onFailureHandlers = this.onFailureHandlers.filter((h) => h !== handler)
+    }
+  }
+}
+
+async function getClientToken(authEndpoint: AuthEndpoint, roomname: string): Promise<ClientToken> {
+  if (typeof authEndpoint === 'function') {
+    return await authEndpoint()
+  }
+  const body = JSON.stringify({ docId: roomname })
+  const res = await fetch(authEndpoint, {
+    method: 'POST',
+    body,
+    headers: { 'Content-Type': 'application/json' },
+  })
+  // TODO: handle errors
+  const clientToken = await res.json()
+  // TODO: check that clientToken.docId === this.roomname
+  return clientToken
+}
+
+function updateProviderParams(
+  providerParams: YSweetProviderParams,
+  clientToken: ClientToken,
+): YSweetProviderParams {
+  // if the clientToken has a token, add it to the provider params
+  const connectParams = providerParams.params ? { ...providerParams.params } : {}
+  if (clientToken.token) connectParams.token = clientToken.token
+  return { ...providerParams, params: connectParams }
+}
+
+export async function ySweetProviderWrapper(
+  authEndpoint: AuthEndpoint,
+  roomname: string,
+  doc: Y.Doc,
+  providerParams: YSweetProviderParams = {},
+): Promise<YSweetProviderWithClientToken> {
+  const observable = providerParams.observable ?? new Observable<string>()
+  const awareness = providerParams.awareness ?? new awarenessProtocol.Awareness(doc)
+  providerParams = { ...providerParams, observable, awareness }
+
+  let _clientToken = await getClientToken(authEndpoint, roomname)
+  let _provider = new YSweetProvider(_clientToken.url, roomname, doc, {
+    ...updateProviderParams(providerParams, _clientToken),
+  })
+  _provider.addOnFailureHandler(recreateProvider)
+
+  async function recreateProvider() {
+    _clientToken = await getClientToken(authEndpoint, roomname)
+    _provider = new YSweetProvider(_clientToken.url, roomname, doc, {
+      ...updateProviderParams(providerParams, _clientToken),
+      connect: true,
+    })
+    _provider.addOnFailureHandler(recreateProvider)
+  }
+
+  return {
+    observable,
+    awareness,
+    get clientToken() {
+      return _clientToken
+    },
+    destroy() {
+      _provider.destroy()
+    },
+    connectBc() {
+      _provider.connectBc()
+    },
+    disconnectBc() {
+      _provider.disconnectBc()
+    },
+    disconnect() {
+      _provider.disconnect()
+    },
+    connect() {
+      _provider.connect()
+    },
+    addOnFailureHandler(handler: () => void): () => void {
+      return _provider.addOnFailureHandler(handler)
+    },
+    get synced() {
+      return _provider.synced
+    },
+    get maxBackoffTime() {
+      return _provider.maxBackoffTime
+    },
+    get bcChannel() {
+      return _provider.bcChannel
+    },
+    get url() {
+      return _provider.url
+    },
+    get roomname() {
+      return _provider.roomname
+    },
+    get doc() {
+      return _provider.doc
+    },
+    get wsconnected() {
+      return _provider.wsconnected
+    },
+    get wsconnecting() {
+      return _provider.wsconnecting
+    },
+    get bcconnected() {
+      return _provider.bcconnected
+    },
+    get disableBc() {
+      return _provider.disableBc
+    },
+    get wsUnsuccessfulReconnects() {
+      return _provider.wsUnsuccessfulReconnects
+    },
+    get messageHandlers() {
+      return _provider.messageHandlers
+    },
+    get ws() {
+      return _provider.ws
+    },
+    get wsLastMessageReceived() {
+      return _provider.wsLastMessageReceived
+    },
+    get shouldConnect() {
+      return _provider.shouldConnect
+    },
+  } as YSweetProviderWithClientToken
 }
