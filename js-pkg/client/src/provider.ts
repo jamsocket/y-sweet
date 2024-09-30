@@ -575,9 +575,6 @@ export async function ySweetProviderWrapper(
     get synced() {
       return _provider.synced
     },
-    set synced(state) {
-      _provider.synced = state
-    },
     get maxBackoffTime() {
       return _provider.maxBackoffTime
     },
