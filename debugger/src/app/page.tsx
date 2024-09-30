@@ -30,9 +30,9 @@ export default function Home() {
   }
 }
 
-function DebuggerWrapper(props: { clientToken: ClientToken }) {
+function DebuggerWrapper({ clientToken }: { clientToken: ClientToken }) {
   return (
-    <YDocProvider clientToken={props.clientToken}>
+    <YDocProvider docId={clientToken.docId} authEndpoint={async () => clientToken}>
       <Debugger />
     </YDocProvider>
   )
