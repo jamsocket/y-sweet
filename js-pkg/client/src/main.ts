@@ -10,10 +10,11 @@ import { ClientToken, encodeClientToken } from '@y-sweet/sdk'
 export { YSweetProvider, YSweetProviderParams, AuthEndpoint, YSweetProviderWithClientToken }
 
 /**
- * Given a {@link ClientToken}, create a {@link YSweetProvider} for it.
+ * Given a docId and {@link AuthEndpoint}, create a {@link YSweetProvider} for it.
  *
  * @param doc
- * @param clientToken
+ * @param docId
+ * @param authEndpoint
  * @param extraOptions
  * @returns
  */

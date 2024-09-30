@@ -145,12 +145,15 @@ function DebuggableItem(props: { entry: DebuggableEntry }) {
     setExpanded((expanded) => !expanded)
   }, [])
 
-  const toggleType = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation()
-    e.preventDefault()
-    entry.value.toggleType && entry.value.toggleType()
-    setRenderVersion((v) => v + 1)
-  }, [])
+  const toggleType = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation()
+      e.preventDefault()
+      entry.value.toggleType?.()
+      setRenderVersion((v) => v + 1)
+    },
+    [entry.value],
+  )
 
   if (entry.value.type() === 'scalar') {
     return (
