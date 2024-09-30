@@ -532,7 +532,8 @@ export async function ySweetProviderWrapper(
   providerParams: YSweetProviderParams = {},
 ): Promise<YSweetProviderWithClientToken> {
   const observable = providerParams.observable ?? new Observable<string>()
-  providerParams = { ...providerParams, observable }
+  const awareness = providerParams.awareness ?? new awarenessProtocol.Awareness(doc)
+  providerParams = { ...providerParams, observable, awareness }
 
   let _clientToken = await getClientToken(authEndpoint, roomname)
   let _provider = new YSweetProvider(_clientToken.url, roomname, doc, {
@@ -551,6 +552,7 @@ export async function ySweetProviderWrapper(
 
   return {
     observable,
+    awareness,
     get clientToken() {
       return _clientToken
     },
@@ -589,9 +591,6 @@ export async function ySweetProviderWrapper(
     },
     get doc() {
       return _provider.doc
-    },
-    get awareness() {
-      return _provider.awareness
     },
     get wsconnected() {
       return _provider.wsconnected
