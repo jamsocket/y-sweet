@@ -142,7 +142,7 @@ impl Server {
             let sync_kv = dwskv.sync_kv();
             let checkpoint_freq = self.checkpoint_freq;
             let doc_id = doc_id.to_string();
-            let persistence_cancellation_token = CancellationToken::new();
+            let cancellation_token = self.cancellation_token.clone();
 
             // Spawn a task to save the document to the store when it changes.
             self.doc_worker_tracker.spawn(
@@ -151,7 +151,7 @@ impl Server {
                     sync_kv,
                     checkpoint_freq,
                     doc_id.clone(),
-                    persistence_cancellation_token.clone(),
+                    cancellation_token.clone(),
                 )
                 .instrument(span!(Level::INFO, "save_loop", doc_id=?doc_id)),
             );
@@ -162,8 +162,7 @@ impl Server {
                         self.docs.clone(),
                         doc_id.clone(),
                         checkpoint_freq,
-                        persistence_cancellation_token,
-                        self.cancellation_token.clone(),
+                        cancellation_token,
                     )
                     .instrument(span!(Level::INFO, "gc_loop", doc_id=?doc_id)),
                 );
@@ -178,7 +177,6 @@ impl Server {
         docs: Arc<DashMap<String, DocWithSyncKv>>,
         doc_id: String,
         checkpoint_freq: Duration,
-        persistence_cancellation_token: CancellationToken,
         cancellation_token: CancellationToken,
     ) {
         let mut checkpoints_without_refs = 0;
@@ -210,7 +208,6 @@ impl Server {
                 }
             };
         }
-        persistence_cancellation_token.cancel();
         tracing::info!("Exiting gc_loop");
     }
 
