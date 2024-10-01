@@ -163,7 +163,6 @@ impl Server {
                         doc_id.clone(),
                         checkpoint_freq,
                         cancellation_token,
-                        self.cancellation_token.clone(),
                     )
                     .instrument(span!(Level::INFO, "gc_loop", doc_id=?doc_id)),
                 );
@@ -178,7 +177,6 @@ impl Server {
         docs: Arc<DashMap<String, DocWithSyncKv>>,
         doc_id: String,
         checkpoint_freq: Duration,
-        persistence_cancellation_token: CancellationToken,
         cancellation_token: CancellationToken,
     ) {
         let mut checkpoints_without_refs = 0;
@@ -210,7 +208,6 @@ impl Server {
                 }
             };
         }
-        persistence_cancellation_token.cancel();
         tracing::info!("Exiting gc_loop");
     }
 
