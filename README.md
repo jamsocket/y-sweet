@@ -10,7 +10,7 @@
 ## Features
 
 - Persists document data to a network filesystem or S3-compatible storage, [inspired by Figma’s infrastructure](https://digest.browsertech.com/archive/browsertech-digest-figma-is-a-file-editor/).
-- Scales horizontally with a [session backend](https://driftingin.space/posts/session-lived-application-backends) model.
+- Scales horizontally with a [session backend](https://jamsocket.com/blog/session-backends) model.
 - Deploys as a native Linux process, or as a WebAssembly module on Cloudflare's edge.
 - Provides document-level access control via client tokens.
 - Written in Rust with a focus on stability and performance, building on the [blazing fast](https://github.com/dmonad/crdt-benchmarks) [y-crdt](https://github.com/y-crdt/y-crdt/) library.
@@ -104,6 +104,6 @@ If you were to use the open source y-sweet server alone, you would still have to
 
 You can try a preview for free today by following our [quickstart](https://y-sweet.cloud/quickstart) guide.
 
-If you are interested in being a build partner for early access to new features, please [reach out](mailto:hi@driftingin.space).
+If you are interested in being a build partner for early access to new features, please [reach out](mailto:hi@jamsocket.com).
 
 We are committed to growing y-sweet as an open-source-first project, wherever you decide to host it.

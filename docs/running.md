@@ -20,6 +20,12 @@ npx y-sweet@latest serve /path/to/data
 
 If the directory starts with `s3://`, `y-sweet` will treat it as an S3-compatible bucket path. In this case, `y-sweet` will pick up your local AWS credentials from the environment. If you do not have AWS credentials set up, you can set them up with `aws configure`.
 
+## Deploying to Jamsocket
+
+Run the Y-Sweet server on [Jamsocket's session backends](https://jamsocket.com/).
+
+Currently available for early access. If you're interested, [reach out to us](mailto:hi@jamsocket.com).
+
 ## Running a Cloudflare Workers dev server
 
 You can also run a local dev server based on the Cloudflare Workers runtime. This is only recommended for testing changes to the Cloudflare Workers code; if you just want to run a local server, the previous method is preferred.
