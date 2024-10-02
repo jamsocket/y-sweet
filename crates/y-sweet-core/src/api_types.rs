@@ -34,6 +34,19 @@ pub struct AuthDocRequest {
     pub user_id: Option<String>,
     #[serde(default)]
     pub metadata: HashMap<String, Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub valid_for_seconds: Option<u64>,
+}
+
+impl Default for AuthDocRequest {
+    fn default() -> Self {
+        Self {
+            authorization: Authorization::Full,
+            user_id: None,
+            metadata: HashMap::new(),
+            valid_for_seconds: None,
+        }
+    }
 }
 
 #[derive(Serialize)]

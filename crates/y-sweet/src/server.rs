@@ -32,7 +32,7 @@ use y_sweet_core::{
     api_types::{
         validate_doc_name, AuthDocRequest, ClientToken, DocCreationRequest, NewDocResponse,
     },
-    auth::Authenticator,
+    auth::{Authenticator, ExpirationTimeEpochMillis, DEFAULT_EXPIRATION_MILLIS},
     doc_connection::DocConnection,
     doc_sync::DocWithSyncKv,
     store::Store,
@@ -641,16 +641,22 @@ async fn auth_doc(
     TypedHeader(host): TypedHeader<headers::Host>,
     State(server_state): State<Arc<Server>>,
     Path(doc_id): Path<String>,
-    Json(_body): Json<AuthDocRequest>,
+    body: Option<Json<AuthDocRequest>>,
 ) -> Result<Json<ClientToken>, AppError> {
     server_state.check_auth(authorization)?;
+
+    let body = body.unwrap_or_default();
 
     if !server_state.doc_exists(&doc_id).await {
         Err((StatusCode::NOT_FOUND, anyhow!("Doc {} not found", doc_id)))?;
     }
 
+    let valid_for_seconds = body.valid_for_seconds.unwrap_or(DEFAULT_EXPIRATION_MILLIS);
+    let expiration_time =
+        ExpirationTimeEpochMillis(current_time_epoch_millis() + valid_for_seconds * 1000);
+
     let token = if let Some(auth) = &server_state.authenticator {
-        let token = auth.gen_doc_token(&doc_id, current_time_epoch_millis());
+        let token = auth.gen_doc_token(&doc_id, expiration_time);
         Some(token)
     } else {
         None
@@ -708,11 +714,12 @@ mod test {
             ))),
             State(Arc::new(server_state)),
             Path(doc_id.clone()),
-            Json(AuthDocRequest {
+            Some(Json(AuthDocRequest {
                 authorization: Authorization::Full,
                 user_id: None,
                 metadata: HashMap::new(),
-            }),
+                valid_for_seconds: None,
+            })),
         )
         .await
         .unwrap();
@@ -745,11 +752,7 @@ mod test {
             ))),
             State(Arc::new(server_state)),
             Path(doc_id.clone()),
-            Json(AuthDocRequest {
-                authorization: Authorization::Full,
-                user_id: None,
-                metadata: HashMap::new(),
-            }),
+            None,
         )
         .await
         .unwrap();
