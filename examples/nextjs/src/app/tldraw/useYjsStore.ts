@@ -232,18 +232,18 @@ export function useYjsStore() {
         return
       }
 
-      provider.observable.off('sync', handleSync)
+      provider.off('sync', handleSync)
 
       if (status === 'connected') {
         if (hasConnectedBefore) return
         hasConnectedBefore = true
-        provider.observable.on('sync', handleSync)
-        unsubs.push(() => provider.observable.off('sync', handleSync))
+        provider.on('sync', handleSync)
+        unsubs.push(() => provider.off('sync', handleSync))
       }
     }
 
-    provider.observable.on('status', handleStatusChange)
-    unsubs.push(() => provider.observable.off('status', handleStatusChange))
+    provider.on('status', handleStatusChange)
+    unsubs.push(() => provider.off('status', handleStatusChange))
 
     return () => {
       unsubs.forEach((fn) => fn())

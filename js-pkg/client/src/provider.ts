@@ -114,10 +114,10 @@ const setupWS = (provider: YSweetProvider) => {
       }
     }
     websocket.onerror = (event) => {
-      provider.observable.emit('connection-error', [event, provider])
+      provider.emit('connection-error', [event, provider])
     }
     websocket.onclose = (event) => {
-      provider.observable.emit('connection-close', [event, provider])
+      provider.emit('connection-close', [event, provider])
       provider.ws = null
       provider.wsconnecting = false
       if (provider.wsconnected) {
@@ -131,7 +131,7 @@ const setupWS = (provider: YSweetProvider) => {
           ),
           provider,
         )
-        provider.observable.emit('status', [
+        provider.emit('status', [
           {
             status: 'disconnected',
           },
@@ -161,7 +161,7 @@ const setupWS = (provider: YSweetProvider) => {
       provider.wsconnecting = false
       provider.wsconnected = true
       provider.wsUnsuccessfulReconnects = 0
-      provider.observable.emit('status', [
+      provider.emit('status', [
         {
           status: 'connected',
         },
@@ -182,7 +182,7 @@ const setupWS = (provider: YSweetProvider) => {
         websocket.send(encoding.toUint8Array(encoderAwarenessState))
       }
     }
-    provider.observable.emit('status', [
+    provider.emit('status', [
       {
         status: 'connecting',
       },
@@ -224,7 +224,6 @@ export type YSweetProviderParams = {
   resyncInterval?: number
   maxBackoffTime?: number
   disableBc?: boolean
-  observable?: Observable<string>
 }
 
 /**
@@ -238,14 +237,13 @@ export type YSweetProviderParams = {
  * const doc = new Y.Doc()
  * const provider = new YSweetProvider('http://localhost:1234', 'my-document-name', doc)
  */
-export class YSweetProvider {
+export class YSweetProvider extends Observable<string> {
   onFailureHandlers: Array<() => void> = []
   maxBackoffTime: number
   bcChannel: string
   url: string
   roomname: string
   doc: Y.Doc
-  observable: Observable<string>
   _WS: WebSocketPolyfillType
   awareness: awarenessProtocol.Awareness
   wsconnected: boolean
@@ -277,7 +275,6 @@ export class YSweetProvider {
    * @param opts.resyncInterval - resync interval
    * @param opts.maxBackoffTime - maximum backoff time
    * @param opts.disableBc - disable broadcast channel
-   * @param opts.observable - an observable instance to emit events on
    */
   constructor(
     serverUrl: string,
@@ -291,15 +288,14 @@ export class YSweetProvider {
       resyncInterval = -1,
       maxBackoffTime = 2500,
       disableBc = false,
-      observable = new Observable<string>(),
     }: YSweetProviderParams = {},
   ) {
+    super()
     // ensure that url is always ends with /
     while (serverUrl[serverUrl.length - 1] === '/') {
       serverUrl = serverUrl.slice(0, serverUrl.length - 1)
     }
     const encodedParams = url.encodeQueryParams(params)
-    this.observable = observable
     this.maxBackoffTime = maxBackoffTime
     this.bcChannel = serverUrl + '/' + roomname
     this.url = serverUrl + '/' + roomname + (encodedParams.length === 0 ? '' : '?' + encodedParams)
@@ -407,8 +403,8 @@ export class YSweetProvider {
   set synced(state) {
     if (this._synced !== state) {
       this._synced = state
-      this.observable.emit('synced', [state])
-      this.observable.emit('sync', [state])
+      this.emit('synced', [state])
+      this.emit('sync', [state])
     }
   }
 
@@ -425,6 +421,7 @@ export class YSweetProvider {
     }
     this.awareness.off('update', this._awarenessUpdateHandler)
     this.doc.off('update', this._updateHandler)
+    super.destroy()
   }
 
   connectBc() {
@@ -531,9 +528,15 @@ export async function ySweetProviderWrapper(
   doc: Y.Doc,
   providerParams: YSweetProviderParams = {},
 ): Promise<YSweetProviderWithClientToken> {
-  const observable = providerParams.observable ?? new Observable<string>()
+  // we use an observable that lives outside the provider to store event listeners
+  // so that we can re-subscribe to events when the provider is re-created
+  const observable = new Observable<string>()
+  // keep track of which events have been subscribed to on the local observable
+  // so we can re-subscribe to them when the provider is re-created
+  const subscribedEvents = new Set<string>()
+
   const awareness = providerParams.awareness ?? new awarenessProtocol.Awareness(doc)
-  providerParams = { ...providerParams, observable, awareness }
+  providerParams = { ...providerParams, awareness }
 
   let _clientToken = await getClientToken(authEndpoint, roomname)
   let _provider = new YSweetProvider(_clientToken.url, roomname, doc, {
@@ -548,10 +551,33 @@ export async function ySweetProviderWrapper(
       connect: true,
     })
     _provider.addOnFailureHandler(recreateProvider)
+    // the previous provider's destroy() method should have been called before
+    // recreateProvider() is called, so we don't need to unsubscribe from events
+    // before re-subscribing to events here
+    for (const event of subscribedEvents) {
+      subscribeToEvent(event)
+    }
+  }
+
+  // for each event that is subscribed to on the local observable, make sure to
+  // subscribe to it on the provider
+  function subscribeToEvent(name: string) {
+    _provider.on(name, (...args: any[]) => observable.emit(name, args))
+    subscribedEvents.add(name)
   }
 
   return {
-    observable,
+    on: (name: string, f: (...args: any[]) => void) => {
+      if (!subscribedEvents.has(name)) subscribeToEvent(name)
+      observable.on(name, f)
+    },
+    once: (name: string, f: (...args: any[]) => void) => {
+      if (!subscribedEvents.has(name)) subscribeToEvent(name)
+      observable.once(name, f)
+    },
+    off: (name: string, f: (...args: any[]) => void) => {
+      observable.off(name, f)
+    },
     awareness,
     get clientToken() {
       return _clientToken
@@ -619,5 +645,5 @@ export async function ySweetProviderWrapper(
     get shouldConnect() {
       return _provider.shouldConnect
     },
-  } as YSweetProviderWithClientToken
+  } as unknown as YSweetProviderWithClientToken
 }
