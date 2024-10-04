@@ -36,7 +36,7 @@ async function connectToDoc(server: Server, docId: string): Promise<Y.Doc> {
   })
 
   await new Promise<void>((resolve, reject) => {
-    provider.observable.on('synced', resolve)
+    provider.on('synced', resolve)
 
     setTimeout(() => {
       reject('Timed out waiting for sync')

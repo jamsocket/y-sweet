@@ -127,8 +127,8 @@ describe.each(CONFIGURATIONS)(
       const provider = await createYjsProvider(doc, docResult.docId, getClientToken, {})
 
       await new Promise((resolve, reject) => {
-        provider.observable.on('synced', resolve)
-        provider.observable.on('syncing', reject)
+        provider.on('synced', resolve)
+        provider.on('syncing', reject)
       })
     })
 
@@ -227,7 +227,7 @@ describe.each(CONFIGURATIONS)(
 
       await new Promise<void>((resolve, reject) => {
         setTimeout(() => reject('Expected to disconnect.'), 1_000)
-        provider.observable.on('connection-close', () => {
+        provider.on('connection-close', () => {
           resolve()
         })
       })
@@ -240,7 +240,7 @@ describe.each(CONFIGURATIONS)(
       // Reconnect to the doc.
       provider.connect()
       await new Promise<void>((resolve, reject) => {
-        provider.observable.on('status', (event: { status: string }) => {
+        provider.on('status', (event: { status: string }) => {
           if (event.status === 'connected') {
             resolve()
           } else {

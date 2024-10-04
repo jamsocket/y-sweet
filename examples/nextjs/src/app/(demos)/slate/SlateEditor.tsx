@@ -18,8 +18,8 @@ export function SlateEditor() {
   }, [yDoc])
 
   useEffect(() => {
-    provider.observable.on('sync', setConnected)
-    return () => provider.observable.off('sync', setConnected)
+    provider.on('sync', setConnected)
+    return () => provider.off('sync', setConnected)
   }, [provider])
 
   if (!connected) return 'Loading...'
