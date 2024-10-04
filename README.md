@@ -1,31 +1,32 @@
-<img src="https://raw.githubusercontent.com/drifting-in-space/y-sweet/main/logo.svg" />
+<img src="https://raw.githubusercontent.com/jamsocket/y-sweet/main/logo.svg" />
 
-# y-sweet: a Yjs server with persistence and auth
+# Y-Sweet: a Yjs server with persistence and auth
 
-[![GitHub Repo stars](https://img.shields.io/github/stars/drifting-in-space/y-sweet?style=social)](https://github.com/drifting-in-space/y-sweet)
+[![GitHub Repo stars](https://img.shields.io/github/stars/jamsocket/y-sweet?style=social)](https://github.com/jamsocket/y-sweet)
 [![Chat on Discord](https://img.shields.io/discord/939641163265232947?color=404eed&label=discord)](https://discord.gg/N5sEpsuhh9)
 
-**y-sweet** is an open-source server for building realtime applications on top of the [Yjs](https://github.com/yjs/yjs) CRDT library.
+**Y-Sweet** is an open-source server for building realtime applications on top of the [Yjs](https://github.com/yjs/yjs) CRDT library.
 
 ## Features
 
 - Persists document data to a network filesystem or S3-compatible storage, [inspired by Figma’s infrastructure](https://digest.browsertech.com/archive/browsertech-digest-figma-is-a-file-editor/).
 - Scales horizontally with a [session backend](https://jamsocket.com/blog/session-backends) model.
-- Deploys as a native Linux process, or as a WebAssembly module on Cloudflare's edge.
+- Deploys as a native Linux process.
 - Provides document-level access control via client tokens.
 - Written in Rust with a focus on stability and performance, building on the [blazing fast](https://github.com/dmonad/crdt-benchmarks) [y-crdt](https://github.com/y-crdt/y-crdt/) library.
 
-## y-sweet stack
+## Y-Sweet stack
 
-The y-sweet server can be used by any Yjs app, or you can use our opinionated stack to integrate Yjs and y-sweet into a Next.js app.
+The Y-Sweet server can be used by any Yjs app, or you can use our opinionated stack to integrate Yjs and Y-Sweet into a Next.js app.
 
 - `@y-sweet/sdk`, a TypeScript library for interacting with `y-sweet-server` from your application backend.
-- `@y-sweet/react`, a React hooks library for building Yjs applications.
-- A [debugger](https://y-sweet.cloud/advanced/debugger) for exploring Yjs document and presence state.
+- `@y-sweet/client`, a TypeScript library for syncing documents from a client to a Y-Sweet server.
+- `@y-sweet/react`, a library of React hooks for connecting to a Y-Sweet server and manipulating Yjs docs.
+- A [debugger](https://docs.jamsocket.com/y-sweet/advanced/debugger) for exploring Yjs document and presence state.
 
-The goal of the y-sweet stack is to give developers the end-to-end developer ergonomics they would expect from a proprietary state-sync platform, **without the lock-in**.
+The goal of the Y-Sweet stack is to give developers the end-to-end developer ergonomics they would expect from a proprietary state-sync platform, **without the lock-in**.
 
-y-sweet is MIT-licensed, and was created by [Jamsocket](https://jamsocket.com).
+Y-Sweet is MIT-licensed, and was created by [Jamsocket](https://jamsocket.com).
 
 ## Docs
 
@@ -33,14 +34,14 @@ y-sweet is MIT-licensed, and was created by [Jamsocket](https://jamsocket.com).
     - [Vanilla JS client](https://docs.y-sweet.dev/modules/_y_sweet_client.html)
     - [React hooks](https://docs.y-sweet.dev/modules/_y_sweet_react.html)
     - [Document management SDK](https://docs.y-sweet.dev/modules/_y_sweet_sdk.html)
-- [Y-Sweet Cloud (managed service) docs](https://y-sweet.cloud/quickstart)
+- [Y-Sweet Cloud (managed service) docs](https://docs.jamsocket.com/y-sweet/quickstart)
 - [Self Hosting](https://github.com/jamsocket/y-sweet/blob/main/docs/running.md)
 
 ## Examples
 
-Explore our [collaborative examples](https://github.com/drifting-in-space/y-sweet) to help you get started.
+Explore our [collaborative examples](https://github.com/jamsocket/y-sweet) to help you get started.
 
-All examples are open source and live in this repository, within [/examples](https://github.com/drifting-in-space/y-sweet/tree/main/examples).
+All examples are open source and live in this repository, within [/examples](https://github.com/jamsocket/y-sweet/tree/main/examples).
 
 ## Usage
 
@@ -48,13 +49,20 @@ Check the [vanilla js example](/examples/vanilla/) for more details.
 
 ### On the server
 ``` js
-import { DocumentManager } from '@y-sweet/sdk'
+import { DocumentManager } from '@y-sweet/sdk';
 
-// Pass in a CONNECTION_STRING, which you can get from running npx y-sweet@latest serve locally or from y-sweet cloud
-const manager = new DocumentManager(CONNECTION_STRING)
+// Pass in a CONNECTION_STRING, which you can get from a Y-Sweet service in the Jamsocket dashboard or from running npx y-sweet@latest serve locally
+const manager = new DocumentManager(CONNECTION_STRING);
 
-// Get the client token from the y-sweet server. The client token is like the user's "password" to edit the "myDoc123" doc.
-const clientToken = await manager.getOrCreateDocAndToken('myDoc123')
+// create an endpoint that auths your user and returns a Y-Sweet client token
+export async function POST(request) {
+  // in a production app, you'd want to authenticate the user
+  // and make sure they have access to the given doc
+  const body = await request.json();
+  const docId = body.docId;
+  const clientToken = await manager.getOrCreateDocAndToken(docId);
+  return Response.json(clientToken);
+}
 ```
 
 ### On the client
@@ -62,11 +70,12 @@ const clientToken = await manager.getOrCreateDocAndToken('myDoc123')
 import * as Y from 'yjs';
 import { createYjsProvider } from '@y-sweet/client';
 
-// Create the yjs doc and link it to the y-sweet server:
+// Create the Yjs doc and link it to the Y-Sweet server:
 const doc = new Y.Doc();
-createYjsProvider(doc, clientToken);
+const docId = 'my-doc-id';
+createYjsProvider(doc, docId, '/api/my-auth-endpoint');
 
-// Now use the doc like a normal yjs doc!
+// Now use the doc like a normal Yjs doc!
 let mySharedMap = doc.getMap('thing');
 mySharedMap.set("foo", 123);
 
@@ -98,12 +107,12 @@ mySharedMap.observe((event) => {
 | npm | `@y-sweet/react` | [![npm](https://img.shields.io/npm/v/@y-sweet/react)](https://www.npmjs.com/package/@y-sweet/react) | `js-pkg/react` |
 | pypi | `y-sweet-sdk` | [![pypi](https://img.shields.io/pypi/v/y-sweet-sdk)](https://pypi.org/project/y-sweet-sdk/) | `python/y_sweet_sdk` |
 
-## Y-Sweet Cloud
+## Hosted Y-Sweet on Jamsocket
 
-If you were to use the open source y-sweet server alone, you would still have to set up the infrastructure for self hosting it. With Y-Sweet cloud, every document is automatically persisted. You can link your own S3-compatible storage, or just let us take care of the details.
+If you were to use the open source Y-Sweet server alone, you would still have to set up the infrastructure for self hosting it. With [Jamsocket](https://jamsocket.com/y-sweet), Y-Sweet scales effortlessly, and every document is automatically persisted when you link your own S3 storage.
 
-You can try a preview for free today by following our [quickstart](https://y-sweet.cloud/quickstart) guide.
+You can try it out for free today by following our [quickstart](https://docs.jamsocket.com/y-sweet/quickstart) guide.
 
 If you are interested in being a build partner for early access to new features, please [reach out](mailto:hi@jamsocket.com).
 
-We are committed to growing y-sweet as an open-source-first project, wherever you decide to host it.
+We are committed to growing Y-Sweet as an open-source-first project, wherever you decide to host it.
