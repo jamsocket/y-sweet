@@ -84,6 +84,7 @@ impl PackageManager for PythonPackageManager {
 
         let python = env.python();
 
+        println!("Building package");
         // Build the package
         let build_output = Command::new(python)
             .arg("-m")
@@ -92,7 +93,11 @@ impl PackageManager for PythonPackageManager {
             .output()
             .context("Failed to execute build command")?;
 
+        
         if !build_output.status.success() {
+            println!("Build failed with status: {}", build_output.status);
+            println!("Build output: {}", String::from_utf8_lossy(&build_output.stdout));
+            println!("Build stderr: {}", String::from_utf8_lossy(&build_output.stderr));
             return Err(anyhow::anyhow!(
                 "Build failed with status: {}.\nStderr: {}",
                 build_output.status,
@@ -100,6 +105,7 @@ impl PackageManager for PythonPackageManager {
             ));
         }
 
+        println!("Uploading package");
         // Upload the package
         Command::new(python)
             .arg("-m")

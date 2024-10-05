@@ -1,6 +1,6 @@
 <img src="https://raw.githubusercontent.com/jamsocket/y-sweet/main/logo.svg" />
 
-# Y-Sweet: a Yjs server with persistence and auth
+# Y-Sweet: a realtime CRDT-based document database, backed by object storage
 
 [![GitHub Repo stars](https://img.shields.io/github/stars/jamsocket/y-sweet?style=social)](https://github.com/jamsocket/y-sweet)
 [![Chat on Discord](https://img.shields.io/discord/939641163265232947?color=404eed&label=discord)](https://discord.gg/N5sEpsuhh9)
