@@ -42,7 +42,7 @@ export class DocumentManager {
   }
 
   public async checkStore(): Promise<CheckStoreResult> {
-    return await (await this.client.request('check_store', 'GET')).json()
+    return await (await this.client.request('check_store', 'POST', {})).json()
   }
 
   /**

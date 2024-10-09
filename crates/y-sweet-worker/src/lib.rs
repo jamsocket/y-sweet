@@ -34,6 +34,7 @@ pub fn router(
     Ok(Router::with_data(context)
         .get("/", |_, _| Response::ok("Y-Sweet!"))
         .get_async("/check_store", check_store_handler)
+        .post_async("/check_store", check_store_handler)
         .post_async("/doc/new", new_doc_handler)
         .post_async("/doc/:doc_id/auth", auth_doc_handler)
         .get_async("/doc/:doc_id/as-update", as_update_handler)

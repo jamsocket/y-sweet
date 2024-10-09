@@ -99,6 +99,18 @@ describe.each(CONFIGURATIONS)(
       expect(result).toEqual({ ok: true })
     })
 
+    test('Check store over GET (deprecated)', async () => {
+      // Note: this tests deprecated behavior.
+      // It will be removed when the behavior is removed.
+      // It's ugly to access a private member like this, but
+      // it's the best way to avoid changing the SDK API for a
+      // test that is temporary anyway.
+      let client = (DOCUMENT_MANANGER as any).client
+
+      let result = await client.request('check_store', 'GET')
+      expect(result.ok).toBe(true)
+    })
+
     test('Create new doc', async () => {
       const result = await DOCUMENT_MANANGER.createDoc()
       expect(typeof result.docId).toBe('string')
