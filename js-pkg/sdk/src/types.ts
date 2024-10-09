@@ -28,3 +28,19 @@ export type ClientToken = {
 }
 
 export type CheckStoreResult = { ok: true } | { ok: false; error: string }
+
+export type Authorization = 'full' | 'read-only'
+
+export type AuthDocRequest = {
+  /** The authorization level to use for the document. Defaults to 'full' (not currently enforced). */
+  authorization?: Authorization
+
+  /** A user ID to associate with the token. Not currently used. */
+  userId?: string
+
+  /** Metadata to associate with the user accessing the document. Not currently used. */
+  metadata?: Record<string, any>
+
+  /** The number of seconds the token should be valid for. */
+  validForSeconds?: number
+}

@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeAll, afterAll } from 'vitest'
-import { DocumentManager } from '@y-sweet/sdk'
+import { DocumentManager, YSweetError } from '@y-sweet/sdk'
 import {
   createYjsProvider as createYjsProvider_,
   YSweetProviderParams,
@@ -280,6 +280,47 @@ describe.each(CONFIGURATIONS)(
     })
 
     if (configuration.useAuth) {
+      test('Connecting with 0 validForSeconds should fail', async () => {
+        const docResult = await DOCUMENT_MANANGER.createDoc()
+        const conn = await DOCUMENT_MANANGER.getDocConnection(docResult, { validForSeconds: 0 })
+
+        // wait 1 second
+        await new Promise((resolve) => setTimeout(resolve, 1_000))
+
+        try {
+          await conn.getAsUpdate()
+          throw new Error('Expected error')
+        } catch (e) {
+          if (e instanceof YSweetError) {
+            expect(e.cause.code).toBe('InvalidAuthProvided')
+          } else {
+            throw e
+          }
+        }
+      })
+
+      test('Connecting with 5 validForSeconds should work briefly', async () => {
+        const docResult = await DOCUMENT_MANANGER.createDoc()
+        const conn = await DOCUMENT_MANANGER.getDocConnection(docResult, { validForSeconds: 5 })
+
+        const update = await conn.getAsUpdate()
+        expect(update).toBeDefined()
+
+        // wait 8 seconds
+        await new Promise((resolve) => setTimeout(resolve, 8_000))
+
+        try {
+          await conn.getAsUpdate()
+          throw new Error('Expected error')
+        } catch (e) {
+          if (e instanceof YSweetError) {
+            expect(e.cause.code).toBe('InvalidAuthProvided')
+          } else {
+            throw e
+          }
+        }
+      }, 10_000)
+
       test('Attempting to connect to a document without auth should fail', async () => {
         const docResult = await DOCUMENT_MANANGER.createDoc()
         const key = await DOCUMENT_MANANGER.getClientToken(docResult)
