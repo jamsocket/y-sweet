@@ -336,13 +336,17 @@ impl Server {
             .route("/ready", get(ready))
             .route("/check_store", post(check_store))
             .route("/check_store", get(check_store_deprecated))
-            .route("/doc/ws/:doc_id", get(handle_socket_upgrade))
+            .route("/doc/ws/:doc_id", get(handle_socket_upgrade_deprecated))
             .route("/doc/new", post(new_doc))
             .route("/doc/:doc_id/auth", post(auth_doc))
             .route("/doc/:doc_id/as-update", get(get_doc_as_update_deprecated))
             .route("/doc/:doc_id/update", post(update_doc_deprecated))
             .route("/d/:doc_id/as-update", get(get_doc_as_update))
             .route("/d/:doc_id/update", post(update_doc))
+            .route(
+                "/d/:doc_id/ws/:doc_id2",
+                get(handle_socket_upgrade_full_path),
+            )
             .with_state(self.clone())
     }
 
@@ -510,6 +514,34 @@ async fn handle_socket_upgrade(
     Ok(ws.on_upgrade(move |socket| handle_socket(socket, awareness, cancellation_token)))
 }
 
+async fn handle_socket_upgrade_deprecated(
+    ws: WebSocketUpgrade,
+    Path(doc_id): Path<String>,
+    Query(params): Query<HandlerParams>,
+    State(server_state): State<Arc<Server>>,
+) -> Result<Response, AppError> {
+    tracing::warn!(
+        "/doc/ws/:doc_id is deprecated; call /doc/:doc_id/auth instead and use the returned URL."
+    );
+    handle_socket_upgrade(ws, Path(doc_id), Query(params), State(server_state)).await
+}
+
+async fn handle_socket_upgrade_full_path(
+    ws: WebSocketUpgrade,
+    Path((doc_id, doc_id2)): Path<(String, String)>,
+    Query(params): Query<HandlerParams>,
+    State(server_state): State<Arc<Server>>,
+) -> Result<Response, AppError> {
+    if doc_id != doc_id2 {
+        return Err(AppError(
+            StatusCode::BAD_REQUEST,
+            anyhow!("For Yjs compatibility, the doc_id appears twice in the URL. It must be the same in both places, but we got {} and {}.", doc_id, doc_id2),
+        ));
+    }
+
+    handle_socket_upgrade(ws, Path(doc_id), Query(params), State(server_state)).await
+}
+
 async fn handle_socket_upgrade_single(
     ws: WebSocketUpgrade,
     Path(doc_id): Path<String>,
@@ -660,10 +692,10 @@ async fn auth_doc(
         let mut url = url_prefix.clone();
         let scheme = if url.scheme() == "https" { "wss" } else { "ws" };
         url.set_scheme(scheme).unwrap();
-        url = url.join("/doc/ws").unwrap();
+        url = url.join(&format!("/d/{doc_id}/ws")).unwrap();
         url.to_string()
     } else {
-        format!("ws://{host}/doc/ws")
+        format!("ws://{host}/d/{doc_id}/ws")
     };
 
     let base_url = if let Some(url_prefix) = &server_state.url_prefix {
@@ -717,7 +749,8 @@ mod test {
         .await
         .unwrap();
 
-        assert_eq!(token.url, "ws://localhost/doc/ws");
+        let expected_url = format!("ws://localhost/d/{doc_id}/ws");
+        assert_eq!(token.url, expected_url);
         assert_eq!(token.doc_id, doc_id);
         assert!(token.token.is_none());
     }
@@ -754,7 +787,8 @@ mod test {
         .await
         .unwrap();
 
-        assert_eq!(token.url, "wss://foo.bar/doc/ws");
+        let expected_url = format!("wss://foo.bar/d/{doc_id}/ws");
+        assert_eq!(token.url, expected_url);
         assert_eq!(token.doc_id, doc_id);
         assert!(token.token.is_none());
     }
