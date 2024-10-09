@@ -575,7 +575,9 @@ async fn check_store_deprecated(
     authorization: Option<TypedHeader<headers::Authorization<headers::authorization::Bearer>>>,
     State(server_state): State<Arc<Server>>,
 ) -> Result<Json<Value>, AppError> {
-    tracing::warn!("GET check_store is deprecated, use POST check_store with an empty body instead.");
+    tracing::warn!(
+        "GET check_store is deprecated, use POST check_store with an empty body instead."
+    );
     check_store(authorization, State(server_state)).await
 }
 
