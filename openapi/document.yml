@@ -1,0 +1,145 @@
+openapi: 3.1.0
+info:
+  title: Y-Sweet Document-level API
+  version: '0.5.0'
+  x-logo:
+    url: 'https://raw.githubusercontent.com/jamsocket/y-sweet/main/logo.svg'
+  description: |
+    Y-Sweet has two APIs:
+    1. **A document management API**, which allows creating and updating documents.
+    2. **A single document API** (this one), which allows connecting to and updating a single document.
+
+    Typically, you will first use the document management API to get an auth token for a specific document (via `/doc/{docId}/auth`), which will
+    return a `baseUrl`. That `baseUrl` will become the base for the single document API described here. All API calls are scoped to the document ID
+    provided in the `auth` request path.
+
+
+paths:
+  /as-update:
+    get:
+      summary: Get As Yjs Update
+      description: |
+        Retrieves the document in Yjs update format, which provide a compressed binary representation of a set of changes to a Yjs document.
+
+        Updates can be applied to a Yjs document as follows:
+
+        ```javascript
+        import * as Y from 'yjs'
+
+        let doc = new Y.Doc()
+        doc.transact(() => {
+          Y.applyUpdate(doc, update)
+        })
+        ```
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Document update
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Document not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /update:
+    post:
+      summary: Update With Yjs Update
+      description: |
+        Writes to a document with the provided Yjs update, which provide a compressed binary representation of a set of changes to a Yjs document.
+
+        Updates can be obtained from a Yjs document as follows:
+
+        ```javascript
+        import * as Y from 'yjs'
+
+        // doc is a Y.Doc
+        let update = Y.encodeStateAsUpdate(doc)
+        ```
+
+        Note that this will encode the *entire* document state as an update, but you can also use this endpoint for incremental updates.
+        See Yjs's [Document Updates](https://docs.yjs.dev/api/document-updates) documentation for more information.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '200':
+          description: Document updated
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Document not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /ws/{docId}:
+    get:
+      summary: Connect to a document over WebSocket.
+      description: Establishes a WebSocket connection for real-time synchronization with the [y-websocket](https://github.com/yjs/y-websocket) protocol.
+      parameters:
+        - in: path
+          name: docId
+          required: true
+          schema:
+            type: string
+          description: Document ID. This **must** match the `docId` returned from the `/doc/{docId}/auth` endpoint in the request that provided the current `baseUrl`.
+        - in: query
+          name: token
+          required: false
+          schema:
+            type: string
+          description: Client token for authentication. If the document manager returned a `token` in the `auth` response, it must be provided here.
+      responses:
+        '101':
+          description: Switching Protocols
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
