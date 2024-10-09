@@ -749,7 +749,8 @@ mod test {
         .await
         .unwrap();
 
-        assert_eq!(token.url, "ws://localhost/doc/ws");
+        let expected_url = format!("ws://localhost/d/{doc_id}/ws");
+        assert_eq!(token.url, expected_url);
         assert_eq!(token.doc_id, doc_id);
         assert!(token.token.is_none());
     }
@@ -786,7 +787,8 @@ mod test {
         .await
         .unwrap();
 
-        assert_eq!(token.url, "wss://foo.bar/doc/ws");
+        let expected_url = format!("wss://foo.bar/d/{doc_id}/ws");
+        assert_eq!(token.url, expected_url);
         assert_eq!(token.doc_id, doc_id);
         assert!(token.token.is_none());
     }
