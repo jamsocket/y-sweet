@@ -34,7 +34,7 @@ pub struct AuthDocRequest {
     pub user_id: Option<String>,
     #[serde(default)]
     pub metadata: HashMap<String, Value>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none", rename = "validForSeconds")]
     pub valid_for_seconds: Option<u64>,
 }
 

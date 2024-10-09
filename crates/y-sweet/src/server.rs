@@ -652,6 +652,7 @@ async fn auth_doc(
     }
 
     let valid_for_seconds = body.valid_for_seconds.unwrap_or(DEFAULT_EXPIRATION_MILLIS);
+    println!("valid_for_seconds {}", valid_for_seconds);
     let expiration_time =
         ExpirationTimeEpochMillis(current_time_epoch_millis() + valid_for_seconds * 1000);
 
