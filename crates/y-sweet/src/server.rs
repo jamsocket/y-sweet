@@ -334,7 +334,8 @@ impl Server {
     pub fn routes(self: &Arc<Self>) -> Router {
         Router::new()
             .route("/ready", get(ready))
-            .route("/check_store", get(check_store))
+            .route("/check_store", post(check_store))
+            .route("/check_store", get(check_store_deprecated))
             .route("/doc/ws/:doc_id", get(handle_socket_upgrade))
             .route("/doc/new", post(new_doc))
             .route("/doc/:doc_id/auth", post(auth_doc))
@@ -587,6 +588,16 @@ async fn check_store(
     // The check_store endpoint for the native server is kind of moot, since
     // the server will not start if store is not ok.
     Ok(Json(json!({"ok": true})))
+}
+
+async fn check_store_deprecated(
+    authorization: Option<TypedHeader<headers::Authorization<headers::authorization::Bearer>>>,
+    State(server_state): State<Arc<Server>>,
+) -> Result<Json<Value>, AppError> {
+    tracing::warn!(
+        "GET check_store is deprecated, use POST check_store with an empty body instead."
+    );
+    check_store(authorization, State(server_state)).await
 }
 
 /// Always returns a 200 OK response, as long as we are listening.

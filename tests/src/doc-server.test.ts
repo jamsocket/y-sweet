@@ -86,10 +86,11 @@ test('get doc as update', async () => {
   await connection.getAsUpdate()
 })
 
-test('get doc as update after delay', async () => {
-  let connection = SERVER.connection()
+// // Slows tests by a lot, so commented by default.
+// test('get doc as update after delay', async () => {
+//   let connection = SERVER.connection()
 
-  await new Promise((resolve) => setTimeout(resolve, 24_000))
+//   await new Promise((resolve) => setTimeout(resolve, 24_000))
 
-  await connection.getAsUpdate()
-}, 30_000)
+//   await connection.getAsUpdate()
+// }, 30_000)
