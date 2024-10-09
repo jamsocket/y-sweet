@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "build": "mkdir -p build && redocly build-docs server.yml --output build/index.html && redocly build-docs document.yml --output build/document.html"
+    "build": "rm -r build && mkdir build && mkdir -p build && redocly build-docs server.yml --output build/index.html && redocly build-docs document.yml --output build/document.html"
   },
   "dependencies": {
     "@redocly/cli": "1.25.5"
