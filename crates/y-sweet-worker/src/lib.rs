@@ -11,7 +11,7 @@ use y_sweet_core::{
     api_types::{
         validate_doc_name, AuthDocRequest, ClientToken, DocCreationRequest, NewDocResponse,
     },
-    auth::{Authenticator, ExpirationTimeEpochMillis, DEFAULT_EXPIRATION_MILLIS},
+    auth::{Authenticator, ExpirationTimeEpochMillis, DEFAULT_EXPIRATION_SECONDS},
     doc_sync::DocWithSyncKv,
     store::StoreError,
 };
@@ -210,7 +210,7 @@ async fn auth_doc(
     // Note: to preserve the existing behavior, we default to an empty request.
     let body = req.json::<AuthDocRequest>().await.unwrap_or_default();
 
-    let valid_time_seconds = body.valid_for_seconds.unwrap_or(DEFAULT_EXPIRATION_MILLIS);
+    let valid_time_seconds = body.valid_for_seconds.unwrap_or(DEFAULT_EXPIRATION_SECONDS);
     let expiration_time =
         ExpirationTimeEpochMillis(get_time_millis_since_epoch() + valid_time_seconds * 1000);
 

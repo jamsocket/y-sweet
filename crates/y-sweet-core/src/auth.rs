@@ -6,7 +6,7 @@ use sha2::{Digest, Sha256};
 use std::fmt::Display;
 use thiserror::Error;
 
-pub const DEFAULT_EXPIRATION_MILLIS: u64 = 1000 * 60 * 60; // 60 minutes
+pub const DEFAULT_EXPIRATION_SECONDS: u64 = 60 * 60; // 60 minutes
 
 /// This newtype is introduced to distinguish between a u64 meant to represent the current time
 /// (currently passed as a raw u64), and a u64 meant to represent an expiration time.
@@ -389,7 +389,7 @@ mod tests {
         let token = authenticator.gen_doc_token("doc123", ExpirationTimeEpochMillis(0));
         assert_eq!(authenticator.verify_doc_token(&token, "doc123", 0), Ok(()));
         assert_eq!(
-            authenticator.verify_doc_token(&token, "doc123", DEFAULT_EXPIRATION_MILLIS + 1),
+            authenticator.verify_doc_token(&token, "doc123", DEFAULT_EXPIRATION_SECONDS + 1),
             Err(AuthError::Expired)
         );
         assert_eq!(

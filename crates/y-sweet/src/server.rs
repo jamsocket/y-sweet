@@ -32,7 +32,7 @@ use y_sweet_core::{
     api_types::{
         validate_doc_name, AuthDocRequest, ClientToken, DocCreationRequest, NewDocResponse,
     },
-    auth::{Authenticator, ExpirationTimeEpochMillis, DEFAULT_EXPIRATION_MILLIS},
+    auth::{Authenticator, ExpirationTimeEpochMillis, DEFAULT_EXPIRATION_SECONDS},
     doc_connection::DocConnection,
     doc_sync::DocWithSyncKv,
     store::Store,
@@ -651,8 +651,7 @@ async fn auth_doc(
         Err((StatusCode::NOT_FOUND, anyhow!("Doc {} not found", doc_id)))?;
     }
 
-    let valid_for_seconds = body.valid_for_seconds.unwrap_or(DEFAULT_EXPIRATION_MILLIS);
-    println!("valid_for_seconds {}", valid_for_seconds);
+    let valid_for_seconds = body.valid_for_seconds.unwrap_or(DEFAULT_EXPIRATION_SECONDS);
     let expiration_time =
         ExpirationTimeEpochMillis(current_time_epoch_millis() + valid_for_seconds * 1000);
 
