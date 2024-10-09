@@ -279,8 +279,7 @@ components:
           description: WebSocket URL to connect to
         baseUrl:
           type: string
-          description: Base URL (may be null)
-          nullable: true
+          description: Base URL
         docId:
           type: string
           description: The same document ID that was provided in the request.
