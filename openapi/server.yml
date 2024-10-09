@@ -15,46 +15,6 @@ info:
     The API described here is the document management API. A caller can use this API to obtain a `baseUrl` for a given document,
     which can then be used as a base for the [single document API](/document.html).
 paths:
-  /ready:
-    get:
-      summary: Health Check
-      description: Always returns 200. This can be used as a healthcheck for the server.
-      responses:
-        '200':
-          description: Successful response
-          content:
-            text/plain:
-              schema:
-                type: object
-                properties:
-                  ok:
-                    type: bool
-                    const: true
-  /check_store:
-    get:
-      summary: Check Store Health
-      description: Checks whether we can connect to the underlying data store.
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Store status
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  ok:
-                    type: boolean
-                  error:
-                    type: string
-                    nullable: true
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
   /doc/new:
     post:
       summary: Create New Document
@@ -130,10 +90,82 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /ready:
+    get:
+      summary: Health Check
+      description: Always returns 200. This can be used as a healthcheck for the server.
+      responses:
+        '200':
+          description: Successful response
+          content:
+            text/plain:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: bool
+                    const: true
+  /check_store:
+    post:
+      summary: Check Store Health
+      description: Checks whether we can connect to the underlying data store.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Store status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  error:
+                    type: string
+                    nullable: true
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      summary: Check Store Health
+      description: |
+        Checks whether we can connect to the underlying data store.
+        
+        Use with `GET` is deprecated; use `POST` instead.
+      deprecated: true
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Store status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  error:
+                    type: string
+                    nullable: true
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /doc/{docId}/as-update:
     get:
       summary: Get Document Update
-      description: Retrieves the document as an update.
+      description: |
+        Retrieves the document as an update.
+
+        Deprecated; use `GET /doc/{docId}/auth` and then call `as-update` relative to the returned `baseUrl` field instead.
+      deprecated: true
       security:
         - bearerAuth: []
       parameters:
@@ -166,7 +198,11 @@ paths:
   /doc/{docId}/update:
     post:
       summary: Update Document
-      description: Updates the document with the provided data.
+      description: |
+        Updates the document with the provided data.
+
+        Deprecated; use `GET /doc/{docId}/auth` and then call `update` relative to the returned `baseUrl` field instead.
+      deprecated: true
       security:
         - bearerAuth: []
       parameters:
@@ -200,38 +236,6 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: Document not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-  /doc/ws/{docId}:
-    get:
-      summary: WebSocket Connection
-      description: Establishes a WebSocket connection for real-time synchronization.
-      parameters:
-        - in: path
-          name: docId
-          required: true
-          schema:
-            type: string
-          description: Document ID
-        - in: query
-          name: token
-          required: false
-          schema:
-            type: string
-          description: Client token for authentication (required if authentication is enabled)
-      responses:
-        '101':
-          description: Switching Protocols
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '401':
-          description: Unauthorized
           content:
             application/json:
               schema:

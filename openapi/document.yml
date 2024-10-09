@@ -100,7 +100,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /y-websocket/{docId}:
+  /ws/{docId}:
     get:
       summary: Connect to a document over WebSocket.
       description: Establishes a WebSocket connection for real-time synchronization with the [y-websocket](https://github.com/yjs/y-websocket) protocol.
