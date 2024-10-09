@@ -283,7 +283,7 @@ describe.each(CONFIGURATIONS)(
       test('Connecting with 0 validForSeconds should fail', async () => {
         const docResult = await DOCUMENT_MANANGER.createDoc()
         const conn = await DOCUMENT_MANANGER.getDocConnection(docResult, { validForSeconds: 0 })
-  
+
         try {
           await conn.getAsUpdate()
           throw new Error('Expected error')

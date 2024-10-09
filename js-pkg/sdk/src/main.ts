@@ -72,7 +72,10 @@ export class DocumentManager {
    * @param docId The ID of the document to get a token for.
    * @returns A {@link ClientToken} object containing the URL and token needed to connect to the document.
    */
-  public async getClientToken(docId: string | DocCreationResult, authDocRequest?: AuthDocRequest): Promise<ClientToken> {
+  public async getClientToken(
+    docId: string | DocCreationResult,
+    authDocRequest?: AuthDocRequest,
+  ): Promise<ClientToken> {
     if (typeof docId !== 'string') {
       docId = docId.docId
     }
@@ -93,7 +96,10 @@ export class DocumentManager {
    * @param docId The ID of the document to get or create. If not provided, a new document with a random ID will be created.
    * @returns A {@link ClientToken} object containing the URL and token needed to connect to the document.
    */
-  public async getOrCreateDocAndToken(docId?: string, authDocRequest?: AuthDocRequest): Promise<ClientToken> {
+  public async getOrCreateDocAndToken(
+    docId?: string,
+    authDocRequest?: AuthDocRequest,
+  ): Promise<ClientToken> {
     const result = await this.createDoc(docId)
     return await this.getClientToken(result, authDocRequest)
   }
@@ -120,7 +126,10 @@ export class DocumentManager {
     return await connection.updateDoc(update)
   }
 
-  public async getDocConnection(docId: string | DocCreationResult, authDocRequest?: AuthDocRequest): Promise<DocConnection> {
+  public async getDocConnection(
+    docId: string | DocCreationResult,
+    authDocRequest?: AuthDocRequest,
+  ): Promise<DocConnection> {
     const clientToken = await this.getClientToken(docId, authDocRequest)
     return new DocConnection(clientToken)
   }
