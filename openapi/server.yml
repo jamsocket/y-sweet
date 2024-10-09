@@ -65,6 +65,12 @@ paths:
           schema:
             type: string
           description: Document ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthDocRequest'
       responses:
         '200':
           description: Client token generated
@@ -260,7 +266,6 @@ components:
           nullable: true
         metadata:
           type: object
-              
     ErrorResponse:
       type: object
       properties:
