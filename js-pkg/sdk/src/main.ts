@@ -70,6 +70,7 @@ export class DocumentManager {
    * client.
    *
    * @param docId The ID of the document to get a token for.
+   * @param authDocRequest An optional {@link AuthDocRequest} providing options for the token request.
    * @returns A {@link ClientToken} object containing the URL and token needed to connect to the document.
    */
   public async getClientToken(
@@ -94,6 +95,7 @@ export class DocumentManager {
    * that one is created. If no docId is provided, a new document is created with a random ID.
    *
    * @param docId The ID of the document to get or create. If not provided, a new document with a random ID will be created.
+   * @param authDocRequest An optional {@link AuthDocRequest} providing options for the token request.
    * @returns A {@link ClientToken} object containing the URL and token needed to connect to the document.
    */
   public async getOrCreateDocAndToken(
@@ -141,6 +143,7 @@ export class DocumentManager {
  *
  * @param connectionString A connection string (starting with `ys://` or `yss://`) referring to a y-sweet server.
  * @param docId The ID of the document to get or create. If not provided, a new document with a random ID will be created.
+ * @param authDocRequest An optional {@link AuthDocRequest} providing options for the token request.
  * @returns A {@link ClientToken} object containing the URL and token needed to connect to the document.
  */
 export async function getOrCreateDocAndToken(
@@ -157,6 +160,7 @@ export async function getOrCreateDocAndToken(
  *
  * @param connectionString A connection string (starting with `ys://` or `yss://`) referring to a y-sweet server.
  * @param docId The ID of the document to get a token for.
+ * @param authDocRequest An optional {@link AuthDocRequest} providing options for the token request.
  * @returns A {@link ClientToken} object containing the URL and token needed to connect to the document.
  */
 export async function getClientToken(
