@@ -284,6 +284,9 @@ describe.each(CONFIGURATIONS)(
         const docResult = await DOCUMENT_MANANGER.createDoc()
         const conn = await DOCUMENT_MANANGER.getDocConnection(docResult, { validForSeconds: 0 })
 
+        // wait 1 second
+        await new Promise((resolve) => setTimeout(resolve, 1_000))
+
         try {
           await conn.getAsUpdate()
           throw new Error('Expected error')
@@ -296,7 +299,7 @@ describe.each(CONFIGURATIONS)(
         }
       })
 
-      test.only('Connecting with 5 validForSeconds should work briefly', async () => {
+      test('Connecting with 5 validForSeconds should work briefly', async () => {
         const docResult = await DOCUMENT_MANANGER.createDoc()
         const conn = await DOCUMENT_MANANGER.getDocConnection(docResult, { validForSeconds: 5 })
 
