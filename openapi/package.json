@@ -1,0 +1,12 @@
+{
+  "name": "y-sweet-openapi-doc",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "lint": "redocly lint server.yml document.yml",
+    "build": "rm -rf build && mkdir build && mkdir -p build && redocly build-docs server.yml --output build/index.html && redocly build-docs document.yml --output build/document.html"
+  },
+  "dependencies": {
+    "@redocly/cli": "1.25.5"
+  }
+}

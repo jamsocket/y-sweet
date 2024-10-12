@@ -1,0 +1,296 @@
+openapi: 3.1.0
+info:
+  title: Y-Sweet Server API
+  version: '0.5.0'
+  x-logo:
+    url: 'https://raw.githubusercontent.com/jamsocket/y-sweet/main/logo.svg'
+  description: |
+    Y-Sweet has two APIs:
+    1. **A document management API** (this one), which allows creating and updating documents.
+    2. **A single document API**, which allows connecting to and updating a single document.
+
+    This approach allows for the document management server to live outside of the “data plane” in a multi-server setup,
+    so that none of the actual document data (i.e. the Yjs document updates) ever passes through the document management API.
+
+    The API described here is the document management API. A caller can use this API to obtain a `baseUrl` for a given document,
+    which can then be used as a base for the [single document API](/document.html).
+paths:
+  /doc/new:
+    post:
+      summary: Create New Document
+      description: Creates a new document. Optionally accepts a `docId`.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                docId:
+                  type: string
+      responses:
+        '200':
+          description: Document created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  docId:
+                    type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /doc/{docId}/auth:
+    post:
+      summary: Generate Client Token
+      description: Generates a client token for accessing a document.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: docId
+          required: true
+          schema:
+            type: string
+          description: Document ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthDocRequest'
+      responses:
+        '200':
+          description: Client token generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientToken'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Document not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /ready:
+    get:
+      summary: Health Check
+      description: Always returns 200. This can be used as a healthcheck for the server.
+      responses:
+        '200':
+          description: Successful response
+          content:
+            text/plain:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: bool
+                    const: true
+  /check_store:
+    post:
+      summary: Check Store Health
+      description: Checks whether we can connect to the underlying data store.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Store status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  error:
+                    type: string
+                    nullable: true
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      summary: Check Store Health
+      description: |
+        Checks whether we can connect to the underlying data store.
+        
+        Use with `GET` is deprecated; use `POST` instead.
+      deprecated: true
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Store status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  error:
+                    type: string
+                    nullable: true
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /doc/{docId}/as-update:
+    get:
+      summary: Get Document Update
+      description: |
+        Retrieves the document as an update.
+
+        Deprecated; use `GET /doc/{docId}/auth` and then call `as-update` relative to the returned `baseUrl` field instead.
+      deprecated: true
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: docId
+          required: true
+          schema:
+            type: string
+          description: Document ID
+      responses:
+        '200':
+          description: Document update
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Document not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /doc/{docId}/update:
+    post:
+      summary: Update Document
+      description: |
+        Updates the document with the provided data.
+
+        Deprecated; use `GET /doc/{docId}/auth` and then call `update` relative to the returned `baseUrl` field instead.
+      deprecated: true
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: docId
+          required: true
+          schema:
+            type: string
+          description: Document ID
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '200':
+          description: Document updated
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Document not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    AuthDocRequest:
+      type: object
+      properties:
+        authorization:
+          type: string
+          enum:
+            - none
+            - readonly
+            - full
+          nullable: true
+        userId:
+          type: string
+          nullable: true
+        metadata:
+          type: object
+          nullable: true
+        validForSeconds:
+          description: |
+            The duration that the returned token will be valid for, in seconds.
+          type: integer
+          nullable: true
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+    ClientToken:
+      type: object
+      properties:
+        url:
+          type: string
+          description: WebSocket URL to connect to
+        baseUrl:
+          type: string
+          description: Base URL
+        docId:
+          type: string
+          description: The same document ID that was provided in the request.
+        token:
+          type: string
+          description: Authentication token (may be null)
+          nullable: true
