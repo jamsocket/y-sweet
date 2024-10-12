@@ -6,7 +6,22 @@ use sha2::{Digest, Sha256};
 use std::fmt::Display;
 use thiserror::Error;
 
-const EXPIRATION_MILLIS: u64 = 1000 * 60 * 60; // 60 minutes
+pub const DEFAULT_EXPIRATION_SECONDS: u64 = 60 * 60; // 60 minutes
+
+/// This newtype is introduced to distinguish between a u64 meant to represent the current time
+/// (currently passed as a raw u64), and a u64 meant to represent an expiration time.
+/// We introduce this to intentonally break callers to `gen_doc_token` that do not explicitly
+/// update to pass an expiration time, so that calls that use the old signature to pass a current
+/// time do not compile.
+/// Unit is milliseconds since Jan 1, 1970.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct ExpirationTimeEpochMillis(pub u64);
+
+impl ExpirationTimeEpochMillis {
+    pub fn max() -> Self {
+        Self(u64::MAX)
+    }
+}
 
 /// This is a custom base64 encoder that is equivalent to BASE64URL_NOPAD for encoding,
 /// but is tolerant when decoding of the “standard” alphabet and also of padding.
@@ -84,7 +99,7 @@ pub enum Permission {
 #[derive(Serialize, Deserialize)]
 pub struct Payload {
     pub payload: Permission,
-    pub expiration_millis: Option<u64>,
+    pub expiration_millis: Option<ExpirationTimeEpochMillis>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -141,7 +156,10 @@ impl Payload {
         }
     }
 
-    pub fn new_with_expiration(payload: Permission, expiration_millis: u64) -> Self {
+    pub fn new_with_expiration(
+        payload: Permission,
+        expiration_millis: ExpirationTimeEpochMillis,
+    ) -> Self {
         Self {
             payload,
             expiration_millis: Some(expiration_millis),
@@ -256,7 +274,13 @@ impl Authenticator {
 
         if expected_token != auth_req.token {
             Err(AuthError::InvalidSignature)
-        } else if auth_req.payload.expiration_millis.unwrap_or(u64::MAX) < current_time {
+        } else if auth_req
+            .payload
+            .expiration_millis
+            .unwrap_or(ExpirationTimeEpochMillis::max())
+            .0
+            < current_time
+        {
             Err(AuthError::Expired)
         } else {
             Ok(auth_req.payload)
@@ -289,12 +313,13 @@ impl Authenticator {
         b64_encode(&self.private_key)
     }
 
-    pub fn gen_doc_token(&self, doc_id: &str, current_time_epoch_millis: u64) -> String {
-        let expiration_time_epoch_millis = current_time_epoch_millis + EXPIRATION_MILLIS;
-        let payload = Payload::new_with_expiration(
-            Permission::Doc(doc_id.to_string()),
-            expiration_time_epoch_millis,
-        );
+    pub fn gen_doc_token(
+        &self,
+        doc_id: &str,
+        expiration_time: ExpirationTimeEpochMillis,
+    ) -> String {
+        let payload =
+            Payload::new_with_expiration(Permission::Doc(doc_id.to_string()), expiration_time);
         self.sign(payload)
     }
 
@@ -361,10 +386,10 @@ mod tests {
     #[test]
     fn test_simple_auth() {
         let authenticator = Authenticator::gen_key().unwrap();
-        let token = authenticator.gen_doc_token("doc123", 0);
+        let token = authenticator.gen_doc_token("doc123", ExpirationTimeEpochMillis(0));
         assert_eq!(authenticator.verify_doc_token(&token, "doc123", 0), Ok(()));
         assert_eq!(
-            authenticator.verify_doc_token(&token, "doc123", EXPIRATION_MILLIS + 1),
+            authenticator.verify_doc_token(&token, "doc123", DEFAULT_EXPIRATION_SECONDS + 1),
             Err(AuthError::Expired)
         );
         assert_eq!(
@@ -378,7 +403,7 @@ mod tests {
         let authenticator = Authenticator::gen_key()
             .unwrap()
             .with_key_id("myKeyId".try_into().unwrap());
-        let token = authenticator.gen_doc_token("doc123", 0);
+        let token = authenticator.gen_doc_token("doc123", ExpirationTimeEpochMillis(0));
         assert!(
             token.starts_with("myKeyId."),
             "Token {} does not start with myKeyId.",
@@ -413,7 +438,7 @@ mod tests {
         let authenticator = Authenticator::gen_key()
             .unwrap()
             .with_key_id("myKeyId".try_into().unwrap());
-        let token = authenticator.gen_doc_token("doc123", 0);
+        let token = authenticator.gen_doc_token("doc123", ExpirationTimeEpochMillis(0));
         let token = token.replace("myKeyId.", "aDifferentKeyId.");
         assert!(token.starts_with("aDifferentKeyId."));
         assert_eq!(
@@ -427,7 +452,7 @@ mod tests {
         let authenticator = Authenticator::gen_key()
             .unwrap()
             .with_key_id("myKeyId".try_into().unwrap());
-        let token = authenticator.gen_doc_token("doc123", 0);
+        let token = authenticator.gen_doc_token("doc123", ExpirationTimeEpochMillis(0));
         let token = token.replace("myKeyId.", "");
         assert_eq!(
             authenticator.verify_doc_token(&token, "doc123", 0),
@@ -438,7 +463,7 @@ mod tests {
     #[test]
     fn test_unexpected_key_id() {
         let authenticator = Authenticator::gen_key().unwrap();
-        let token = authenticator.gen_doc_token("doc123", 0);
+        let token = authenticator.gen_doc_token("doc123", ExpirationTimeEpochMillis(0));
         let token = format!("unexpectedKeyId.{}", token);
         assert_eq!(
             authenticator.verify_doc_token(&token, "doc123", 0),

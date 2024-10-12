@@ -8,8 +8,10 @@ use std::collections::HashMap;
 use worker::{event, Env};
 use worker::{Date, Method, Request, Response, ResponseBody, Result, RouteContext, Router, Url};
 use y_sweet_core::{
-    api_types::{validate_doc_name, ClientToken, DocCreationRequest, NewDocResponse},
-    auth::Authenticator,
+    api_types::{
+        validate_doc_name, AuthDocRequest, ClientToken, DocCreationRequest, NewDocResponse,
+    },
+    auth::{Authenticator, ExpirationTimeEpochMillis, DEFAULT_EXPIRATION_SECONDS},
     doc_sync::DocWithSyncKv,
     store::StoreError,
 };
@@ -189,7 +191,7 @@ async fn auth_doc_handler(req: Request, ctx: RouteContext<ServerContext>) -> Res
 }
 
 async fn auth_doc(
-    req: Request,
+    mut req: Request,
     mut ctx: RouteContext<ServerContext>,
 ) -> std::result::Result<ClientToken, Error> {
     check_server_token(&req, ctx.data.auth()?)?;
@@ -205,10 +207,20 @@ async fn auth_doc(
         return Err(Error::NoSuchDocument);
     }
 
+    // Note: to preserve the existing behavior, we default to an empty request.
+    let body = req
+        .json::<AuthDocRequest>()
+        .await
+        .map_err(|_| Error::BadRequest)?;
+
+    let valid_time_seconds = body.valid_for_seconds.unwrap_or(DEFAULT_EXPIRATION_SECONDS);
+    let expiration_time =
+        ExpirationTimeEpochMillis(get_time_millis_since_epoch() + valid_time_seconds * 1000);
+
     let token = ctx
         .data
         .auth()?
-        .map(|auth| auth.gen_doc_token(&doc_id, get_time_millis_since_epoch()));
+        .map(|auth| auth.gen_doc_token(&doc_id, expiration_time));
 
     let url = if let Some(url_prefix) = &ctx.data.config.url_prefix {
         let mut parsed = Url::parse(url_prefix).map_err(|_| Error::ConfigurationError {

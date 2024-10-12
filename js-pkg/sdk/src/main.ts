@@ -1,7 +1,7 @@
 import { DocConnection } from './connection'
 export { DocConnection } from './connection'
 import { HttpClient } from './http'
-import type { DocCreationResult, ClientToken, CheckStoreResult } from './types'
+import type { DocCreationResult, ClientToken, CheckStoreResult, AuthDocRequest } from './types'
 export type { DocCreationResult, ClientToken, CheckStoreResult } from './types'
 export { type YSweetErrorPayload, YSweetError } from './error'
 export { encodeClientToken, decodeClientToken } from './encoding'
@@ -70,14 +70,18 @@ export class DocumentManager {
    * client.
    *
    * @param docId The ID of the document to get a token for.
+   * @param authDocRequest An optional {@link AuthDocRequest} providing options for the token request.
    * @returns A {@link ClientToken} object containing the URL and token needed to connect to the document.
    */
-  public async getClientToken(docId: string | DocCreationResult): Promise<ClientToken> {
+  public async getClientToken(
+    docId: string | DocCreationResult,
+    authDocRequest?: AuthDocRequest,
+  ): Promise<ClientToken> {
     if (typeof docId !== 'string') {
       docId = docId.docId
     }
 
-    const result = await this.client.request(`doc/${docId}/auth`, 'POST', {})
+    const result = await this.client.request(`doc/${docId}/auth`, 'POST', authDocRequest ?? {})
     if (!result.ok) {
       throw new Error(`Failed to auth doc ${docId}: ${result.status} ${result.statusText}`)
     }
@@ -91,11 +95,15 @@ export class DocumentManager {
    * that one is created. If no docId is provided, a new document is created with a random ID.
    *
    * @param docId The ID of the document to get or create. If not provided, a new document with a random ID will be created.
+   * @param authDocRequest An optional {@link AuthDocRequest} providing options for the token request.
    * @returns A {@link ClientToken} object containing the URL and token needed to connect to the document.
    */
-  public async getOrCreateDocAndToken(docId?: string): Promise<ClientToken> {
+  public async getOrCreateDocAndToken(
+    docId?: string,
+    authDocRequest?: AuthDocRequest,
+  ): Promise<ClientToken> {
     const result = await this.createDoc(docId)
-    return await this.getClientToken(result)
+    return await this.getClientToken(result, authDocRequest)
   }
 
   /**
@@ -120,8 +128,11 @@ export class DocumentManager {
     return await connection.updateDoc(update)
   }
 
-  public async getDocConnection(docId: string): Promise<DocConnection> {
-    const clientToken = await this.getClientToken(docId)
+  public async getDocConnection(
+    docId: string | DocCreationResult,
+    authDocRequest?: AuthDocRequest,
+  ): Promise<DocConnection> {
+    const clientToken = await this.getClientToken(docId, authDocRequest)
     return new DocConnection(clientToken)
   }
 }
@@ -132,14 +143,16 @@ export class DocumentManager {
  *
  * @param connectionString A connection string (starting with `ys://` or `yss://`) referring to a y-sweet server.
  * @param docId The ID of the document to get or create. If not provided, a new document with a random ID will be created.
+ * @param authDocRequest An optional {@link AuthDocRequest} providing options for the token request.
  * @returns A {@link ClientToken} object containing the URL and token needed to connect to the document.
  */
 export async function getOrCreateDocAndToken(
   connectionString: string,
   docId?: string,
+  authDocRequest?: AuthDocRequest,
 ): Promise<ClientToken> {
   const manager = new DocumentManager(connectionString)
-  return await manager.getOrCreateDocAndToken(docId)
+  return await manager.getOrCreateDocAndToken(docId, authDocRequest)
 }
 
 /**
@@ -147,14 +160,16 @@ export async function getOrCreateDocAndToken(
  *
  * @param connectionString A connection string (starting with `ys://` or `yss://`) referring to a y-sweet server.
  * @param docId The ID of the document to get a token for.
+ * @param authDocRequest An optional {@link AuthDocRequest} providing options for the token request.
  * @returns A {@link ClientToken} object containing the URL and token needed to connect to the document.
  */
 export async function getClientToken(
   connectionString: string,
   docId: string | DocCreationResult,
+  authDocRequest?: AuthDocRequest,
 ): Promise<ClientToken> {
   const manager = new DocumentManager(connectionString)
-  return await manager.getClientToken(docId)
+  return await manager.getClientToken(docId, authDocRequest)
 }
 
 /**
