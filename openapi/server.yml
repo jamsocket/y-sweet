@@ -261,11 +261,18 @@ components:
             - none
             - readonly
             - full
+          nullable: true
         userId:
           type: string
           nullable: true
         metadata:
           type: object
+          nullable: true
+        validForSeconds:
+          description: |
+            The duration that the returned token will be valid for, in seconds.
+          type: integer
+          nullable: true
     ErrorResponse:
       type: object
       properties:
