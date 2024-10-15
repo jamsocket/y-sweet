@@ -224,6 +224,7 @@ export type YSweetProviderParams = {
   resyncInterval?: number
   maxBackoffTime?: number
   disableBc?: boolean
+  initialClientToken?: ClientToken
 }
 
 /**
@@ -526,8 +527,10 @@ export async function ySweetProviderWrapper(
   authEndpoint: AuthEndpoint,
   roomname: string,
   doc: Y.Doc,
-  providerParams: YSweetProviderParams = {},
+  wrapperParams: YSweetProviderParams = {},
 ): Promise<YSweetProviderWithClientToken> {
+  let { initialClientToken, ...providerParams } = wrapperParams
+
   // we use an observable that lives outside the provider to store event listeners
   // so that we can re-subscribe to events when the provider is re-created
   const observable = new Observable<string>()
@@ -538,7 +541,7 @@ export async function ySweetProviderWrapper(
   const awareness = providerParams.awareness ?? new awarenessProtocol.Awareness(doc)
   providerParams = { ...providerParams, awareness }
 
-  let _clientToken = await getClientToken(authEndpoint, roomname)
+  let _clientToken = initialClientToken ?? (await getClientToken(authEndpoint, roomname))
   let _provider = new YSweetProvider(_clientToken.url, roomname, doc, {
     ...updateProviderParams(providerParams, _clientToken),
   })

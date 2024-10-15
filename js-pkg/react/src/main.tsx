@@ -7,6 +7,7 @@ import {
   debuggerUrl,
 } from '@y-sweet/client'
 import type { AuthEndpoint, YSweetProviderWithClientToken } from '@y-sweet/client'
+import type { ClientToken } from '@y-sweet/sdk'
 import type { ReactNode } from 'react'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { Awareness } from 'y-protocols/awareness'
@@ -171,14 +172,18 @@ export type YDocProviderProps = {
   /** The children to render. */
   children: ReactNode
 
-  /** Response of a `getConnectionKey` call, passed from server to client. */
+  /** The doc id to use for the Y.Doc. */
   docId: string
 
-  /** The endpoint to use for authentication. */
+  /** The endpoint to use for authentication or an async function that returns a client token. */
   authEndpoint: AuthEndpoint
 
+  /** An optional initial client token to use for the Y.Doc. This will be used initially, and if
+   * the client token expires, the `authEndpoint` will be called to get a new client token. */
+  initialClientToken?: ClientToken
+
   /** If set to a string, the URL query parameter with this name
-   * will be set to the doc id from connectionKey. */
+   * will be set to the doc id provided. */
   setQueryParam?: string
 }
 
@@ -186,7 +191,7 @@ export type YDocProviderProps = {
  * A React component that provides a Y.Doc instance to its children given an auth endpoint and a doc id.
  */
 export function YDocProvider(props: YDocProviderProps) {
-  const { children, docId, authEndpoint } = props
+  const { children, docId, authEndpoint, initialClientToken } = props
 
   const [ctx, setCtx] = useState<YjsContextType | null>(null)
 
@@ -197,6 +202,7 @@ export function YDocProvider(props: YDocProviderProps) {
 
     ;(async () => {
       provider = await createYjsProvider(doc, docId, authEndpoint, {
+        initialClientToken,
         // TODO: this disables local cross-tab communication, which makes
         // debugging easier, but should be re-enabled eventually
         disableBc: true,
