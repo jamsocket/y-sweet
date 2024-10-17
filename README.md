@@ -30,11 +30,11 @@ Y-Sweet is MIT-licensed, and was created by [Jamsocket](https://jamsocket.com).
 
 ## Docs
 
-- [API docs](https://docs.y-sweet.dev/index.html)
-    - [Vanilla JS client](https://docs.y-sweet.dev/modules/_y_sweet_client.html)
-    - [React hooks](https://docs.y-sweet.dev/modules/_y_sweet_react.html)
-    - [Document management SDK](https://docs.y-sweet.dev/modules/_y_sweet_sdk.html)
-- [Y-Sweet Cloud (managed service) docs](https://docs.jamsocket.com/y-sweet/quickstart)
+- [API docs](https://docs.jamsocket.com/y-sweet)
+    - [TypeScript client](https://docs.jamsocket.com/y-sweet/reference/client)
+    - [React hooks](https://docs.jamsocket.com/y-sweet/reference/react)
+    - [Document management SDK](https://docs.jamsocket.com/y-sweet/reference/sdk)
+- [Y-Sweet on Jamsocket (managed service) docs](https://docs.jamsocket.com/y-sweet/quickstart)
 - [Self Hosting](https://github.com/jamsocket/y-sweet/blob/main/docs/running.md)
 
 ## Examples
