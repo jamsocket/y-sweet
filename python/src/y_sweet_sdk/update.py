@@ -21,7 +21,7 @@ class UpdateContext:
     conn = dm.get_connection("my-doc")
 
     with conn.for_update() as doc:
-        my_map = doc.get("my-map", pycrdt.Map)
+        my_map = doc.get("my-map", type=pycrdt.Map)
         my_map['foo'] = 'bar'
     ```
     """
