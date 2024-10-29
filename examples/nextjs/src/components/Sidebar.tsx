@@ -70,11 +70,11 @@ function Nav({ curRoute, onClickLink }: { curRoute: string; onClickLink?: () => 
             </NavLink>
           </ul>
           <h3 className="px-6 text-xs tracking-wide text-pink-100 mt-6 mb-2">LEARN</h3>
-          <NavLink href="https://y-sweet.cloud/quickstart">Docs</NavLink>
+          <NavLink href="https://docs.jamsocket.com/y-sweet/quickstart">Docs</NavLink>
         </nav>
       </div>
       <div className="px-6">
-        <Link href="https://driftingin.space">
+        <Link href="https://jamsocket.com">
           <Logo />
         </Link>
       </div>

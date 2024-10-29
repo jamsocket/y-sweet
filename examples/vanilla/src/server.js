@@ -13,7 +13,7 @@ if (!CONNECTION_STRING) {
   console.error()
   console.error('CONNECTION_STRING environment variable is required')
   console.error(
-    'You can get a connection string at https://app.y-sweet.cloud or by running a y-sweet server locally.',
+    'You can get a connection string by creating a Y-Sweet service at https://app.jamsocket.com or by running a y-sweet server locally.',
   )
   console.error()
   console.error(
