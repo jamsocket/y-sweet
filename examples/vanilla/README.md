@@ -2,7 +2,7 @@
 
 This demo shows how you can use Y-Sweet with a VanillaJS project.
 
-This demo requires a connection string for a running Y-Sweet server. You can get one at [app.y-sweet.cloud](https://app.y-sweet.cloud), or by [running the y-sweet server](https://github.com/drifting-in-space/y-sweet/blob/main/docs/running.md) yourself.
+This demo requires a connection string for a running Y-Sweet server. You can get one by creating a Y-Sweet service and generating a connection string at [app.jamsocket.com](https://app.jamsocket.com), or by [running the y-sweet server](https://github.com/drifting-in-space/y-sweet/blob/main/docs/running.md) yourself.
 
 ## How to run this demo
 
