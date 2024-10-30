@@ -55,7 +55,7 @@ function MovingVoxel(props: { voxel: Voxel; name?: string }) {
     if (squaredDist > 0.00001) {
       destPositionRef.current = dest
     }
-  }, [props.voxel.position])
+  }, [props.voxel.position, position])
 
   return (
     <mesh name={props.name} position={position} scale={1}>
@@ -170,7 +170,7 @@ export function VoxelEditor() {
         color: color,
       })
     },
-    [setGhostPosition],
+    [setGhostPosition, updatePresence, color],
   )
 
   const handleClick = useCallback(
