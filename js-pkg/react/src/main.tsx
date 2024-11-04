@@ -272,11 +272,11 @@ export type ObjectOptions = {
  * {@link ObserverKind} for finer control of observer behavior.
  *
  * @typeParam T The type of the values in the map. Keys are always strings.
- * @param name The name of the top-level Yjs object to return.
+ * @param name The name of the top-level Yjs object to return. Defaults to empty string.
  * @param objectOptions
  * @returns
  */
-export function useMap<T>(name: string, objectOptions?: ObjectOptions): Y.Map<T> {
+export function useMap<T>(name?: string, objectOptions?: ObjectOptions): Y.Map<T> {
   const doc = useYDoc({ hideDebuggerLink: true })
   const map = useMemo(() => doc.getMap<T>(name), [doc, name])
   useObserve(map, objectOptions?.observe || 'deep')
@@ -296,11 +296,11 @@ export function useMap<T>(name: string, objectOptions?: ObjectOptions): Y.Map<T>
  * {@link ObserverKind} for finer control of observer behavior.
  *
  * @typeParam T The type of the values in the array.
- * @param name The name of the top-level Yjs object to return.
+ * @param name The name of the top-level Yjs object to return. Defaults to empty string.
  * @param objectOptions
  * @returns
  */
-export function useArray<T>(name: string, objectOptions?: ObjectOptions): Y.Array<T> {
+export function useArray<T>(name?: string, objectOptions?: ObjectOptions): Y.Array<T> {
   const doc = useYDoc({ hideDebuggerLink: true })
   const array = useMemo(() => doc.getArray<T>(name), [doc, name])
   useObserve(array, objectOptions?.observe || 'deep')
@@ -319,11 +319,11 @@ export function useArray<T>(name: string, objectOptions?: ObjectOptions): Y.Arra
  * the object and its children. See {@link ObjectOptions} and
  * {@link ObserverKind} for finer control of observer behavior.
  *
- * @param name The name of the top-level Yjs object to return.
+ * @param name The name of the top-level Yjs object to return. Defaults to empty string.
  * @param objectOptions
  * @returns
  */
-export function useText(name: string, observerKind?: ObjectOptions): Y.Text {
+export function useText(name?: string, observerKind?: ObjectOptions): Y.Text {
   const doc = useYDoc({ hideDebuggerLink: true })
   const text = useMemo(() => doc.getText(name), [doc, name])
   useObserve(text, observerKind?.observe || 'deep')
