@@ -32,7 +32,7 @@ export default function Home() {
 
 function DebuggerWrapper({ clientToken }: { clientToken: ClientToken }) {
   return (
-    <YDocProvider docId={clientToken.docId} authEndpoint={async () => clientToken}>
+    <YDocProvider docId={clientToken.docId} authEndpoint={async () => clientToken} showDebuggerLink={false}>
       <Debugger />
     </YDocProvider>
   )

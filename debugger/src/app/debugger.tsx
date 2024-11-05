@@ -9,9 +9,7 @@ import { Awareness } from 'y-protocols/awareness'
 import { DebuggableAwareness } from '@/lib/debuggable/yawareness'
 
 export function Debugger() {
-  const doc: Y.Doc = useYDoc({
-    hideDebuggerLink: true,
-  })
+  const doc: Y.Doc = useYDoc()
   const provider = useYjsProvider()
   const url = provider.ws?.url
   const awareness = useAwareness()

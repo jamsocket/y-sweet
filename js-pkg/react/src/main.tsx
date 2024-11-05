@@ -29,6 +29,9 @@ type YjsContextType = {
 const YjsContext = createContext<YjsContextType | null>(null)
 
 type YDocOptions = {
+  /**
+   * @deprecated since 0.6.0 and not used. Pass `showDebuggerLink={false}` to `YDocProvider` as a prop instead.
+   */
   hideDebuggerLink?: boolean
 }
 
@@ -40,19 +43,11 @@ type YDocOptions = {
 export function useYDoc(options?: YDocOptions): Y.Doc {
   const yjsCtx = useContext(YjsContext)
 
-  useEffect(() => {
-    if (!options?.hideDebuggerLink && yjsCtx) {
-      const url = debuggerUrl(yjsCtx.provider.clientToken)
-      console.log(
-        `%cOpen this in Y-Sweet Debugger ⮕ ${url}`,
-        'font-size: 1.5em; display: block; padding: 10px;',
-      )
-      console.log(
-        '%cTo hide the debugger link, pass { hideDebuggerLink: true } to useYDoc',
-        'font-style: italic;',
-      )
-    }
-  }, [options?.hideDebuggerLink, yjsCtx])
+  if (options?.hideDebuggerLink) {
+    console.warn(
+      'The `hideDebuggerLink` option is deprecated and no longer used. Pass `showDebuggerLink={false}` to `YDocProvider` as a prop instead.',
+    )
+  }
 
   if (!yjsCtx) {
     throw new Error('Yjs hooks must be used within a YDocProvider')
@@ -185,6 +180,9 @@ export type YDocProviderProps = {
   /** If set to a string, the URL query parameter with this name
    * will be set to the doc id provided. */
   setQueryParam?: string
+
+  /** Whether to hide the debugger link. Defaults to true. */
+  showDebuggerLink?: boolean
 }
 
 /**
@@ -207,6 +205,18 @@ export function YDocProvider(props: YDocProviderProps) {
         // debugging easier, but should be re-enabled eventually
         disableBc: true,
       })
+
+      if (props.showDebuggerLink ?? true) {
+        const url = debuggerUrl(provider.clientToken)
+        console.log(
+          `%cOpen this in Y-Sweet Debugger ⮕ ${url}`,
+          'font-size: 1.5em; display: block; padding: 10px;',
+        )
+        console.log(
+          '%cTo hide the debugger link, pass showDebuggerLink={false} to YDocProvider',
+          'font-style: italic;',
+        )
+      }
 
       if (canceled) {
         provider.destroy()
@@ -277,7 +287,7 @@ export type ObjectOptions = {
  * @returns
  */
 export function useMap<T>(name?: string, objectOptions?: ObjectOptions): Y.Map<T> {
-  const doc = useYDoc({ hideDebuggerLink: true })
+  const doc = useYDoc()
   const map = useMemo(() => doc.getMap<T>(name), [doc, name])
   useObserve(map, objectOptions?.observe || 'deep')
 
@@ -301,7 +311,7 @@ export function useMap<T>(name?: string, objectOptions?: ObjectOptions): Y.Map<T
  * @returns
  */
 export function useArray<T>(name?: string, objectOptions?: ObjectOptions): Y.Array<T> {
-  const doc = useYDoc({ hideDebuggerLink: true })
+  const doc = useYDoc()
   const array = useMemo(() => doc.getArray<T>(name), [doc, name])
   useObserve(array, objectOptions?.observe || 'deep')
 
@@ -324,7 +334,7 @@ export function useArray<T>(name?: string, objectOptions?: ObjectOptions): Y.Arr
  * @returns
  */
 export function useText(name?: string, observerKind?: ObjectOptions): Y.Text {
-  const doc = useYDoc({ hideDebuggerLink: true })
+  const doc = useYDoc()
   const text = useMemo(() => doc.getText(name), [doc, name])
   useObserve(text, observerKind?.observe || 'deep')
 
