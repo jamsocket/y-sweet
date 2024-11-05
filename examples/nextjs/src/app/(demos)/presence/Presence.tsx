@@ -1,7 +1,7 @@
 'use client'
 
 import { usePresence, usePresenceSetter } from '@y-sweet/react'
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 
 type Presence = { x: number; y: number; color: string; rotation: number }
 
@@ -34,8 +34,8 @@ export function Presence() {
   const [myColor, _] = useState(randomColor)
   const presence = usePresence<Presence>({ includeSelf: true })
   const setPresence = usePresenceSetter<Presence>()
+  const lastRotation = useRef(0)
 
-  let lastRotation = 0
   const updatePresence = useCallback(
     (e: React.MouseEvent<SVGSVGElement>) => {
       let rect = e.currentTarget.getBoundingClientRect()
@@ -47,12 +47,12 @@ export function Presence() {
       }
 
       let movementRotation = Math.atan2(deltaY, deltaX) * (180 / Math.PI)
-      let difference = ((movementRotation - lastRotation + 180) % 360) - 180
+      let difference = ((movementRotation - lastRotation.current + 180) % 360) - 180
       if (difference < -180) difference += 360
-      movementRotation = lastRotation + difference
+      movementRotation = lastRotation.current + difference
 
-      const rotation = 0.9 * lastRotation + 0.1 * movementRotation
-      lastRotation = rotation
+      const rotation = 0.9 * lastRotation.current + 0.1 * movementRotation
+      lastRotation.current = rotation
 
       setPresence({
         x: e.clientX - rect.left,
@@ -61,7 +61,7 @@ export function Presence() {
         rotation,
       })
     },
-    [setPresence],
+    [setPresence, myColor],
   )
 
   return (
