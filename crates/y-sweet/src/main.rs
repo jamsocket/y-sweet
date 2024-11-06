@@ -137,7 +137,7 @@ fn get_store_from_opts(store_path: &str) -> Result<Box<dyn Store>> {
             .ok_or_else(|| anyhow::anyhow!("Invalid S3 URL"))?
             .to_owned();
         let bucket_prefix = url.path().trim_start_matches('/').to_owned();
-        let bucket_prefix = (!bucket_prefix.is_empty()).then(|| bucket_prefix); // "" => None
+        let bucket_prefix = (!bucket_prefix.is_empty()).then_some(bucket_prefix); // "" => None
         let config = parse_s3_config_from_env_and_args(bucket, bucket_prefix)?;
         let store = S3Store::new(config);
         Ok(Box::new(store))
