@@ -135,6 +135,18 @@ export class DocumentManager {
     const clientToken = await this.getClientToken(docId, authDocRequest)
     return new DocConnection(clientToken)
   }
+
+  /**
+   * Creates a new document with initial content.
+   *
+   * @param update A Yjs update byte string representing the initial content.
+   * @returns A {@link DocCreationResult} object containing the ID of the created document.
+   */
+  public async createDocWithContent(update: Uint8Array): Promise<DocCreationResult> {
+    const result = await this.createDoc()
+    await this.updateDoc(result.docId, update)
+    return result
+  }
 }
 
 /**
