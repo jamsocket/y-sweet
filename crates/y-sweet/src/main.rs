@@ -312,7 +312,7 @@ async fn main() -> Result<()> {
                 *port,
             );
 
-            let server_handle = tokio::spawn(async move {
+            tokio::spawn(async move {
                 server.serve_doc(&addr, false).await.unwrap();
             });
 
@@ -340,7 +340,6 @@ async fn main() -> Result<()> {
             }
 
             cancellation_token.cancel();
-            server_handle.await?;
             tracing::info!("Server shut down.");
         }
     }
