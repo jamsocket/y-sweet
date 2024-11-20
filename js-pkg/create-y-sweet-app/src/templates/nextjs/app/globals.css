@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+a {
+  @apply text-blue-500 underline;
+}
+
+code {
+  @apply inline-block border rounded px-1;
+}
+
+input[type="checkbox"] {
+  @apply w-5 h-5 appearance-none border border-gray-300 rounded-md hover:border-blue-500 hover:bg-blue-100 checked:bg-no-repeat checked:bg-center checked:border-blue-500 checked:bg-blue-100 transition-colors;
+}
+
+input[type="checkbox"]:checked {
+  background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="11" height="8" fill="none"><path stroke="%233B82F6" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.4" d="m.917 4 2.206 2.209c.333.334.5.5.707.5.207 0 .374-.166.707-.5l5.13-5.126"/></svg>');
+}
