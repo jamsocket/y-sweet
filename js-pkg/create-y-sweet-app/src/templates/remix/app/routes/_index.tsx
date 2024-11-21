@@ -16,8 +16,6 @@ export function HydrateFallback() {
 export default function Home() {
   const docId = "my-doc-id";
 
-  console.log("test");
-
   return (
     <YDocProvider docId={docId} authEndpoint="/auth">
       <MyCollaborativeApp />
