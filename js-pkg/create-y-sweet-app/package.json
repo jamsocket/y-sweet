@@ -2,6 +2,7 @@
   "name": "create-y-sweet-app",
   "version": "1.0.0",
   "main": "src/run.js",
+  "type": "module",
   "scripts": {
     "dev": "node src/run.js"
   },
