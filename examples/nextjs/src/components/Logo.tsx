@@ -38,8 +38,8 @@ export default function Logo() {
           fill="#FCFAF0"
         />
         <path
-          fill-rule="evenodd"
-          clip-rule="evenodd"
+          fillRule="evenodd"
+          clipRule="evenodd"
           d="M421.59 22.2188H444.553L429.887 70.3669L444.553 118.515H421.59L407.812 70.3669L421.59 22.2188ZM492.472 22.2188H491.773H469.509H447.328V44.441H476.278L480.79 59.25H447.328V81.4722H480.793L476.282 96.2812H447.328V118.503H469.513L469.509 118.515H492.472L506.25 70.3669L492.472 22.2188Z"
           fill="#FCFAF0"
         />
