@@ -8,11 +8,6 @@ export async function* execute(command, args, options) {
     done = true
   })
 
-  proc.on('error', (err) => {
-    console.log(err)
-    done = true
-  })
-
   while (!done) {
     const output = { stdout: null, stderr: null }
 
