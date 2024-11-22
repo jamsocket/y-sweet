@@ -9,7 +9,10 @@ import readline from 'node:readline'
 import { spinner, bold, gray } from './cli.js'
 import { execute } from './shell.js'
 
-const TEMPLATES = new Set(['nextjs', 'remix'])
+const TEMPLATES = new Map([
+  ['nextjs', 'Next.js'],
+  ['remix', 'Remix'],
+])
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -27,6 +30,7 @@ function question(prompt, defaultValue = '') {
 try {
   const { values, positionals } = parseArgs({
     options: { template: { type: 'string', short: 't' } },
+    allowPositionals: true,
   })
 
   if (values.template) init(values.template, positionals[0])
@@ -36,8 +40,8 @@ try {
 }
 
 function help() {
-  console.log(bold('Usage: npm create y-sweet-app --template <template> [name]'))
-  console.log('Available templates:', [...TEMPLATES].join(', '))
+  console.log(bold('Usage: npm create y-sweet-app [name] --template <template>'))
+  console.log('Available templates:', [...TEMPLATES.keys()].join(', '))
   process.exit(0)
 }
 
@@ -48,8 +52,8 @@ function help() {
 async function init(template, project) {
   if (!TEMPLATES.has(template)) {
     console.log(`No matching template for ${template}.`)
-    console.log(bold('Usage: npm create y-sweet-app --template <template> [name]'))
-    console.log('Available templates:', [...TEMPLATES].join(', '))
+    console.log(bold('Usage: npm create y-sweet-app [name] --template <template>'))
+    console.log('Available templates:', [...TEMPLATES.keys()].join(', '))
     process.exit(1)
   }
 
