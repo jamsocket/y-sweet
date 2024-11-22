@@ -5,26 +5,22 @@ import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import readline from 'node:readline'
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-})
+const TEMPLATES = new Set(['nextjs', 'remix'])
 
-/**
- * @param {string} prompt
- * @returns {Promise<string>}
- */
-function question(prompt, defaultValue = '') {
-  return new Promise((resolve) => rl.question(prompt, (result) => resolve(result || defaultValue)))
+try {
+  const { values, positionals } = parseArgs({
+    options: { template: { type: 'string', short: 't' } },
+  })
+
+  if (values.template) init(values.template, positionals[0])
+  else help()
+} catch {
+  help()
 }
 
-const { values, positionals } = parseArgs({ options: { template: { type: 'string', short: 't' } } })
-
-if (values.template) init(values.template, positionals[0])
-else help()
-
 function help() {
-  console.log('Usage: npm create y-sweet-app --template <template> [name]')
+  console.log(bold('Usage: npm create y-sweet-app --template <template> [name]'))
+  console.log('Available templates:', [...TEMPLATES].join(', '))
 }
 
 /**
@@ -32,11 +28,24 @@ function help() {
  * @param {string} project
  */
 async function init(template, project) {
-  const TEMPLATES = new Set(['nextjs', 'remix'])
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  })
+
+  /**
+   * @param {string} prompt
+   * @returns {Promise<string>}
+   */
+  function question(prompt, defaultValue = '') {
+    return new Promise((resolve) =>
+      rl.question(prompt, (result) => resolve(result || defaultValue)),
+    )
+  }
 
   if (!TEMPLATES.has(template)) {
     console.log(`No matching template for ${template}.`)
-    console.log('Usage: npm create y-sweet-app --template <template> [name]')
+    console.log(bold('Usage: npm create y-sweet-app --template <template> [name]'))
     console.log('Available templates:', [...TEMPLATES].join(', '))
     process.exit(1)
   }
