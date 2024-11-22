@@ -3,7 +3,7 @@ import { YDocProvider } from "@y-sweet/react";
 
 import { MyCollaborativeApp } from "@/components/MyCollaborativeApp";
 
-const manager = new DocumentManager(process.env.Y_SWEET_CONNECTION_STRING!);
+const manager = new DocumentManager(process.env.CONNECTION_STRING!);
 
 export default async function Home() {
   const docId = "my-doc-id";

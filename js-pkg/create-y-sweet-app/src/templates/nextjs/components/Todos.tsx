@@ -137,7 +137,7 @@ export function Todos() {
           />
           <p className="col-start-2 peer-checked:line-through">
             Add the connection string as the environment variable{" "}
-            <code>Y_SWEET_CONNECTION_STRING</code>.
+            <code>CONNECTION_STRING</code>.
           </p>
           <p className="col-start-2 text-xs text-gray-500">
             Vercel has documentation on how to add an{" "}
