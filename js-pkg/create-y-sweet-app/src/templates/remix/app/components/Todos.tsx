@@ -124,8 +124,8 @@ export function Todos() {
             Generate a connection string for your new Y-Sweet service.
           </p>
           <p className="col-start-2 text-xs text-gray-500">
-            A connection string is like an API key that tells your Next.js app
-            how to talk to Y-Sweet.
+            A connection string is like an API key that tells your Remix app how
+            to talk to Y-Sweet.
           </p>
         </li>
         <li className="grid grid-cols-[auto_1fr] grid-auto-flow-row gap-x-4 gap-y-1 items-center">
