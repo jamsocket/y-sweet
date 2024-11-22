@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { cp, readdir } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
