@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "main": "src/run.js",
   "type": "module",
-  "scripts": {
-    "dev": "node src/run.js"
+  "bin": {
+    "create-y-sweet-app": "./src/run.js"
   },
   "repository": {
     "type": "git",
