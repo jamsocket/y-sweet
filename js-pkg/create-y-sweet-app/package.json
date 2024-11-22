@@ -1,0 +1,19 @@
+{
+  "name": "create-y-sweet-app",
+  "version": "1.0.0",
+  "main": "src/run.js",
+  "type": "module",
+  "bin": {
+    "create-y-sweet-app": "./src/run.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/drifting-in-space/y-sweet.git"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/drifting-in-space/y-sweet/issues"
+  },
+  "homepage": "https://github.com/drifting-in-space/y-sweet",
+  "description": ""
+}
