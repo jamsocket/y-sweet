@@ -4,69 +4,59 @@ import { cp, readdir } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
-import readline from 'node:readline'
 
-import { spinner, bold, gray } from './cli.js'
+import { select, question, spinner, bold, gray } from './cli.js'
 import { execute } from './shell.js'
 
-const TEMPLATES = new Map([
-  ['nextjs', 'Next.js'],
-  ['remix', 'Remix'],
-])
-
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-})
-
-/**
- * @param {string} prompt
- * @returns {Promise<string>}
- */
-function question(prompt, defaultValue = '') {
-  return new Promise((resolve) => rl.question(prompt, (result) => resolve(result || defaultValue)))
-}
+const FRAMEWORKS = new Set(['nextjs', 'remix'])
 
 try {
   const { values, positionals } = parseArgs({
-    options: { template: { type: 'string', short: 't' } },
+    options: { framework: { type: 'string', short: 'f' }, help: { type: 'boolean', short: 'h' } },
     allowPositionals: true,
   })
 
-  if (values.template) init(values.template, positionals[0])
-  else help()
-} catch {
+  if (values.help) help()
+  else init({ framework: values.framework, name: positionals[0] })
+} catch (e) {
+  console.log(e)
   help()
 }
 
 function help() {
-  console.log(bold('Usage: npm create y-sweet-app [name] --template <template>'))
-  console.log('Available templates:', [...TEMPLATES.keys()].join(', '))
+  console.log(bold('Usage: npm create y-sweet-app [name] [options]'))
+  console.log('\nOptions:')
+  console.log('  -f, --framework <framework>\t\tUse a specific framework')
+  console.log('\n    Available frameworks:', [...FRAMEWORKS].join(', '), '\n')
+  console.log('  -h, --help                 \t\tShow help')
   process.exit(0)
 }
 
 /**
- * @param {string} template
- * @param {string} project
+ * @param {object} [options]
+ * @param {string} [options.framework]
+ * @param {string} [options.name]
  */
-async function init(template, project) {
-  if (!TEMPLATES.has(template)) {
-    console.log(`No matching template for ${template}.`)
-    console.log(bold('Usage: npm create y-sweet-app [name] --template <template>'))
-    console.log('Available templates:', [...TEMPLATES.keys()].join(', '))
-    process.exit(1)
-  }
+async function init(options = {}) {
+  let { framework, name } = options
 
-  let name = project
-  if (!name)
+  if (!name) {
     name = await question(
       bold('What do you want to call your app? ') + gray('(my-y-sweet-app) '),
       'my-y-sweet-app',
     )
+  }
+
+  if (!framework) framework = await select('What framework do you want to use?', [...FRAMEWORKS])
+  else if (!FRAMEWORKS.has(framework)) {
+    console.log(`No matching framework "${framework}".`)
+    console.log('Available frameworks:', [...FRAMEWORKS].join(', '))
+    process.exit(1)
+  }
 
   const __dirname = dirname(fileURLToPath(import.meta.url))
 
-  const src = resolve(__dirname, './templates', template)
+  const src = resolve(__dirname, './frameworks', framework)
   const dest = resolve(process.cwd(), name)
 
   // ensure the destination directory is empty
