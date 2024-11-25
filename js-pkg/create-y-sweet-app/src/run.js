@@ -24,7 +24,7 @@ try {
 }
 
 function help() {
-  console.log(bold('Usage: npm create y-sweet-app [name] [options]'))
+  console.log(bold('Usage: create-y-sweet-app [name] [options]'))
   console.log('\nOptions:')
   console.log('  -f, --framework <framework>\t\tUse a specific framework')
   console.log('\n    Available frameworks:', [...FRAMEWORKS].join(', '), '\n')
