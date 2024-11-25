@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "y_sweet_sdk"
-version = "0.6.1"
+version = "0.6.2"
 description = "Python bindings for the Y-Sweet server"
 readme = "README.md"
 authors = [{ name = "Paul Butler", email = "paul@jamsocket.com" }]
