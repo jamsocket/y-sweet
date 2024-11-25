@@ -1,6 +1,6 @@
 [package]
 name = "y-sweet-core"
-version = "0.6.1"
+version = "0.6.2"
 edition = "2021"
 description = "Sans-IO core of the y-sweet yjs CRDT server."
 license = "MIT"
