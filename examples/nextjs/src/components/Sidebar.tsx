@@ -65,6 +65,9 @@ function Nav({ curRoute, onClickLink }: { curRoute: string; onClickLink?: () => 
             <NavLink href="/tldraw" curRoute={curRoute}>
               tldraw
             </NavLink>
+            <NavLink href="/blocknote" curRoute={curRoute}>
+              BlockNote
+            </NavLink>
             <NavLink href="/presence" curRoute={curRoute}>
               Live Cursors
             </NavLink>
