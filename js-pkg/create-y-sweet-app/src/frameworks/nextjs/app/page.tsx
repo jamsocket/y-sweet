@@ -1,7 +1,7 @@
 import { DocumentManager } from "@y-sweet/sdk";
 import { YDocProvider } from "@y-sweet/react";
 
-import { MyCollaborativeApp } from "@/components/MyCollaborativeApp";
+import { App } from "@/components/App";
 
 const manager = new DocumentManager(process.env.CONNECTION_STRING!);
 
@@ -17,7 +17,7 @@ export default async function Home() {
 
   return (
     <YDocProvider docId={docId} authEndpoint={getClientToken}>
-      <MyCollaborativeApp />
+      <App />
     </YDocProvider>
   );
 }

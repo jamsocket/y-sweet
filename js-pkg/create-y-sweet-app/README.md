@@ -10,4 +10,4 @@ npx create-y-sweet-app@latest
 
 You'll be asked for the name of your project and then prompted to choose a framework.
 
-While Y-Sweet works with any web framework, `create-y-sweet-app` includes quick-start templates for [Next.js](https://nextjs.org) and [Remix](https://remix.run).
+While Y-Sweet works with any web stack, `create-y-sweet-app` includes quick-start templates for [Next.js](https://nextjs.org) and [Remix](https://remix.run).
