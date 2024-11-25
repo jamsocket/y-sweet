@@ -1,7 +1,7 @@
 import { type MetaFunction } from "@remix-run/react";
 import { YDocProvider } from "@y-sweet/react";
 
-import { MyCollaborativeApp } from "~/components/MyCollaborativeApp";
+import { App } from "~/components/App";
 
 export const meta: MetaFunction = () => [{ title: "Y-Sweet + Remix" }];
 
@@ -18,7 +18,7 @@ export default function Home() {
 
   return (
     <YDocProvider docId={docId} authEndpoint="/auth">
-      <MyCollaborativeApp />
+      <App />
     </YDocProvider>
   );
 }
