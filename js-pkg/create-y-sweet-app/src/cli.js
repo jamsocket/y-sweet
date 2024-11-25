@@ -63,6 +63,11 @@ export function bold(text) {
   return `\x1b[1m${text}\x1b[0m`
 }
 
+/**
+ * @param {string} prompt
+ * @param {string} defaultValue
+ * @returns {Promise<string>}
+ */
 export function question(prompt, defaultValue = '') {
   return new Promise((resolve) => {
     const rl = readline.createInterface({
@@ -99,7 +104,7 @@ export function select(prompt, choices) {
         console.log(`${indicator} ${choice}`)
       })
 
-      // Ssore number of lines we just rendered
+      // store number of lines we just rendered
       lines = choices.length + 2 // +2 for prompt and blank line
     }
 
