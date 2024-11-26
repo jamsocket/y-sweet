@@ -19,6 +19,7 @@
 
 The Y-Sweet server can be used by any Yjs app, or you can use our opinionated stack to integrate Yjs and Y-Sweet into a Next.js app.
 
+- `create-y-sweet-app`, a command line tool to quickly create a Y-Sweet app.
 - `@y-sweet/sdk`, a TypeScript library for interacting with `y-sweet-server` from your application backend.
 - `@y-sweet/client`, a TypeScript library for syncing documents from a client to a Y-Sweet server.
 - `@y-sweet/react`, a library of React hooks for connecting to a Y-Sweet server and manipulating Yjs docs.
@@ -27,6 +28,16 @@ The Y-Sweet server can be used by any Yjs app, or you can use our opinionated st
 The goal of the Y-Sweet stack is to give developers the end-to-end developer ergonomics they would expect from a proprietary state-sync platform, **without the lock-in**.
 
 Y-Sweet is MIT-licensed, and was created by [Jamsocket](https://jamsocket.com).
+
+## Getting started
+
+The easiest way to start a Y-Sweet project is with the `create-y-sweet-app` command line tool:
+
+```sh
+npx create-y-sweet-app@latest
+```
+
+For more information, check out our [documentation](https://docs.jamsocket.com/y-sweet).
 
 ## Docs
 
