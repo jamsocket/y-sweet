@@ -47,6 +47,11 @@ export default function Home() {
           url="/tldraw"
           description="A collaborative whiteboard using tldraw."
         />
+        <ProjectLink
+          name="BlockNote"
+          url="/blocknote"
+          description="A collaborative block-based rich text editor using the open-source BlockNote package."
+        />
       </div>
     </div>
   )
