@@ -6,10 +6,12 @@ import json
 import time
 import re
 
+
 BASE_DIR = path.join(path.dirname(__file__), "..", "..", "crates", "y-sweet")
 
 
 class Server:
+    @staticmethod
     def build():
         subprocess.run(
             ["cargo", "build"],
