@@ -360,11 +360,10 @@ impl Server {
 
     async fn serve_internal(
         self: Arc<Self>,
-        addr: &SocketAddr,
+        listener: TcpListener,
         redact_errors: bool,
         routes: Router,
     ) -> Result<()> {
-        let listener = TcpListener::bind(addr).await?;
         let token = self.cancellation_token.clone();
 
         let app = if redact_errors {
@@ -383,16 +382,16 @@ impl Server {
         Ok(())
     }
 
-    pub async fn serve(self, addr: &SocketAddr, redact_errors: bool) -> Result<()> {
+    pub async fn serve(self, listener: TcpListener, redact_errors: bool) -> Result<()> {
         let s = Arc::new(self);
         let routes = s.routes();
-        s.serve_internal(addr, redact_errors, routes).await
+        s.serve_internal(listener, redact_errors, routes).await
     }
 
-    pub async fn serve_doc(self, addr: &SocketAddr, redact_errors: bool) -> Result<()> {
+    pub async fn serve_doc(self, listener: TcpListener, redact_errors: bool) -> Result<()> {
         let s = Arc::new(self);
         let routes = s.single_doc_routes();
-        s.serve_internal(addr, redact_errors, routes).await
+        s.serve_internal(listener, redact_errors, routes).await
     }
 
     fn verify_doc_token(&self, token: Option<&str>, doc: &str) -> Result<(), AppError> {
