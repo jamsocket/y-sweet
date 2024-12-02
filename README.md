@@ -1,19 +1,19 @@
 <img src="https://raw.githubusercontent.com/jamsocket/y-sweet/main/logo.svg" />
 
-# Y-Sweet: a realtime CRDT-based document database, backed by object storage
+# Y-Sweet: a realtime CRDT-based document store, backed by object storage
 
 [![GitHub Repo stars](https://img.shields.io/github/stars/jamsocket/y-sweet?style=social)](https://github.com/jamsocket/y-sweet)
 [![Chat on Discord](https://img.shields.io/discord/939641163265232947?color=404eed&label=discord)](https://discord.gg/N5sEpsuhh9)
 
-**Y-Sweet** is an open-source server for building realtime applications on top of the [Yjs](https://github.com/yjs/yjs) CRDT library.
+**Y-Sweet** is an open-source document store and realtime sync backend, built on top of the [Yjs](https://github.com/yjs/yjs) CRDT library.
 
 ## Features
 
-- Persists document data to a network filesystem or S3-compatible storage, [inspired by Figma’s infrastructure](https://digest.browsertech.com/archive/browsertech-digest-figma-is-a-file-editor/).
+- Persists document data to S3-compatible storage, [like Figma](https://digest.browsertech.com/archive/browsertech-digest-figma-is-a-file-editor/).
 - Scales horizontally with a [session backend](https://jamsocket.com/blog/session-backends) model.
 - Deploys as a native Linux process.
 - Provides document-level access control via client tokens.
-- Written in Rust with a focus on stability and performance, building on the [blazing fast](https://github.com/dmonad/crdt-benchmarks) [y-crdt](https://github.com/y-crdt/y-crdt/) library.
+- Written in Rust with a focus on stability and performance.
 
 ## Y-Sweet stack
 
@@ -24,8 +24,6 @@ The Y-Sweet server can be used by any Yjs app, or you can use our opinionated st
 - `@y-sweet/client`, a TypeScript library for syncing documents from a client to a Y-Sweet server.
 - `@y-sweet/react`, a library of React hooks for connecting to a Y-Sweet server and manipulating Yjs docs.
 - A [debugger](https://docs.jamsocket.com/y-sweet/features/debugger) for exploring Yjs document and presence state.
-
-The goal of the Y-Sweet stack is to give developers the end-to-end developer ergonomics they would expect from a proprietary state-sync platform, **without the lock-in**.
 
 Y-Sweet is MIT-licensed, and was created by [Jamsocket](https://jamsocket.com).
 
@@ -120,10 +118,9 @@ mySharedMap.observe((event) => {
 
 ## Hosted Y-Sweet on Jamsocket
 
-If you were to use the open source Y-Sweet server alone, you would still have to set up the infrastructure for self hosting it. With [Jamsocket](https://jamsocket.com/y-sweet), Y-Sweet scales effortlessly, and every document is automatically persisted when you link your own S3 storage.
+You can run Y-Sweet on your own server, or you can run it on
+[Jamsocket](https://jamsocket.com/y-sweet). Jamsocket is
+purpose-built to scale up sync backends like Y-Sweet, and 
+allows you to bring your own storage.
 
 You can try it out for free today by following our [quickstart](https://docs.jamsocket.com/y-sweet/quickstart) guide.
-
-If you are interested in being a build partner for early access to new features, please [reach out](mailto:hi@jamsocket.com).
-
-We are committed to growing Y-Sweet as an open-source-first project, wherever you decide to host it.
