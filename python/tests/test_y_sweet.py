@@ -6,44 +6,49 @@ from os import environ
 import random
 import string
 import pycrdt as Y
-
-CONNECTION_STRING = environ.get("CONNECTION_STRING", "ys://localhost:8080")
+from .server import Server
 
 
 class TestYSweet(unittest.TestCase):
+    def setUpClass():
+        Server.build()
+
     def setUp(self):
-        self.random_string = "".join(
-            random.choices(string.ascii_lowercase + string.digits, k=10)
-        )
+        self.test_id = self.id().split(".")[-1]
+        self.server = Server(self.test_id)
+        self.connection_string = self.server.connection_string
+
+    def tearDown(self):
+        self.server.shutdown()
 
     def test_create_doc(self):
-        doc = DocumentManager(CONNECTION_STRING)
-        name = f"{self.random_string}-test-doc"
+        doc = DocumentManager(self.connection_string)
+        name = "test-doc"
         result = doc.create_doc(name)
         self.assertEqual(result["docId"], name)
 
     def test_get_client_token(self):
-        doc = DocumentManager(CONNECTION_STRING)
+        doc = DocumentManager(self.connection_string)
 
         # getting a non-existent token should raise an error
-        nonexistent = f"{self.random_string}-nonexistent"
+        nonexistent = "nonexistent"
         with self.assertRaises(YSweetError):
             doc.get_client_token(nonexistent)
 
-        existing = f"{self.random_string}-existing"
+        existing = "existing"
         doc.create_doc(existing)
         result = doc.get_client_token(existing)
         self.assertEqual(result["docId"], existing)
 
     def test_get_url(self):
-        doc = DocumentManager(CONNECTION_STRING)
-        name = f"{self.random_string}-test-doc"
+        doc = DocumentManager(self.connection_string)
+        name = "test-doc"
 
         doc.get_websocket_url(name)
 
     def test_get_update(self):
-        dm = DocumentManager(CONNECTION_STRING)
-        name = f"{self.random_string}-test-doc"
+        dm = DocumentManager(self.connection_string)
+        name = "test-doc"
         dm.create_doc(name)
         conn = dm.get_connection(name)
 
@@ -65,8 +70,8 @@ class TestYSweet(unittest.TestCase):
         self.assertEqual(text2.to_py(), "Hello, world!")
 
     def test_get_update_direct(self):
-        dm = DocumentManager(CONNECTION_STRING)
-        name = f"{self.random_string}-test-doc"
+        dm = DocumentManager(self.connection_string)
+        name = "test-doc"
         dm.create_doc(name)
 
         # Generate an update to apply
@@ -87,8 +92,8 @@ class TestYSweet(unittest.TestCase):
         self.assertEqual(text2.to_py(), "Hello, world!")
 
     def test_update_context(self):
-        dm = DocumentManager(CONNECTION_STRING)
-        name = f"{self.random_string}-test-doc"
+        dm = DocumentManager(self.connection_string)
+        name = "test-doc"
         dm.create_doc(name)
         conn = dm.get_connection(name)
 
@@ -101,6 +106,7 @@ class TestYSweet(unittest.TestCase):
         doc2.apply_update(update)
         text2 = doc2.get("text", type=Y.Text)
         self.assertEqual(text2.to_py(), "Hello, world!")
+
 
 if __name__ == "__main__":
     unittest.main()

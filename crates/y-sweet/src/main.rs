@@ -8,6 +8,7 @@ use std::{
     path::PathBuf,
 };
 use tokio::io::AsyncReadExt;
+use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 use tracing::metadata::LevelFilter;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
@@ -180,6 +181,9 @@ async fn main() -> Result<()> {
                 *port,
             );
 
+            let listener = TcpListener::bind(addr).await?;
+            let addr = listener.local_addr()?;
+
             let store = if let Some(store) = store {
                 let store = get_store_from_opts(store)?;
                 store.init().await?;
@@ -207,7 +211,7 @@ async fn main() -> Result<()> {
 
             let prod = *prod;
             let handle = tokio::spawn(async move {
-                server.serve(&addr, prod).await.unwrap();
+                server.serve(listener, prod).await.unwrap();
             });
 
             tracing::info!("Listening on ws://{}", addr);
@@ -312,8 +316,11 @@ async fn main() -> Result<()> {
                 *port,
             );
 
+            let listener = TcpListener::bind(addr).await?;
+            let addr = listener.local_addr()?;
+
             tokio::spawn(async move {
-                server.serve_doc(&addr, false).await.unwrap();
+                server.serve_doc(listener, false).await.unwrap();
             });
 
             tracing::info!("Listening on http://{}", addr);

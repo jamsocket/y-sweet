@@ -19,3 +19,4 @@ var/
 .pytest_cache/
 .venv/
 .ruff_cache/
+test-out

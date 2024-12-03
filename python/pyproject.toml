@@ -18,17 +18,10 @@ dependencies = [
     "requests~=2.32.2",
     "pycrdt~=0.9.11",
 ]
+requires-python = ">=3.12"
 
 [project.urls]
 Homepage = "https://github.com/jamsocket/y-sweet"
-
-[project.optional-dependencies]
-dev = [
-    "build==1.2.2",
-    "pytest~=8.3.3",
-    "twine~=5.1.1",
-    "ruff~=0.6.5",
-]
 
 [tool.setuptools]
 package-dir = { "" = "src" }
@@ -36,3 +29,10 @@ package-dir = { "" = "src" }
 [tool.pytest.ini_options]
 addopts = "-ra -q"
 testpaths = ["tests"]
+pythonpath = [".", "src"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.3",
+    "ruff>=0.8.0",
+]
