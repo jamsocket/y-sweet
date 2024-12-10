@@ -71,13 +71,14 @@ async function getClientToken(authEndpoint: AuthEndpoint, roomname: string): Pro
   return clientToken
 }
 
-export class YSweetProvider extends EventTarget {
+export class YSweetProvider {
   private websocket: WebSocket | null = null
   public clientToken: ClientToken | null = null
   public synced: boolean = false
   private status: YSweetStatus = { status: 'disconnected' }
   public awareness: awarenessProtocol.Awareness
   private WebSocketPolyfill: WebSocketPolyfillType
+  private listeners: Map<YSweetEvent, Set<EventListener>> = new Map()
 
   constructor(
     private authEndpoint: AuthEndpoint,
@@ -85,8 +86,6 @@ export class YSweetProvider extends EventTarget {
     private doc: Y.Doc,
     extraOptions: Partial<YSweetProviderParams> = {},
   ) {
-    super()
-
     if (extraOptions.connect !== false) {
       this.connect()
     }
@@ -204,24 +203,13 @@ export class YSweetProvider extends EventTarget {
     console.error('websocket error', event)
   }
 
-  addEventListener(
-    type: YSweetEvent,
-    listener: EventListener,
-    options?: boolean | AddEventListenerOptions,
-  ): void {
-    super.addEventListener(type, listener, options)
-  }
-
-  removeEventListener(
-    type: YSweetEvent,
-    listener: EventListener,
-    options?: boolean | EventListenerOptions,
-  ): void {
-    super.removeEventListener(type, listener, options)
-  }
-
   protected emit(eventName: YSweetEvent, data: any = null): void {
-    this.dispatchEvent(new CustomEvent(eventName, { detail: data }))
+    const listeners = this.listeners.get(eventName)
+    if (listeners) {
+      for (const listener of listeners) {
+        listener(data)
+      }
+    }
   }
 
   private setSynced(state: boolean) {
@@ -253,7 +241,14 @@ export class YSweetProvider extends EventTarget {
       // Ref: https://github.com/yjs/y-websocket/blob/aa4220407bda51ab6282d1291de6493c136c2089/src/y-websocket.js#L404
       type = 'sync'
     }
-    this.addEventListener(type, (d: Event) => listener((d as CustomEvent).detail), { once })
+
+    if (!this.listeners.has(type)) {
+      this.listeners.set(type, new Set())
+    }
+    this.listeners.get(type)?.add(listener)
+    if (once) {
+      this.once(type, listener)
+    }
   }
 
   on(type: YSweetEvent, listener: (d: any) => void): void {
@@ -265,6 +260,9 @@ export class YSweetProvider extends EventTarget {
   }
 
   off(type: YSweetEvent, listener: (d: any) => void): void {
-    this.removeEventListener(type, listener)
+    const listeners = this.listeners.get(type)
+    if (listeners) {
+      listeners.delete(listener)
+    }
   }
 }
