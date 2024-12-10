@@ -365,13 +365,12 @@ export class YSweetProvider {
   }
 
   protected emit(eventName: YSweetEvent, data: any = null): void {
-    const listeners = this.listeners.get(eventName) || new Set()
-
-    for (const listener of listeners) {
-      listener(data)
+    const listeners = this.listeners.get(eventName)
+    if (listeners) {
+      for (const listener of listeners) {
+        listener(data)
+      }
     }
-    this.setSynced(false)
-    this.setStatus({ status: STATUS_DISCONNECTED })
   }
 
   private setSynced(state: boolean) {
