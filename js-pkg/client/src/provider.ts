@@ -338,7 +338,7 @@ export class YSweetProvider {
   }
 
   private websocketClose(event: CloseEvent) {
-    this.emit('connection-close', event)
+    this.emit(EVENT_CONNECTION_CLOSE, event)
     this.setSynced(false)
     this.setStatus({ status: STATUS_DISCONNECTED })
 
@@ -370,12 +370,14 @@ export class YSweetProvider {
     for (const listener of listeners) {
       listener(data)
     }
+    this.setSynced(false)
+    this.setStatus({ status: STATUS_DISCONNECTED })
   }
 
   private setSynced(state: boolean) {
     if (this.synced !== state) {
       this.synced = state
-      this.emit('sync', state)
+      this.emit(EVENT_SYNC, state)
     }
   }
 
