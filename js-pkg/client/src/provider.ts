@@ -8,7 +8,6 @@ import * as Y from 'yjs'
 const messageSync = 0
 const messageQueryAwareness = 3
 const messageAwareness = 1
-const messageAuth = 2
 
 const EVENT_STATUS = 'status'
 const EVENT_SYNC = 'sync'
@@ -28,6 +27,9 @@ type YSweetEvent =
 const STATUS_CONNECTED = 'connected'
 const STATUS_DISCONNECTED = 'disconnected'
 const STATUS_CONNECTING = 'connecting'
+
+const RETRIES_BEFORE_TOKEN_REFRESH = 3
+const DELAY_MS_BEFORE_RECONNECT = 500
 
 /**
  * Note: this should always be a superset of y-websocket's valid statuses.
@@ -68,6 +70,10 @@ export type YSweetProviderParams = {
   initialClientToken?: ClientToken
 }
 
+async function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 async function getClientToken(authEndpoint: AuthEndpoint, roomname: string): Promise<ClientToken> {
   if (typeof authEndpoint === 'function') {
     return await authEndpoint()
@@ -93,13 +99,20 @@ export class YSweetProvider {
   private WebSocketPolyfill: WebSocketPolyfillType
   private listeners: Map<YSweetEvent, Set<EventListener>> = new Map()
 
+  /** Whether we should attempt to connect if we are in a disconnected state. */
+  private shouldConnect: boolean
+
+  /** Whether we are currently in the process of connecting. */
+  private isConnecting: boolean = false
+
   constructor(
     private authEndpoint: AuthEndpoint,
     private docId: string,
     private doc: Y.Doc,
     extraOptions: Partial<YSweetProviderParams> = {},
   ) {
-    if (extraOptions.connect !== false) {
+    this.shouldConnect = extraOptions.connect !== false
+    if (this.shouldConnect) {
       this.connect()
     }
 
@@ -108,9 +121,7 @@ export class YSweetProvider {
     }
 
     this.awareness = extraOptions.awareness ?? new awarenessProtocol.Awareness(doc)
-
     this.awareness.on('update', this.handleAwarenessUpdate.bind(this))
-
     this.WebSocketPolyfill = extraOptions.WebSocketPolyfill || WebSocket
 
     doc.on('update', this.update.bind(this))
@@ -134,13 +145,73 @@ export class YSweetProvider {
     if (this.clientToken) {
       return this.clientToken
     }
-    this.clientToken = await getClientToken(this.authEndpoint, this.docId)
-    return this.clientToken
+    if (typeof this.authEndpoint === 'string') {
+      this.clientToken = await getClientToken(this.authEndpoint, this.docId)
+      return this.clientToken
+    } else {
+      this.clientToken = await this.authEndpoint()
+      return this.clientToken
+    }
   }
 
-  private async connect() {
-    let clientToken = await this.ensureClientToken()
-    this.setupWs(clientToken)
+  async connect() {
+    if (this.isConnecting) {
+      return
+    }
+
+    this.shouldConnect = true
+    this.isConnecting = true
+
+    while (this.shouldConnect) {
+      let clientToken = await this.ensureClientToken()
+
+      for (let i = 0; i < RETRIES_BEFORE_TOKEN_REFRESH && this.shouldConnect; i++) {
+        let resolve_: (value: boolean) => void
+
+        let promise = new Promise((resolve) => {
+          resolve_ = resolve
+        })
+
+        let statusListener = (event: YSweetStatus) => {
+          if (event.status === STATUS_CONNECTED) {
+            resolve_(true)
+          } else if (event.status === STATUS_DISCONNECTED) {
+            resolve_(false)
+          }
+        }
+
+        let errorListener = () => {
+          resolve_(false)
+        }
+
+        this.on(EVENT_STATUS, statusListener)
+        this.on(EVENT_CONNECTION_ERROR, errorListener)
+
+        this.setupWs(clientToken)
+
+        if ((await promise) === true) {
+          this.isConnecting = false
+          return
+        }
+
+        this.off(EVENT_STATUS, statusListener)
+        this.off(EVENT_CONNECTION_ERROR, errorListener)
+
+        await sleep(DELAY_MS_BEFORE_RECONNECT)
+      }
+
+      // Delete the current client token to force a token refresh on the next attempt.
+      this.clientToken = null
+    }
+
+    this.isConnecting = false
+  }
+
+  disconnect() {
+    if (this.websocket) {
+      this.websocket.close()
+    }
+    this.shouldConnect = false
   }
 
   private bindWebsocket(websocket: WebSocket) {
@@ -239,6 +310,7 @@ export class YSweetProvider {
   }
 
   private websocketClose(event: CloseEvent) {
+    this.emit('connection-close', event)
     this.setSynced(false)
     this.setStatus({ status: STATUS_DISCONNECTED })
 
@@ -265,8 +337,7 @@ export class YSweetProvider {
   }
 
   private websocketError(event: Event) {
-    // trigger a reconnect
-    console.error('websocket error', event)
+    this.emit('connection-error', event)
   }
 
   protected emit(eventName: YSweetEvent, data: any = null): void {
@@ -286,6 +357,11 @@ export class YSweetProvider {
   }
 
   private setStatus(status: YSweetStatus) {
+    if (status.status === STATUS_DISCONNECTED && this.shouldConnect) {
+      this.connect()
+    }
+
+    console.log('setStatus', status)
     if (this.status.status !== status.status) {
       this.status = status
       this.emit('status', status)
