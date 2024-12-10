@@ -385,7 +385,6 @@ export class YSweetProvider {
       this.connect()
     }
 
-    console.log('setStatus', status)
     if (this.status.status !== status.status) {
       this.status = status
       this.emit('status', status)
