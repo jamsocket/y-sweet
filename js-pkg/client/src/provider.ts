@@ -10,18 +10,31 @@ export const messageQueryAwareness = 3
 export const messageAwareness = 1
 export const messageAuth = 2
 
+const EVENT_STATUS = 'status'
+const EVENT_SYNC = 'sync'
+const EVENT_CONNECTION_CLOSE = 'connection-close'
+const EVENT_CONNECTION_ERROR = 'connection-error'
+
 /**
  * Note: this should always be a superset of y-websocket's valid events.
  * Ref: https://github.com/yjs/y-websocket/blob/aa4220407bda51ab6282d1291de6493c136c2089/README.md?plain=1#L119-L125
  */
-type YSweetEvent = 'status' | 'sync' | 'connection-close' | 'connection-error'
+type YSweetEvent =
+  | typeof EVENT_STATUS
+  | typeof EVENT_SYNC
+  | typeof EVENT_CONNECTION_CLOSE
+  | typeof EVENT_CONNECTION_ERROR
+
+const STATUS_CONNECTED = 'connected'
+const STATUS_DISCONNECTED = 'disconnected'
+const STATUS_CONNECTING = 'connecting'
 
 /**
  * Note: this should always be a superset of y-websocket's valid statuses.
  * Ref: https://github.com/yjs/y-websocket/blob/aa4220407bda51ab6282d1291de6493c136c2089/README.md?plain=1#L121
  */
 type YSweetStatus = {
-  status: 'connected' | 'disconnected' | 'connecting'
+  status: typeof STATUS_CONNECTED | typeof STATUS_DISCONNECTED | typeof STATUS_CONNECTING
 }
 
 type WebSocketPolyfillType = {
@@ -75,7 +88,7 @@ export class YSweetProvider {
   private websocket: WebSocket | null = null
   public clientToken: ClientToken | null = null
   public synced: boolean = false
-  private status: YSweetStatus = { status: 'disconnected' }
+  private status: YSweetStatus = { status: STATUS_DISCONNECTED }
   public awareness: awarenessProtocol.Awareness
   private WebSocketPolyfill: WebSocketPolyfillType
   private listeners: Map<YSweetEvent, Set<EventListener>> = new Map()
@@ -150,7 +163,7 @@ export class YSweetProvider {
       url = url + `?token=${clientToken.token}`
     }
 
-    this.setStatus({ status: 'connecting' })
+    this.setStatus({ status: STATUS_CONNECTING })
     const websocket = new (this.WebSocketPolyfill || WebSocket)(url)
     this.bindWebsocket(websocket)
   }
@@ -176,7 +189,7 @@ export class YSweetProvider {
   }
 
   private websocketOpen() {
-    this.setStatus({ status: 'connected' })
+    this.setStatus({ status: STATUS_CONNECTED })
     this.syncStep1()
   }
 
@@ -195,7 +208,7 @@ export class YSweetProvider {
 
   private websocketClose(event: CloseEvent) {
     this.setSynced(false)
-    this.setStatus({ status: 'disconnected' })
+    this.setStatus({ status: STATUS_DISCONNECTED })
   }
 
   private websocketError(event: Event) {
@@ -239,7 +252,7 @@ export class YSweetProvider {
       // Yjs emits both 'sync' and 'synced' events for legacy reasons. We only emit 'sync', but if
       // we attempt to subscribe to 'synced', we rewrite it to 'sync' to maintain compatibility.
       // Ref: https://github.com/yjs/y-websocket/blob/aa4220407bda51ab6282d1291de6493c136c2089/src/y-websocket.js#L404
-      type = 'sync'
+      type = EVENT_SYNC
     }
 
     if (!this.listeners.has(type)) {
