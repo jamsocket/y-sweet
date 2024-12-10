@@ -30,6 +30,7 @@ const STATUS_CONNECTING = 'connecting'
 
 const RETRIES_BEFORE_TOKEN_REFRESH = 3
 const DELAY_MS_BEFORE_RECONNECT = 500
+const DELAY_MS_BEFORE_RETRY_TOKEN_REFRESH = 3000
 
 /**
  * Note: this should always be a superset of y-websocket's valid statuses.
@@ -84,9 +85,19 @@ async function getClientToken(authEndpoint: AuthEndpoint, roomname: string): Pro
     body,
     headers: { 'Content-Type': 'application/json' },
   })
-  // TODO: handle errors
+
+  if (!res.ok) {
+    throw new Error(`Failed to get client token: ${res.status} ${res.statusText}`)
+  }
+
   const clientToken = await res.json()
-  // TODO: check that clientToken.docId === this.roomname
+
+  if (clientToken.docId !== roomname) {
+    throw new Error(
+      `Client token docId does not match roomname: ${clientToken.docId} !== ${roomname}`,
+    )
+  }
+
   return clientToken
 }
 
@@ -163,7 +174,14 @@ export class YSweetProvider {
     this.isConnecting = true
 
     while (this.shouldConnect) {
-      let clientToken = await this.ensureClientToken()
+      let clientToken
+      try {
+        clientToken = await this.ensureClientToken()
+      } catch (e) {
+        console.warn('Failed to get client token', e)
+        await sleep(DELAY_MS_BEFORE_RETRY_TOKEN_REFRESH)
+        continue
+      }
 
       for (let i = 0; i < RETRIES_BEFORE_TOKEN_REFRESH && this.shouldConnect; i++) {
         let resolve_: (value: boolean) => void
@@ -361,7 +379,6 @@ export class YSweetProvider {
       this.connect()
     }
 
-    console.log('setStatus', status)
     if (this.status.status !== status.status) {
       this.status = status
       this.emit('status', status)
