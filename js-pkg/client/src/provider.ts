@@ -126,7 +126,7 @@ export class YSweetProvider {
   private localVersion: number = 0
   private ackedVersion: number = -1
 
-  /** Whether a (re)connect loop is currently running. This acts as a lock to prevent two concurrent connect loops. */
+  /** Whether we are currently in the process of connecting. */
   private isConnecting: boolean = false
 
   private heartbeatHandle: ReturnType<typeof setTimeout> | null = null
