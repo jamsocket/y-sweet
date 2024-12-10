@@ -381,6 +381,11 @@ export class YSweetProvider {
   }
 
   private setStatus(status: YSweetStatus) {
+    if (status.status === STATUS_DISCONNECTED && this.shouldConnect) {
+      this.connect()
+    }
+
+    console.log('setStatus', status)
     if (this.status.status !== status.status) {
       this.status = status
       this.emit('status', status)
