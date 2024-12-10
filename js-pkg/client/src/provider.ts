@@ -5,10 +5,10 @@ import * as awarenessProtocol from 'y-protocols/awareness'
 import * as syncProtocol from 'y-protocols/sync'
 import * as Y from 'yjs'
 
-export const messageSync = 0
-export const messageQueryAwareness = 3
-export const messageAwareness = 1
-export const messageAuth = 2
+const messageSync = 0
+const messageQueryAwareness = 3
+const messageAwareness = 1
+const messageAuth = 2
 
 const EVENT_STATUS = 'status'
 const EVENT_SYNC = 'sync'
@@ -108,6 +108,9 @@ export class YSweetProvider {
     }
 
     this.awareness = extraOptions.awareness ?? new awarenessProtocol.Awareness(doc)
+
+    this.awareness.on('update', this.handleAwarenessUpdate.bind(this))
+
     this.WebSocketPolyfill = extraOptions.WebSocketPolyfill || WebSocket
 
     doc.on('update', this.update.bind(this))
@@ -175,6 +178,28 @@ export class YSweetProvider {
     this.websocket?.send(encoding.toUint8Array(encoder))
   }
 
+  private queryAwareness() {
+    const encoder = encoding.createEncoder()
+    encoding.writeVarUint(encoder, messageAwareness)
+    encoding.writeVarUint8Array(
+      encoder,
+      awarenessProtocol.encodeAwarenessUpdate(
+        this.awareness,
+        Array.from(this.awareness.getStates().keys()),
+      ),
+    )
+
+    this.websocket?.send(encoding.toUint8Array(encoder))
+  }
+
+  private updateAwareness(decoder: decoding.Decoder) {
+    awarenessProtocol.applyAwarenessUpdate(
+      this.awareness,
+      decoding.readVarUint8Array(decoder),
+      this,
+    )
+  }
+
   private receiveSyncMessage(decoder: decoding.Decoder) {
     const encoder = encoding.createEncoder()
     encoding.writeVarUint(encoder, messageSync)
@@ -191,6 +216,7 @@ export class YSweetProvider {
   private websocketOpen() {
     this.setStatus({ status: STATUS_CONNECTED })
     this.syncStep1()
+    this.broadcastAwareness()
   }
 
   private receiveMessage(event: MessageEvent) {
@@ -201,6 +227,12 @@ export class YSweetProvider {
       case messageSync:
         this.receiveSyncMessage(decoder)
         break
+      case messageAwareness:
+        this.updateAwareness(decoder)
+        break
+      case messageQueryAwareness:
+        this.queryAwareness()
+        break
       default:
         break
     }
@@ -209,6 +241,27 @@ export class YSweetProvider {
   private websocketClose(event: CloseEvent) {
     this.setSynced(false)
     this.setStatus({ status: STATUS_DISCONNECTED })
+
+    // Remove all awareness states except for our own.
+    awarenessProtocol.removeAwarenessStates(
+      this.awareness,
+      Array.from(this.awareness.getStates().keys()).filter(
+        (client) => client !== this.doc.clientID,
+      ),
+      this,
+    )
+  }
+
+  private broadcastAwareness() {
+    if (this.awareness.getLocalState() !== null) {
+      const encoderAwarenessState = encoding.createEncoder()
+      encoding.writeVarUint(encoderAwarenessState, messageAwareness)
+      encoding.writeVarUint8Array(
+        encoderAwarenessState,
+        awarenessProtocol.encodeAwarenessUpdate(this.awareness, [this.doc.clientID]),
+      )
+      this.websocket?.send(encoding.toUint8Array(encoderAwarenessState))
+    }
   }
 
   private websocketError(event: Event) {
@@ -239,10 +292,27 @@ export class YSweetProvider {
     }
   }
 
+  private handleAwarenessUpdate(
+    { added, updated, removed }: { added: Array<any>; updated: Array<any>; removed: Array<any> },
+    _origin: any,
+  ) {
+    const changedClients = added.concat(updated).concat(removed)
+    const encoder = encoding.createEncoder()
+    encoding.writeVarUint(encoder, messageAwareness)
+    encoding.writeVarUint8Array(
+      encoder,
+      awarenessProtocol.encodeAwarenessUpdate(this.awareness, changedClients),
+    )
+
+    this.websocket?.send(encoding.toUint8Array(encoder))
+  }
+
   public destroy() {
     if (this.websocket) {
       this.websocket.close()
     }
+
+    awarenessProtocol.removeAwarenessStates(this.awareness, [this.doc.clientID], 'window unload')
   }
 
   /** Aliases for compatibility with y-websocket provider. */
