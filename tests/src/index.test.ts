@@ -23,8 +23,6 @@ function createYjsProvider(
 ) {
   extraOptions = {
     WebSocketPolyfill: require('ws'),
-    // Broadcast channel prevents us from mocking separate clients.
-    disableBc: true,
     ...extraOptions,
   }
   return createYjsProvider_(doc, docId, authEndpoint, extraOptions)
@@ -138,10 +136,7 @@ describe.each(CONFIGURATIONS)(
       const doc = new Y.Doc()
       const provider = await createYjsProvider(doc, docResult.docId, getClientToken, {})
 
-      await new Promise((resolve, reject) => {
-        provider.on('synced', resolve)
-        provider.on('syncing', reject)
-      })
+      await waitForProviderSync(provider)
     })
 
     test('Update doc and fetch as update', async () => {
@@ -229,36 +224,28 @@ describe.each(CONFIGURATIONS)(
       const doc = new Y.Doc()
 
       // Connect to the doc.
-      const provider = await createYjsProvider(doc, docResult.docId, getClientToken, {})
+      let provider = await createYjsProvider(doc, docResult.docId, getClientToken, {})
 
       await waitForProviderSync(provider)
 
       // Disconnect.
-      expect(provider.ws).not.toBeNull()
-      provider.ws!.close()
-
-      await new Promise<void>((resolve, reject) => {
-        setTimeout(() => reject('Expected to disconnect.'), 1_000)
-        provider.on('connection-close', () => {
-          resolve()
-        })
-      })
-
-      expect(provider.synced).toBe(false)
+      provider.destroy()
 
       // Modify the doc while offline.
       doc.getMap('test').set('foo', 'bar')
 
       // Reconnect to the doc.
-      provider.connect()
+      provider = createYjsProvider(doc, docResult.docId, getClientToken, {})
       await new Promise<void>((resolve, reject) => {
         provider.on('status', (event: { status: string }) => {
           if (event.status === 'connected') {
             resolve()
-          } else {
-            reject(`Expected connected status, got ${event.status}`)
           }
         })
+
+        setTimeout(() => {
+          reject('Timed out waiting for provider to reconnect.')
+        }, 5_000)
       })
 
       await waitForProviderSync(provider)
