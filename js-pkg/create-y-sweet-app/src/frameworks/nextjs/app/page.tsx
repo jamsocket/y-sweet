@@ -3,7 +3,9 @@ import { YDocProvider } from "@y-sweet/react";
 
 import { App } from "@/components/App";
 
-const manager = new DocumentManager(process.env.CONNECTION_STRING!);
+const manager = new DocumentManager(
+  process.env.CONNECTION_STRING || "ys://127.0.0.1:8080",
+);
 
 export default async function Home() {
   const docId = "my-doc-id";
