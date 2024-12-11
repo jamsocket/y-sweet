@@ -6,7 +6,7 @@ import {
   createYjsProvider,
   debuggerUrl,
 } from '@y-sweet/client'
-import type { AuthEndpoint, YSweetProviderWithClientToken } from '@y-sweet/client'
+import type { AuthEndpoint } from '@y-sweet/client'
 import type { ClientToken } from '@y-sweet/sdk'
 import type { ReactNode } from 'react'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
@@ -17,13 +17,12 @@ export {
   YSweetProvider,
   debuggerUrl,
   type YSweetProviderParams,
-  type YSweetProviderWithClientToken,
   type AuthEndpoint,
 }
 
 type YjsContextType = {
   doc: Y.Doc
-  provider: YSweetProviderWithClientToken
+  provider: YSweetProvider
 }
 
 const YjsContext = createContext<YjsContextType | null>(null)
@@ -64,6 +63,9 @@ export function useYSweetDebugUrl(): string {
   const yjsCtx = useContext(YjsContext)
   if (!yjsCtx) {
     throw new Error('Yjs hooks must be used within a YDocProvider')
+  }
+  if (!yjsCtx.provider.clientToken) {
+    return ''
   }
   return debuggerUrl(yjsCtx.provider.clientToken)
 }
@@ -195,18 +197,15 @@ export function YDocProvider(props: YDocProviderProps) {
 
   useEffect(() => {
     let canceled = false
-    let provider: YSweetProviderWithClientToken | null = null
+    let provider: YSweetProvider | null = null
     const doc = new Y.Doc()
 
     ;(async () => {
       provider = await createYjsProvider(doc, docId, authEndpoint, {
         initialClientToken,
-        // TODO: this disables local cross-tab communication, which makes
-        // debugging easier, but should be re-enabled eventually
-        disableBc: true,
       })
 
-      if (props.showDebuggerLink ?? true) {
+      if ((props.showDebuggerLink ?? true) && provider.clientToken) {
         const url = debuggerUrl(provider.clientToken)
         console.log(
           `%cOpen this in Y-Sweet Debugger ⮕ ${url}`,

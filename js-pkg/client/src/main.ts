@@ -1,13 +1,7 @@
-import {
-  YSweetProvider,
-  ySweetProviderWrapper,
-  type YSweetProviderParams,
-  type AuthEndpoint,
-  type YSweetProviderWithClientToken,
-} from './provider'
+import { YSweetProvider, type YSweetProviderParams, type AuthEndpoint } from './provider'
 import * as Y from 'yjs'
 import { ClientToken, encodeClientToken } from '@y-sweet/sdk'
-export { YSweetProvider, YSweetProviderParams, AuthEndpoint, YSweetProviderWithClientToken }
+export { YSweetProvider, YSweetProviderParams, AuthEndpoint }
 
 /**
  * Given a docId and {@link AuthEndpoint}, create a {@link YSweetProvider} for it.
@@ -18,13 +12,13 @@ export { YSweetProvider, YSweetProviderParams, AuthEndpoint, YSweetProviderWithC
  * @param extraOptions
  * @returns
  */
-export async function createYjsProvider(
+export function createYjsProvider(
   doc: Y.Doc,
   docId: string,
   authEndpoint: AuthEndpoint,
   extraOptions: Partial<YSweetProviderParams> = {},
-): Promise<YSweetProviderWithClientToken> {
-  return ySweetProviderWrapper(authEndpoint, docId, doc, extraOptions)
+): YSweetProvider {
+  return new YSweetProvider(authEndpoint, docId, doc, extraOptions)
 }
 
 /**

@@ -10,28 +10,10 @@ import { DebuggableAwareness } from '@/lib/debuggable/yawareness'
 
 export function Debugger() {
   const doc: Y.Doc = useYDoc()
-  const provider = useYjsProvider()
-  const url = provider.ws?.url
   const awareness = useAwareness()
-
-  const selectAll = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation()
-    e.preventDefault()
-
-    let range = document.createRange()
-    range.selectNodeContents(e.target as Node)
-    let selection = window.getSelection()
-    selection?.removeAllRanges()
-    selection?.addRange(range)
-  }, [])
 
   return (
     <div>
-      {url && (
-        <p className="mb-5 text-sm text-gray-400">
-          WebSocket URL: <samp onDoubleClick={selectAll}>{url}</samp>
-        </p>
-      )}
       <div className="flex flex-row">
         <div className="flex-1">
           <h2 className="text-2xl font-bold mb-4">State</h2>
