@@ -47,7 +47,7 @@ type YSweetStatus = {
 }
 
 type WebSocketPolyfillType = {
-  new(url: string | URL): WebSocket
+  new (url: string | URL): WebSocket
   prototype: WebSocket
   readonly CLOSED: number
   readonly CLOSING: number
