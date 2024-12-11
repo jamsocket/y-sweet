@@ -107,8 +107,7 @@ async function getClientToken(authEndpoint: AuthEndpoint, roomname: string): Pro
 export class YSweetProvider {
   private websocket: WebSocket | null = null
   public clientToken: ClientToken | null = null
-  private initialSync: boolean = false
-  private synced: boolean = false
+  public synced: boolean = false
   private status: YSweetStatus = { status: STATUS_DISCONNECTED }
   public awareness: awarenessProtocol.Awareness
   private WebSocketPolyfill: WebSocketPolyfillType
