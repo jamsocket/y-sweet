@@ -231,6 +231,11 @@ export type YDocProviderProps = {
 
   /** Whether to hide the debugger link. Defaults to true. */
   showDebuggerLink?: boolean
+
+  /** Whether to enable offline support. Document state will be stored on the client side for offline use
+   * and faster startup times.
+   */
+  enableOfflineSupport?: boolean
 }
 
 /**
@@ -249,6 +254,7 @@ export function YDocProvider(props: YDocProviderProps) {
     ;(async () => {
       provider = await createYjsProvider(doc, docId, authEndpoint, {
         initialClientToken,
+        // offline: props.enableOfflineSupport,
       })
 
       if ((props.showDebuggerLink ?? true) && provider.clientToken) {

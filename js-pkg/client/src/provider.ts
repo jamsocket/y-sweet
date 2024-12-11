@@ -81,6 +81,9 @@ export type YSweetProviderParams = {
 
   /** An initial client token to use (skips the first auth request if provided.) */
   initialClientToken?: ClientToken
+
+  /** If set, document state is stored locally for offline use and faster re-opens. */
+  offline?: boolean
 }
 
 async function getClientToken(authEndpoint: AuthEndpoint, roomname: string): Promise<ClientToken> {
