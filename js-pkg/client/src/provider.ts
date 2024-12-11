@@ -4,6 +4,7 @@ import * as encoding from 'lib0/encoding'
 import * as awarenessProtocol from 'y-protocols/awareness'
 import * as syncProtocol from 'y-protocols/sync'
 import * as Y from 'yjs'
+import { IndexedDBProvider } from './indexeddb'
 
 const MESSAGE_SYNC = 0
 const MESSAGE_QUERY_AWARENESS = 3
@@ -66,6 +67,9 @@ export type YSweetProviderParams = {
 
   /** An initial client token to use (skips the first auth request if provided.) */
   initialClientToken?: ClientToken
+
+  /** If set, document state is stored locally for offline use and faster re-opens. */
+  offline?: boolean
 }
 
 async function sleep(ms: number) {
@@ -106,6 +110,7 @@ export class YSweetProvider {
   public awareness: awarenessProtocol.Awareness
   private WebSocketPolyfill: WebSocketPolyfillType
   private listeners: Map<YSweetEvent, Set<EventListener>> = new Map()
+  private indexedDBProvider: IndexedDBProvider | null
 
   /** Whether we should attempt to connect if we are in a disconnected state. */
   private shouldConnect: boolean
@@ -128,6 +133,13 @@ export class YSweetProvider {
     this.awareness = extraOptions.awareness ?? new awarenessProtocol.Awareness(doc)
     this.awareness.on('update', this.handleAwarenessUpdate.bind(this))
     this.WebSocketPolyfill = extraOptions.WebSocketPolyfill || WebSocket
+
+    if (extraOptions.offline) {
+      console.log('Enabling IndexedDBProvider')
+      this.indexedDBProvider = new IndexedDBProvider(doc, docId)
+    } else {
+      this.indexedDBProvider = null
+    }
 
     doc.on('update', this.update.bind(this))
 
@@ -404,6 +416,10 @@ export class YSweetProvider {
   public destroy() {
     if (this.websocket) {
       this.websocket.close()
+    }
+
+    if (this.indexedDBProvider) {
+      this.indexedDBProvider.destroy()
     }
 
     awarenessProtocol.removeAwarenessStates(this.awareness, [this.doc.clientID], 'window unload')
