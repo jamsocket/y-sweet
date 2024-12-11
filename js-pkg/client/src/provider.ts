@@ -47,7 +47,7 @@ type YSweetStatus = {
 }
 
 type WebSocketPolyfillType = {
-  new (url: string | URL): WebSocket
+  new(url: string | URL): WebSocket
   prototype: WebSocket
   readonly CLOSED: number
   readonly CLOSING: number
@@ -409,11 +409,9 @@ export class YSweetProvider {
   }
 
   protected emit(eventName: YSweetEvent, data: any = null): void {
-    const listeners = this.listeners.get(eventName)
-    if (listeners) {
-      for (const listener of listeners) {
-        listener(data)
-      }
+    const listeners = this.listeners.get(eventName) || new Set()
+    for (const listener of listeners) {
+      listener(data)
     }
   }
 
