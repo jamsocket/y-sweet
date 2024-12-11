@@ -8,11 +8,16 @@ import * as Y from 'yjs'
 const MESSAGE_SYNC = 0
 const MESSAGE_QUERY_AWARENESS = 3
 const MESSAGE_AWARENESS = 1
+const MESSAGE_SYNC_STATUS = 102
 
 const EVENT_STATUS = 'status'
+
+/** Fired when the _initial_ sync is complete. Only refired after that if there is a reconnection. */
 const EVENT_SYNC = 'sync'
 const EVENT_CONNECTION_CLOSE = 'connection-close'
 const EVENT_CONNECTION_ERROR = 'connection-error'
+/** Fired every time the sync status changes. */
+const EVENT_SYNC_STATUS = 'sync-status'
 
 /**
  * Note: this should always be a superset of y-websocket's valid events.
@@ -23,6 +28,7 @@ type YSweetEvent =
   | typeof EVENT_SYNC
   | typeof EVENT_CONNECTION_CLOSE
   | typeof EVENT_CONNECTION_ERROR
+  | typeof EVENT_SYNC_STATUS
 
 const STATUS_CONNECTED = 'connected'
 const STATUS_DISCONNECTED = 'disconnected'
@@ -101,11 +107,15 @@ async function getClientToken(authEndpoint: AuthEndpoint, roomname: string): Pro
 export class YSweetProvider {
   private websocket: WebSocket | null = null
   public clientToken: ClientToken | null = null
-  public synced: boolean = false
+  private initialSync: boolean = false
+  private synced: boolean = false
   private status: YSweetStatus = { status: STATUS_DISCONNECTED }
   public awareness: awarenessProtocol.Awareness
   private WebSocketPolyfill: WebSocketPolyfillType
   private listeners: Map<YSweetEvent, Set<EventListener>> = new Map()
+
+  private lastSyncSent: number = 0
+  private lastSyncAcked: number = 0
 
   /** Whether we should attempt to connect if we are in a disconnected state. */
   private shouldConnect: boolean
@@ -136,6 +146,16 @@ export class YSweetProvider {
     }
   }
 
+  private updateSyncedState() {
+    if (this.lastSyncAcked === this.lastSyncSent) {
+      this.synced = true
+      this.emit(EVENT_SYNC_STATUS, true)
+    } else {
+      this.synced = false
+      this.emit(EVENT_SYNC_STATUS, false)
+    }
+  }
+
   private update(update: Uint8Array, origin: YSweetProvider) {
     if (!this.websocket) {
       console.warn('Websocket not connected')
@@ -147,7 +167,28 @@ export class YSweetProvider {
       encoding.writeVarUint(encoder, MESSAGE_SYNC)
       syncProtocol.writeUpdate(encoder, update)
       this.websocket.send(encoding.toUint8Array(encoder))
+
+      this.checkSync()
     }
+  }
+
+  private checkSync() {
+    if (!this.websocket) {
+      console.warn('Websocket not connected')
+      return
+    }
+
+    this.lastSyncSent += 1
+    const encoder = encoding.createEncoder()
+    encoding.writeVarUint(encoder, MESSAGE_SYNC_STATUS)
+
+    const versionEncoder = encoding.createEncoder()
+    encoding.writeVarUint(versionEncoder, this.lastSyncSent)
+
+    encoding.writeVarUint8Array(encoder, encoding.toUint8Array(versionEncoder))
+    this.websocket.send(encoding.toUint8Array(encoder))
+
+    this.updateSyncedState()
   }
 
   private async ensureClientToken(): Promise<ClientToken> {
@@ -332,6 +373,10 @@ export class YSweetProvider {
       case MESSAGE_QUERY_AWARENESS:
         this.queryAwareness()
         break
+      case MESSAGE_SYNC_STATUS:
+        this.lastSyncAcked = decoding.readVarUint(decoder)
+        this.updateSyncedState()
+        break
       default:
         break
     }
@@ -365,6 +410,7 @@ export class YSweetProvider {
   }
 
   protected emit(eventName: YSweetEvent, data: any = null): void {
+    console.log('Emitting event', eventName, data)
     const listeners = this.listeners.get(eventName)
     if (listeners) {
       for (const listener of listeners) {

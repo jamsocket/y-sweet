@@ -17,7 +17,6 @@ use futures::{SinkExt, StreamExt};
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::{
-    net::SocketAddr,
     sync::{Arc, RwLock},
     time::Duration,
 };
