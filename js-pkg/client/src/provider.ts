@@ -409,7 +409,6 @@ export class YSweetProvider {
   }
 
   protected emit(eventName: YSweetEvent, data: any = null): void {
-    console.log('Emitting event', eventName, data)
     const listeners = this.listeners.get(eventName)
     if (listeners) {
       for (const listener of listeners) {
