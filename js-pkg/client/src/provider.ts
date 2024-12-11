@@ -5,9 +5,9 @@ import * as awarenessProtocol from 'y-protocols/awareness'
 import * as syncProtocol from 'y-protocols/sync'
 import * as Y from 'yjs'
 
-const messageSync = 0
-const messageQueryAwareness = 3
-const messageAwareness = 1
+const MESSAGE_SYNC = 0
+const MESSAGE_QUERY_AWARENESS = 3
+const MESSAGE_AWARENESS = 1
 
 const EVENT_STATUS = 'status'
 const EVENT_SYNC = 'sync'
@@ -120,9 +120,6 @@ export class YSweetProvider {
     extraOptions: Partial<YSweetProviderParams> = {},
   ) {
     this.shouldConnect = extraOptions.connect !== false
-    if (this.shouldConnect) {
-      this.connect()
-    }
 
     if (extraOptions.initialClientToken) {
       this.clientToken = extraOptions.initialClientToken
@@ -133,6 +130,10 @@ export class YSweetProvider {
     this.WebSocketPolyfill = extraOptions.WebSocketPolyfill || WebSocket
 
     doc.on('update', this.update.bind(this))
+
+    if (this.shouldConnect) {
+      this.connect()
+    }
   }
 
   private update(update: Uint8Array, origin: YSweetProvider) {
@@ -143,7 +144,7 @@ export class YSweetProvider {
 
     if (origin !== this) {
       const encoder = encoding.createEncoder()
-      encoding.writeVarUint(encoder, messageSync)
+      encoding.writeVarUint(encoder, MESSAGE_SYNC)
       syncProtocol.writeUpdate(encoder, update)
       this.websocket.send(encoding.toUint8Array(encoder))
     }
@@ -259,14 +260,27 @@ export class YSweetProvider {
 
   private syncStep1() {
     const encoder = encoding.createEncoder()
-    encoding.writeVarUint(encoder, messageSync)
+    encoding.writeVarUint(encoder, MESSAGE_SYNC)
     syncProtocol.writeSyncStep1(encoder, this.doc)
     this.websocket?.send(encoding.toUint8Array(encoder))
   }
 
+  private receiveSyncMessage(decoder: decoding.Decoder) {
+    const encoder = encoding.createEncoder()
+    encoding.writeVarUint(encoder, MESSAGE_SYNC)
+    const syncMessageType = syncProtocol.readSyncMessage(decoder, encoder, this.doc, this)
+    if (syncMessageType === syncProtocol.messageYjsSyncStep2) {
+      this.setSynced(true)
+    }
+
+    if (encoding.length(encoder) > 1) {
+      this.websocket?.send(encoding.toUint8Array(encoder))
+    }
+  }
+
   private queryAwareness() {
     const encoder = encoding.createEncoder()
-    encoding.writeVarUint(encoder, messageAwareness)
+    encoding.writeVarUint(encoder, MESSAGE_QUERY_AWARENESS)
     encoding.writeVarUint8Array(
       encoder,
       awarenessProtocol.encodeAwarenessUpdate(
@@ -278,25 +292,24 @@ export class YSweetProvider {
     this.websocket?.send(encoding.toUint8Array(encoder))
   }
 
+  private broadcastAwareness() {
+    if (this.awareness.getLocalState() !== null) {
+      const encoderAwarenessState = encoding.createEncoder()
+      encoding.writeVarUint(encoderAwarenessState, MESSAGE_AWARENESS)
+      encoding.writeVarUint8Array(
+        encoderAwarenessState,
+        awarenessProtocol.encodeAwarenessUpdate(this.awareness, [this.doc.clientID]),
+      )
+      this.websocket?.send(encoding.toUint8Array(encoderAwarenessState))
+    }
+  }
+
   private updateAwareness(decoder: decoding.Decoder) {
     awarenessProtocol.applyAwarenessUpdate(
       this.awareness,
       decoding.readVarUint8Array(decoder),
       this,
     )
-  }
-
-  private receiveSyncMessage(decoder: decoding.Decoder) {
-    const encoder = encoding.createEncoder()
-    encoding.writeVarUint(encoder, messageSync)
-    const syncMessageType = syncProtocol.readSyncMessage(decoder, encoder, this.doc, this)
-    if (syncMessageType === syncProtocol.messageYjsSyncStep2) {
-      this.setSynced(true)
-    }
-
-    if (encoding.length(encoder) > 1) {
-      this.websocket?.send(encoding.toUint8Array(encoder))
-    }
   }
 
   private websocketOpen() {
@@ -310,13 +323,13 @@ export class YSweetProvider {
     const decoder = decoding.createDecoder(message)
     const messageType = decoding.readVarUint(decoder)
     switch (messageType) {
-      case messageSync:
+      case MESSAGE_SYNC:
         this.receiveSyncMessage(decoder)
         break
-      case messageAwareness:
+      case MESSAGE_AWARENESS:
         this.updateAwareness(decoder)
         break
-      case messageQueryAwareness:
+      case MESSAGE_QUERY_AWARENESS:
         this.queryAwareness()
         break
       default:
@@ -329,6 +342,10 @@ export class YSweetProvider {
     this.setSynced(false)
     this.setStatus({ status: STATUS_DISCONNECTED })
 
+    if (this.shouldConnect && !this.isConnecting) {
+      this.connect()
+    }
+
     // Remove all awareness states except for our own.
     awarenessProtocol.removeAwarenessStates(
       this.awareness,
@@ -339,20 +356,12 @@ export class YSweetProvider {
     )
   }
 
-  private broadcastAwareness() {
-    if (this.awareness.getLocalState() !== null) {
-      const encoderAwarenessState = encoding.createEncoder()
-      encoding.writeVarUint(encoderAwarenessState, messageAwareness)
-      encoding.writeVarUint8Array(
-        encoderAwarenessState,
-        awarenessProtocol.encodeAwarenessUpdate(this.awareness, [this.doc.clientID]),
-      )
-      this.websocket?.send(encoding.toUint8Array(encoderAwarenessState))
-    }
-  }
-
   private websocketError(event: Event) {
     this.emit('connection-error', event)
+
+    if (this.shouldConnect && !this.isConnecting) {
+      this.connect()
+    }
   }
 
   protected emit(eventName: YSweetEvent, data: any = null): void {
@@ -372,10 +381,6 @@ export class YSweetProvider {
   }
 
   private setStatus(status: YSweetStatus) {
-    if (status.status === STATUS_DISCONNECTED && this.shouldConnect) {
-      this.connect()
-    }
-
     if (this.status.status !== status.status) {
       this.status = status
       this.emit('status', status)
@@ -388,7 +393,7 @@ export class YSweetProvider {
   ) {
     const changedClients = added.concat(updated).concat(removed)
     const encoder = encoding.createEncoder()
-    encoding.writeVarUint(encoder, messageAwareness)
+    encoding.writeVarUint(encoder, MESSAGE_AWARENESS)
     encoding.writeVarUint8Array(
       encoder,
       awarenessProtocol.encodeAwarenessUpdate(this.awareness, changedClients),
@@ -418,9 +423,14 @@ export class YSweetProvider {
     if (!this.listeners.has(type)) {
       this.listeners.set(type, new Set())
     }
-    this.listeners.get(type)?.add(listener)
     if (once) {
-      this.once(type, listener)
+      let listenerOnce = (d: any) => {
+        listener(d)
+        this.listeners.get(type)?.delete(listenerOnce)
+      }
+      this.listeners.get(type)?.add(listenerOnce)
+    } else {
+      this.listeners.get(type)?.add(listener)
     }
   }
 
