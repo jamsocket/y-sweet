@@ -10,19 +10,7 @@ import { DebuggableAwareness } from '@/lib/debuggable/yawareness'
 
 export function Debugger() {
   const doc: Y.Doc = useYDoc()
-  const provider = useYjsProvider()
   const awareness = useAwareness()
-
-  const selectAll = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation()
-    e.preventDefault()
-
-    let range = document.createRange()
-    range.selectNodeContents(e.target as Node)
-    let selection = window.getSelection()
-    selection?.removeAllRanges()
-    selection?.addRange(range)
-  }, [])
 
   return (
     <div>

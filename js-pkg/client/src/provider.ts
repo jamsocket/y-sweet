@@ -61,9 +61,6 @@ export type YSweetProviderParams = {
   /** WebSocket constructor to use (defaults to `WebSocket`) */
   WebSocketPolyfill?: WebSocketPolyfillType
 
-  /** Interval at which to resync */
-  resyncInterval?: number
-
   /** Maximum backoff time when retrying */
   maxBackoffTime?: number
 
