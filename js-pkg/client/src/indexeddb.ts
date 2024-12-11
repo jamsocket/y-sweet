@@ -78,19 +78,18 @@ export class IndexedDBProvider {
     const request = objectStore.getAll()
     const key = await this.encryptionKey
 
-    return new Promise<Array<Uint8Array>>(async (resolve, reject) => {
+    let result = await new Promise<Array<Uint8Array>>((resolve, reject) => {
       request.onsuccess = async () => {
         try {
-          const decryptedResults = await Promise.all(
-            request.result.map((data) => decryptData(data, key)),
-          )
-          resolve(decryptedResults)
+          resolve(request.result)
         } catch (error) {
           reject(error)
         }
       }
       request.onerror = reject
     })
+
+    return await Promise.all(result.map((data) => decryptData(data, key)))
   }
 
   async saveWholeState() {
