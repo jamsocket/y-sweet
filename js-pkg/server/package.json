@@ -1,7 +1,7 @@
 {
   "name": "y-sweet",
   "bin": {
-    "y-sweet": "./src/run.js"
+    "y-sweet": "src/run.js"
   },
   "scripts": {
     "postinstall": "node src/install.js",
@@ -12,7 +12,7 @@
   "homepage": "https://github.com/drifting-in-space/y-sweet",
   "repository": {
     "type": "git",
-    "url": "https://github.com/drifting-in-space/y-sweet.git"
+    "url": "git+https://github.com/drifting-in-space/y-sweet.git"
   },
   "license": "MIT",
   "devDependencies": {

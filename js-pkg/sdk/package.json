@@ -30,7 +30,7 @@
   "homepage": "https://github.com/drifting-in-space/y-sweet",
   "repository": {
     "type": "git",
-    "url": "https://github.com/drifting-in-space/y-sweet.git"
+    "url": "git+https://github.com/drifting-in-space/y-sweet.git"
   },
   "license": "MIT",
   "devDependencies": {
