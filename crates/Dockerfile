@@ -1,11 +1,11 @@
-FROM rust:1.77-slim-buster as builder
+FROM rust:1.83-slim-bookworm AS builder
 
 WORKDIR /build
 
 COPY . .
 RUN cargo build --release
 
-FROM debian:buster-slim
+FROM debian:bookworm-slim
 
 COPY --from=builder /build/target/release/y-sweet /usr/local/bin/y-sweet
 
