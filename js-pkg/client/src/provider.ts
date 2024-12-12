@@ -84,7 +84,7 @@ export type YSweetProviderParams = {
   initialClientToken?: ClientToken
 
   /** If set, document state is stored locally for offline use and faster re-opens. */
-  offline?: boolean
+  offlineSupport?: boolean
 }
 
 async function getClientToken(authEndpoint: AuthEndpoint, roomname: string): Promise<ClientToken> {
@@ -164,7 +164,7 @@ export class YSweetProvider {
       window.addEventListener('online', this.online)
     }
     
-    if (extraOptions.offline) {
+    if (extraOptions.offlineSupport) {
       console.log('Enabling IndexedDBProvider')
       this.indexedDBProvider = new IndexedDBProvider(doc, docId)
     } else {
