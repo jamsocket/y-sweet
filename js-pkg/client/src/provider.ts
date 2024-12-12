@@ -11,6 +11,7 @@ import {
   WebSocketCompatLayer,
   YWebsocketEvent,
 } from './ws-status'
+import { IndexedDBProvider } from './indexeddb'
 
 const MESSAGE_SYNC = 0
 const MESSAGE_QUERY_AWARENESS = 3
@@ -137,6 +138,8 @@ export class YSweetProvider {
 
   private reconnectSleeper: Sleeper | null = null
 
+  private indexedDBProvider: IndexedDBProvider | null
+
   constructor(
     private authEndpoint: AuthEndpoint,
     private docId: string,
@@ -159,6 +162,13 @@ export class YSweetProvider {
     if (typeof window !== 'undefined') {
       window.addEventListener('offline', this.offline)
       window.addEventListener('online', this.online)
+    }
+    
+    if (extraOptions.offline) {
+      console.log('Enabling IndexedDBProvider')
+      this.indexedDBProvider = new IndexedDBProvider(doc, docId)
+    } else {
+      this.indexedDBProvider = null
     }
 
     doc.on('update', this.update.bind(this))
