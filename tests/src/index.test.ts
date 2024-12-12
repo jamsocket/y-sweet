@@ -8,7 +8,7 @@ import {
 import { WebSocket } from 'ws'
 import * as Y from 'yjs'
 import { Server, ServerConfiguration } from './server'
-import { waitForLocalChangesSync, waitForProviderSync } from './util'
+import { waitForProviderSync } from './util'
 
 /**
  * Wraps `createYjsProvider` with a polyfill for `WebSocket` and
