@@ -75,7 +75,7 @@ export class WebSocketCompatLayer {
 
     if (this.lastStatus !== newStatus) {
       this.lastStatus = newStatus
-      this.provider.emit(EVENT_CONNECTION_STATUS, newStatus)
+      this.provider.emit(EVENT_STATUS, { status: newStatus })
     }
   }
 }

@@ -363,7 +363,7 @@ export class YSweetProvider {
   }
 
   private websocketOpen() {
-    this.setStatus(STATUS_CONNECTED)
+    this.setStatus(STATUS_HANDSHAKING)
     this.syncStep1()
     this.checkSync()
     this.broadcastAwareness()
