@@ -145,6 +145,12 @@ export class YSweetProvider {
     }
   }
 
+  private send(message: Uint8Array) {
+    if (this.websocket?.readyState === this.WebSocketPolyfill.OPEN) {
+      this.websocket.send(message)
+    }
+  }
+
   private updateSyncedState() {
     let hasLocalChanges = this.lastSyncAcked !== this.lastSyncSent
     if (hasLocalChanges === this.hasLocalChanges) {
@@ -165,16 +171,11 @@ export class YSweetProvider {
   }
 
   private update(update: Uint8Array, origin: YSweetProvider) {
-    if (!this.websocket) {
-      console.warn('Websocket not connected')
-      return
-    }
-
     if (origin !== this) {
       const encoder = encoding.createEncoder()
       encoding.writeVarUint(encoder, MESSAGE_SYNC)
       syncProtocol.writeUpdate(encoder, update)
-      this.websocket.send(encoding.toUint8Array(encoder))
+      this.send(encoding.toUint8Array(encoder))
 
       this.checkSync()
     }
@@ -182,11 +183,6 @@ export class YSweetProvider {
 
   private checkSync() {
     this.lastSyncSent += 1
-
-    if (!this.websocket) {
-      return
-    }
-
     const encoder = encoding.createEncoder()
     encoding.writeVarUint(encoder, MESSAGE_SYNC_STATUS)
 
@@ -194,7 +190,7 @@ export class YSweetProvider {
     encoding.writeVarUint(versionEncoder, this.lastSyncSent)
     encoding.writeVarUint8Array(encoder, encoding.toUint8Array(versionEncoder))
 
-    this.websocket.send(encoding.toUint8Array(encoder))
+    this.send(encoding.toUint8Array(encoder))
 
     this.updateSyncedState()
   }
@@ -312,7 +308,7 @@ export class YSweetProvider {
     const encoder = encoding.createEncoder()
     encoding.writeVarUint(encoder, MESSAGE_SYNC)
     syncProtocol.writeSyncStep1(encoder, this.doc)
-    this.websocket?.send(encoding.toUint8Array(encoder))
+    this.send(encoding.toUint8Array(encoder))
   }
 
   private receiveSyncMessage(decoder: decoding.Decoder) {
@@ -324,7 +320,7 @@ export class YSweetProvider {
     }
 
     if (encoding.length(encoder) > 1) {
-      this.websocket?.send(encoding.toUint8Array(encoder))
+      this.send(encoding.toUint8Array(encoder))
     }
   }
 
@@ -339,7 +335,7 @@ export class YSweetProvider {
       ),
     )
 
-    this.websocket?.send(encoding.toUint8Array(encoder))
+    this.send(encoding.toUint8Array(encoder))
   }
 
   private broadcastAwareness() {
@@ -350,7 +346,7 @@ export class YSweetProvider {
         encoderAwarenessState,
         awarenessProtocol.encodeAwarenessUpdate(this.awareness, [this.doc.clientID]),
       )
-      this.websocket?.send(encoding.toUint8Array(encoderAwarenessState))
+      this.send(encoding.toUint8Array(encoderAwarenessState))
     }
   }
 
