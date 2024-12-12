@@ -5,8 +5,10 @@ import {
   YSweetProviderParams,
   createYjsProvider,
   debuggerUrl,
+  EVENT_LOCAL_CHANGES,
+  EVENT_CONNECTION_STATUS,
 } from '@y-sweet/client'
-import type { AuthEndpoint } from '@y-sweet/client'
+import type { AuthEndpoint, YSweetStatus } from '@y-sweet/client'
 import type { ClientToken } from '@y-sweet/sdk'
 import type { ReactNode } from 'react'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
@@ -84,6 +86,50 @@ export function useYjsProvider(): YSweetProvider {
     throw new Error('Yjs hooks must be used within a YDocProvider')
   }
   return yjsCtx.provider
+}
+
+/** Returns true if the local document has unsaved changes. */
+export function useHasLocalChanges(): boolean {
+  const yjsCtx = useContext(YjsContext)
+  if (!yjsCtx) {
+    throw new Error('Yjs hooks must be used within a YDocProvider')
+  }
+
+  const [isSynced, setIsSynced] = useState(yjsCtx.provider.hasLocalChanges)
+
+  useEffect(() => {
+    const handleSync = () => {
+      setIsSynced(yjsCtx.provider.hasLocalChanges)
+    }
+    yjsCtx.provider.on(EVENT_LOCAL_CHANGES, handleSync)
+    return () => {
+      yjsCtx.provider.off(EVENT_LOCAL_CHANGES, handleSync)
+    }
+  }, [yjsCtx.provider])
+
+  return isSynced
+}
+
+/** Returns the current connection status of the Yjs provider. */
+export function useConnectionStatus(): YSweetStatus {
+  const yjsCtx = useContext(YjsContext)
+  if (!yjsCtx) {
+    throw new Error('Yjs hooks must be used within a YDocProvider')
+  }
+
+  const [status, setStatus] = useState(yjsCtx.provider.status)
+
+  useEffect(() => {
+    const handleStatus = (status: YSweetStatus) => {
+      setStatus(status)
+    }
+    yjsCtx.provider.on(EVENT_CONNECTION_STATUS, handleStatus)
+    return () => {
+      yjsCtx.provider.off(EVENT_CONNECTION_STATUS, handleStatus)
+    }
+  }, [yjsCtx.provider])
+
+  return status
 }
 
 /**

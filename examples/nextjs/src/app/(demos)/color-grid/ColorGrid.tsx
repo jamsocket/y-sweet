@@ -14,7 +14,7 @@ export function ColorGrid() {
   const [color, setColor] = useState<string | null>(COLORS[0])
 
   return (
-    <div className="space-y-3 p-4 lg:p-8">
+    <div className="space-y-3">
       <Title>Color Grid</Title>
       <div className="space-x-2 flex flex-row">
         {COLORS.map((c) => (

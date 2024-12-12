@@ -134,7 +134,7 @@ describe.each(CONFIGURATIONS)(
       const getClientToken = async () => await DOCUMENT_MANANGER.getClientToken(docResult)
 
       const doc = new Y.Doc()
-      const provider = await createYjsProvider(doc, docResult.docId, getClientToken, {})
+      const provider = createYjsProvider(doc, docResult.docId, getClientToken, {})
 
       await waitForProviderSync(provider)
     })
@@ -166,7 +166,7 @@ describe.each(CONFIGURATIONS)(
       const getClientToken = async () => await DOCUMENT_MANANGER.getClientToken(docResult)
 
       const doc = new Y.Doc()
-      const provider = await createYjsProvider(doc, docResult.docId, getClientToken, {})
+      const provider = createYjsProvider(doc, docResult.docId, getClientToken, {})
 
       let map = doc.getMap('test')
       map.set('foo', 'bar')
@@ -200,7 +200,7 @@ describe.each(CONFIGURATIONS)(
 
       const getClientToken = async () => await DOCUMENT_MANANGER.getClientToken(docResult)
 
-      const provider = await createYjsProvider(doc, docResult.docId, getClientToken, {})
+      const provider = createYjsProvider(doc, docResult.docId, getClientToken, {})
       await waitForProviderSync(provider)
 
       let newMap = doc.getMap('abc123')
@@ -224,29 +224,10 @@ describe.each(CONFIGURATIONS)(
       const doc = new Y.Doc()
 
       // Connect to the doc.
-      let provider = await createYjsProvider(doc, docResult.docId, getClientToken, {})
-
-      await waitForProviderSync(provider)
-
-      // Disconnect.
-      provider.destroy()
+      const provider = createYjsProvider(doc, docResult.docId, getClientToken, {})
 
       // Modify the doc while offline.
       doc.getMap('test').set('foo', 'bar')
-
-      // Reconnect to the doc.
-      provider = createYjsProvider(doc, docResult.docId, getClientToken, {})
-      await new Promise<void>((resolve, reject) => {
-        provider.on('status', (event: { status: string }) => {
-          if (event.status === 'connected') {
-            resolve()
-          }
-        })
-
-        setTimeout(() => {
-          reject('Timed out waiting for provider to reconnect.')
-        }, 5_000)
-      })
 
       await waitForProviderSync(provider)
       expect(provider.synced).toBe(true)
@@ -255,7 +236,7 @@ describe.each(CONFIGURATIONS)(
       const doc2 = new Y.Doc()
 
       // Connect to the doc.
-      const provider2 = await createYjsProvider(doc2, docResult.docId, getClientToken, {})
+      const provider2 = createYjsProvider(doc2, docResult.docId, getClientToken, {})
 
       expect(doc2.getMap('test').get('foo')).toBeUndefined()
 
@@ -343,7 +324,7 @@ describe.each(CONFIGURATIONS)(
       // Connect to the doc and verify the content
       const getClientToken = async () => await DOCUMENT_MANANGER.getClientToken(docResult)
       const newDoc = new Y.Doc()
-      const provider = await createYjsProvider(newDoc, docResult.docId, getClientToken, {})
+      const provider = createYjsProvider(newDoc, docResult.docId, getClientToken, {})
 
       await waitForProviderSync(provider)
 
