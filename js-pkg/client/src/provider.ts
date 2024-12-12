@@ -232,7 +232,10 @@ export class YSweetProvider {
       this.on(EVENT_CONNECTION_STATUS, statusListener)
     })
 
-    this.setupWs(clientToken)
+    let url = this.generateUrl(clientToken)
+    this.setStatus(STATUS_CONNECTING)
+    const websocket = new (this.WebSocketPolyfill || WebSocket)(url)
+    this.bindWebsocket(websocket)
 
     return promise
   }
@@ -298,15 +301,12 @@ export class YSweetProvider {
     this.websocket.onerror = this.websocketError.bind(this)
   }
 
-  private setupWs(clientToken: ClientToken) {
-    let url = clientToken.url + `/${clientToken.docId}`
+  generateUrl(clientToken: ClientToken) {
+    const url = clientToken.url + `/${clientToken.docId}`
     if (clientToken.token) {
-      url = url + `?token=${clientToken.token}`
+      return `${url}?token=${clientToken.token}`
     }
-
-    this.setStatus(STATUS_CONNECTING)
-    const websocket = new (this.WebSocketPolyfill || WebSocket)(url)
-    this.bindWebsocket(websocket)
+    return url
   }
 
   private syncStep1() {

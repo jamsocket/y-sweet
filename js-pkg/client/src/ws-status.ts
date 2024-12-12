@@ -2,11 +2,9 @@
 
 import {
   EVENT_CONNECTION_STATUS,
-  EVENT_LOCAL_CHANGES,
   STATUS_CONNECTED,
   STATUS_CONNECTING,
   STATUS_HANDSHAKING,
-  STATUS_OFFLINE,
   YSweetProvider,
   YSweetStatus,
 } from './provider'
