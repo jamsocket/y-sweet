@@ -22,6 +22,8 @@ type Callback = Arc<dyn Fn(&[u8]) + 'static>;
 #[cfg(feature = "sync")]
 type Callback = Arc<dyn Fn(&[u8]) + 'static + Send + Sync>;
 
+const SYNC_STATUS_MESSAGE: u8 = 102;
+
 pub struct DocConnection {
     awareness: Arc<RwLock<Awareness>>,
     #[allow(unused)] // acts as RAII guard
@@ -183,6 +185,10 @@ impl DocConnection {
                 }
                 let mut awareness = a.write().unwrap();
                 protocol.handle_awareness_update(&mut awareness, update)
+            }
+            Message::Custom(SYNC_STATUS_MESSAGE, data) => {
+                // Respond to the client with the same payload it sent.
+                Ok(Some(Message::Custom(SYNC_STATUS_MESSAGE, data)))
             }
             Message::Custom(tag, data) => {
                 let mut awareness = a.write().unwrap();
