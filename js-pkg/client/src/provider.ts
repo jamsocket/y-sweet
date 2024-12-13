@@ -116,9 +116,6 @@ export class YSweetProvider {
   /** Current client token. */
   public clientToken: ClientToken | null = null
 
-  /** Whether the local document has unsynced changes. */
-  public hasLocalChanges: boolean = true
-
   /** Connection status. */
   public status: YSweetStatus = STATUS_OFFLINE
 
@@ -227,14 +224,29 @@ export class YSweetProvider {
     }
   }
 
-  private updateSyncedState() {
-    let hasLocalChanges = this.ackedVersion !== this.localVersion
-    if (hasLocalChanges === this.hasLocalChanges) {
-      return
-    }
+  private incrementLocalVersion() {
+    // We need to increment the local version before we emit, so that event
+    // listeners see the right hasLocalChanges value.
+    let emit = !this.hasLocalChanges
+    this.localVersion += 1
 
-    this.hasLocalChanges = hasLocalChanges
-    this.emit(EVENT_LOCAL_CHANGES, hasLocalChanges)
+    if (emit) {
+      this.emit(EVENT_LOCAL_CHANGES, true)
+    }
+  }
+
+  private updateAckedVersion(version: number) {
+    // The version _should_ never go backwards, but we guard for that in case it does.
+    version = Math.max(version, this.ackedVersion)
+
+    // We need to increment the local version before we emit, so that event
+    // listeners see the right hasLocalChanges value.
+    let emit = this.hasLocalChanges && (version === this.localVersion)
+    this.ackedVersion = version
+
+    if (emit) {
+      this.emit(EVENT_LOCAL_CHANGES, false)
+    }
   }
 
   private setStatus(status: YSweetStatus) {
@@ -253,7 +265,7 @@ export class YSweetProvider {
       syncProtocol.writeUpdate(encoder, update)
       this.send(encoding.toUint8Array(encoder))
 
-      this.localVersion += 1
+      this.incrementLocalVersion()
       this.checkSync()
     }
   }
@@ -267,8 +279,6 @@ export class YSweetProvider {
     encoding.writeVarUint8Array(encoder, encoding.toUint8Array(versionEncoder))
 
     this.send(encoding.toUint8Array(encoder))
-
-    this.updateSyncedState()
     this.setConnectionTimeout()
   }
 
@@ -467,8 +477,7 @@ export class YSweetProvider {
         let lastSyncBytes = decoding.readVarUint8Array(decoder)
         let d2 = decoding.createDecoder(lastSyncBytes)
         let ackedVersion = decoding.readVarUint(d2)
-        this.ackedVersion = Math.max(this.ackedVersion, ackedVersion)
-        this.updateSyncedState()
+        this.updateAckedVersion(ackedVersion)
         break
       default:
         break
@@ -564,6 +573,13 @@ export class YSweetProvider {
     if (listeners) {
       listeners.delete(listener)
     }
+  }
+
+  /**
+   * Whether the document has local changes.
+   */
+  get hasLocalChanges() {
+    return this.ackedVersion !== this.localVersion
   }
 
   /**
