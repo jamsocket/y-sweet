@@ -18,7 +18,16 @@ const MESSAGE_SYNC_STATUS = 102
 
 const RETRIES_BEFORE_TOKEN_REFRESH = 3
 const DELAY_MS_BEFORE_RECONNECT = 500
-const DELAY_MS_BEFORE_RETRY_TOKEN_REFRESH = 3000
+const DELAY_MS_BEFORE_RETRY_TOKEN_REFRESH = 3_000
+
+/** Amount of time without receiving any message that we should send a MESSAGE_SYNC_STATUS message. */
+const MAX_TIMEOUT_BETWEEN_HEARTBEATS = 2_000
+
+/**
+ * Amount of time after sending a MESSAGE_SYNC_STATUS message that we should close the connection
+ * unless any message has been received.
+ **/
+const MAX_TIMEOUT_WITHOUT_RECEIVING_HEARTBEAT = 3_000
 
 // Note: These should not conflict with y-websocket's events, defined in `ws-status.ts`.
 export const EVENT_LOCAL_CHANGES = 'local-changes'
@@ -126,6 +135,9 @@ export class YSweetProvider {
   /** Whether a (re)connect loop is currently running. This acts as a lock to prevent two concurrent connect loops. */
   private isConnecting: boolean = false
 
+  private heartbeatHandle: ReturnType<typeof setTimeout> | null = null
+  private connectionTimeoutHandle: ReturnType<typeof setTimeout> | null = null
+
   constructor(
     private authEndpoint: AuthEndpoint,
     private docId: string,
@@ -148,6 +160,44 @@ export class YSweetProvider {
     if (extraOptions.connect !== false) {
       this.connect()
     }
+  }
+
+  private clearHeartbeat() {
+    if (this.heartbeatHandle) {
+      clearTimeout(this.heartbeatHandle)
+      this.heartbeatHandle = null
+    }
+  }
+
+  private setHeartbeat() {
+    if (this.heartbeatHandle) {
+      return
+    }
+    this.heartbeatHandle = setTimeout(() => {
+      this.checkSync(false)
+      this.setConnectionTimeout()
+      this.heartbeatHandle = null
+    }, MAX_TIMEOUT_BETWEEN_HEARTBEATS)
+  }
+
+  private clearConnectionTimeout() {
+    if (this.connectionTimeoutHandle) {
+      clearTimeout(this.connectionTimeoutHandle)
+      this.connectionTimeoutHandle = null
+    }
+  }
+
+  private setConnectionTimeout() {
+    if (this.connectionTimeoutHandle) {
+      return
+    }
+    this.connectionTimeoutHandle = setTimeout(() => {
+      if (this.websocket) {
+        this.websocket.close()
+        this.setStatus(STATUS_ERROR)
+      }
+      this.connectionTimeoutHandle = null
+    }, MAX_TIMEOUT_WITHOUT_RECEIVING_HEARTBEAT)
   }
 
   private send(message: Uint8Array) {
@@ -182,12 +232,14 @@ export class YSweetProvider {
       syncProtocol.writeUpdate(encoder, update)
       this.send(encoding.toUint8Array(encoder))
 
-      this.checkSync()
+      this.checkSync(true)
     }
   }
 
-  private checkSync() {
-    this.lastSyncSent += 1
+  private checkSync(increment: boolean) {
+    if (increment) {
+      this.lastSyncSent += 1
+    }
     const encoder = encoding.createEncoder()
     encoding.writeVarUint(encoder, MESSAGE_SYNC_STATUS)
 
@@ -366,11 +418,16 @@ export class YSweetProvider {
   private websocketOpen() {
     this.setStatus(STATUS_HANDSHAKING)
     this.syncStep1()
-    this.checkSync()
+    this.checkSync(false)
     this.broadcastAwareness()
+    this.setHeartbeat()
   }
 
   private receiveMessage(event: MessageEvent) {
+    this.clearConnectionTimeout()
+    this.clearHeartbeat()
+    this.setHeartbeat()
+
     let message: Uint8Array = new Uint8Array(event.data)
     const decoder = decoding.createDecoder(message)
     const messageType = decoding.readVarUint(decoder)
@@ -436,7 +493,7 @@ export class YSweetProvider {
       awarenessProtocol.encodeAwarenessUpdate(this.awareness, changedClients),
     )
 
-    this.websocket?.send(encoding.toUint8Array(encoder))
+    this.send(encoding.toUint8Array(encoder))
   }
 
   public destroy() {
