@@ -172,7 +172,7 @@ export class YSweetProvider {
     // When the browser indicates that we are offline, we immediately
     // probe the connection status.
     // This accelerates the process of discovering we are offline, but
-    // doesn't mean we entirely true the browser, since it can be wrong
+    // doesn't mean we entirely trust the browser, since it can be wrong
     // (e.g. in the case that the connection is over localhost).
     this.checkSync()
     this.setConnectionTimeout()
