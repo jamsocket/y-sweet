@@ -129,8 +129,8 @@ export class YSweetProvider {
   private WebSocketPolyfill: WebSocketPolyfillType
   private listeners: Map<YSweetEvent | YWebsocketEvent, Set<EventListener>> = new Map()
 
-  private lastSyncSent: number = 0
-  private lastSyncAcked: number = -1
+  private localVersion: number = 0
+  private ackedVersion: number = -1
 
   /** Whether a (re)connect loop is currently running. This acts as a lock to prevent two concurrent connect loops. */
   private isConnecting: boolean = false
@@ -174,7 +174,7 @@ export class YSweetProvider {
       return
     }
     this.heartbeatHandle = setTimeout(() => {
-      this.checkSync(false)
+      this.checkSync()
       this.setConnectionTimeout()
       this.heartbeatHandle = null
     }, MAX_TIMEOUT_BETWEEN_HEARTBEATS)
@@ -207,7 +207,7 @@ export class YSweetProvider {
   }
 
   private updateSyncedState() {
-    let hasLocalChanges = this.lastSyncAcked !== this.lastSyncSent
+    let hasLocalChanges = this.ackedVersion !== this.localVersion
     if (hasLocalChanges === this.hasLocalChanges) {
       return
     }
@@ -232,19 +232,17 @@ export class YSweetProvider {
       syncProtocol.writeUpdate(encoder, update)
       this.send(encoding.toUint8Array(encoder))
 
-      this.checkSync(true)
+      this.localVersion += 1
+      this.checkSync()
     }
   }
 
-  private checkSync(increment: boolean) {
-    if (increment) {
-      this.lastSyncSent += 1
-    }
+  private checkSync() {
     const encoder = encoding.createEncoder()
     encoding.writeVarUint(encoder, MESSAGE_SYNC_STATUS)
 
     const versionEncoder = encoding.createEncoder()
-    encoding.writeVarUint(versionEncoder, this.lastSyncSent)
+    encoding.writeVarUint(versionEncoder, this.localVersion)
     encoding.writeVarUint8Array(encoder, encoding.toUint8Array(versionEncoder))
 
     this.send(encoding.toUint8Array(encoder))
@@ -418,7 +416,7 @@ export class YSweetProvider {
   private websocketOpen() {
     this.setStatus(STATUS_HANDSHAKING)
     this.syncStep1()
-    this.checkSync(false)
+    this.checkSync()
     this.broadcastAwareness()
     this.setHeartbeat()
   }
@@ -444,7 +442,8 @@ export class YSweetProvider {
       case MESSAGE_SYNC_STATUS:
         let lastSyncBytes = decoding.readVarUint8Array(decoder)
         let d2 = decoding.createDecoder(lastSyncBytes)
-        this.lastSyncAcked = decoding.readVarUint(d2)
+        let ackedVersion = decoding.readVarUint(d2)
+        this.ackedVersion = Math.max(this.ackedVersion, ackedVersion)
         this.updateSyncedState()
         break
       default:
