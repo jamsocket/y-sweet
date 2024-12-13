@@ -486,6 +486,7 @@ export class YSweetProvider {
     this.emit(EVENT_CONNECTION_CLOSE, event)
     this.setStatus(STATUS_ERROR)
     this.clearHeartbeat()
+    this.clearConnectionTimeout()
     this.connect()
 
     // Remove all awareness states except for our own.
