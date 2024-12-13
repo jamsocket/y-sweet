@@ -1,18 +1,10 @@
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer)
-  let binary = ''
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i])
-  }
-  return btoa(binary)
+  return btoa(String.fromCharCode(...new Uint8Array(buffer)))
 }
 
 function base64ToArrayBuffer(base64: string): ArrayBuffer {
-  const binary = atob(base64)
-  const bytes = new Uint8Array(binary.length)
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i)
-  }
+  const binaryString = atob(base64)
+  const bytes = Uint8Array.from(binaryString, (c) => c.charCodeAt(0))
   return bytes.buffer
 }
 
@@ -26,7 +18,7 @@ export async function importKey(key: string): Promise<CryptoKey> {
 
 export async function exportKey(key: CryptoKey): Promise<string> {
   const rawKey = await crypto.subtle.exportKey('raw', key)
-  return arrayBufferToBase64(new Uint8Array(rawKey))
+  return arrayBufferToBase64(rawKey)
 }
 
 export function generateEncryptionKey(): Promise<CryptoKey> {

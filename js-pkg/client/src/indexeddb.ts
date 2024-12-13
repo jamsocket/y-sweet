@@ -28,7 +28,8 @@ export async function createIndexedDBProvider(doc: Doc, docId: string): Promise<
   const db = await openIndexedDB(DB_PREFIX + docId)
   const encryptionKey = await getOrCreateKey()
 
-  return new IndexedDBProvider(doc, db, encryptionKey)
+  let provider = new IndexedDBProvider(doc, db, encryptionKey)
+  return provider
 }
 
 export class IndexedDBProvider {
@@ -41,6 +42,8 @@ export class IndexedDBProvider {
   ) {
     this.handleUpdate = this.handleUpdate.bind(this)
     doc.on('update', this.handleUpdate)
+
+    this.init()
   }
 
   async init() {
@@ -103,7 +106,9 @@ export class IndexedDBProvider {
 
   async setValue(value: Uint8Array): Promise<void> {
     const encryptedValue = await encryptData(value, this.encryptionKey)
-    let objectStore = this.db.transaction(OBJECT_STORE_NAME, 'readwrite').objectStore(OBJECT_STORE_NAME)
+    let objectStore = this.db
+      .transaction(OBJECT_STORE_NAME, 'readwrite')
+      .objectStore(OBJECT_STORE_NAME)
     const request = objectStore.put(encryptedValue)
 
     return new Promise<void>((resolve, reject) => {
