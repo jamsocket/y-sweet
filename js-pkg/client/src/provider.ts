@@ -187,12 +187,11 @@ export class YSweetProvider {
     }
   }
 
-  private setHeartbeat() {
-    if (this.heartbeatHandle) {
-      return
-    }
+  private resetHeartbeat() {
+    this.clearHeartbeat()
     this.heartbeatHandle = setTimeout(() => {
       this.checkSync()
+      this.setConnectionTimeout()
       this.heartbeatHandle = null
     }, MAX_TIMEOUT_BETWEEN_HEARTBEATS)
   }
@@ -452,13 +451,12 @@ export class YSweetProvider {
     this.syncStep1()
     this.checkSync()
     this.broadcastAwareness()
-    this.setHeartbeat()
+    this.resetHeartbeat()
   }
 
   private receiveMessage(event: MessageEvent) {
     this.clearConnectionTimeout()
-    this.clearHeartbeat()
-    this.setHeartbeat()
+    this.resetHeartbeat()
 
     let message: Uint8Array = new Uint8Array(event.data)
     const decoder = decoding.createDecoder(message)
