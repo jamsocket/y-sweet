@@ -11,7 +11,7 @@ import {
   WebSocketCompatLayer,
   YWebsocketEvent,
 } from './ws-status'
-import { IndexedDBProvider } from './indexeddb'
+import { createIndexedDBProvider, IndexedDBProvider } from './indexeddb'
 
 const MESSAGE_SYNC = 0
 const MESSAGE_QUERY_AWARENESS = 3
@@ -138,7 +138,7 @@ export class YSweetProvider {
 
   private reconnectSleeper: Sleeper | null = null
 
-  private indexedDBProvider: IndexedDBProvider | null
+  private indexedDBProvider: Promise<IndexedDBProvider> | null = null
 
   constructor(
     private authEndpoint: AuthEndpoint,
@@ -166,9 +166,7 @@ export class YSweetProvider {
     
     if (extraOptions.offlineSupport) {
       console.log('Enabling IndexedDBProvider')
-      this.indexedDBProvider = new IndexedDBProvider(doc, docId)
-    } else {
-      this.indexedDBProvider = null
+      this.indexedDBProvider = createIndexedDBProvider(doc, docId)
     }
 
     doc.on('update', this.update.bind(this))
@@ -545,6 +543,10 @@ export class YSweetProvider {
   public destroy() {
     if (this.websocket) {
       this.websocket.close()
+    }
+
+    if (this.indexedDBProvider) {
+      this.indexedDBProvider.then((provider) => provider.destroy())
     }
 
     awarenessProtocol.removeAwarenessStates(this.awareness, [this.doc.clientID], 'window unload')

@@ -6,10 +6,11 @@ import { decryptData, encryptData } from './encryption'
 const DB_PREFIX = 'y-sweet-'
 const OBJECT_STORE_NAME = 'updates'
 
-/** Maximum number of independent updates to store in IndexedDB.
+/**
+ * Maximum number of independent updates to store in IndexedDB.
  * If this is exceeded, all of the updates are compacted into one.
  */
-const MAX_UPDATES_IN_STORE = 10
+const MAX_UPDATES_IN_STORE = 50
 
 function openIndexedDB(name: string): Promise<IDBDatabase> {
   return new Promise<IDBDatabase>((resolve, reject) => {
@@ -23,20 +24,21 @@ function openIndexedDB(name: string): Promise<IDBDatabase> {
   })
 }
 
+export async function createIndexedDBProvider(doc: Doc, docId: string): Promise<IndexedDBProvider> {
+  const db = await openIndexedDB(DB_PREFIX + docId)
+  const encryptionKey = await getOrCreateKey()
+
+  return new IndexedDBProvider(doc, db, encryptionKey)
+}
+
 export class IndexedDBProvider {
-  db: Promise<IDBDatabase>
   objectCount: number = 0
-  encryptionKey: Promise<CryptoKey>
 
   constructor(
     private doc: Doc,
-    private docId: string,
+    private db: IDBDatabase,
+    private encryptionKey: CryptoKey,
   ) {
-    this.db = openIndexedDB(DB_PREFIX + this.docId)
-    this.init()
-
-    this.encryptionKey = getOrCreateKey()
-
     this.handleUpdate = this.handleUpdate.bind(this)
     doc.on('update', this.handleUpdate)
   }
@@ -72,11 +74,9 @@ export class IndexedDBProvider {
   }
 
   async getAllValues(): Promise<Array<Uint8Array>> {
-    let db = await this.db
-    const transaction = db.transaction(OBJECT_STORE_NAME)
+    const transaction = this.db.transaction(OBJECT_STORE_NAME)
     const objectStore = transaction.objectStore(OBJECT_STORE_NAME)
     const request = objectStore.getAll()
-    const key = await this.encryptionKey
 
     let result = await new Promise<Array<Uint8Array>>((resolve, reject) => {
       request.onsuccess = async () => {
@@ -89,25 +89,21 @@ export class IndexedDBProvider {
       request.onerror = reject
     })
 
-    return await Promise.all(result.map((data) => decryptData(data, key)))
+    return await Promise.all(result.map((data) => decryptData(data, this.encryptionKey)))
   }
 
   async saveWholeState() {
     const update = Y.encodeStateAsUpdate(this.doc)
-    const key = await this.encryptionKey
-    const encryptedUpdate = await encryptData(update, key)
-    let db = await this.db
-    let transaction = db.transaction(OBJECT_STORE_NAME, 'readwrite')
+    const encryptedUpdate = await encryptData(update, this.encryptionKey)
+    let transaction = this.db.transaction(OBJECT_STORE_NAME, 'readwrite')
     let objectStore = transaction.objectStore(OBJECT_STORE_NAME)
     objectStore.clear()
     objectStore.add(encryptedUpdate)
   }
 
   async setValue(value: Uint8Array): Promise<void> {
-    let db = await this.db
-    const key = await this.encryptionKey
-    const encryptedValue = await encryptData(value, key)
-    let objectStore = db.transaction(OBJECT_STORE_NAME, 'readwrite').objectStore(OBJECT_STORE_NAME)
+    const encryptedValue = await encryptData(value, this.encryptionKey)
+    let objectStore = this.db.transaction(OBJECT_STORE_NAME, 'readwrite').objectStore(OBJECT_STORE_NAME)
     const request = objectStore.put(encryptedValue)
 
     return new Promise<void>((resolve, reject) => {
