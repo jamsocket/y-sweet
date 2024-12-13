@@ -241,7 +241,7 @@ export class YSweetProvider {
 
     // We need to increment the local version before we emit, so that event
     // listeners see the right hasLocalChanges value.
-    let emit = this.hasLocalChanges && (version === this.localVersion)
+    let emit = this.hasLocalChanges && version === this.localVersion
     this.ackedVersion = version
 
     if (emit) {
