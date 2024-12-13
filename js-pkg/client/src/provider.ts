@@ -175,7 +175,6 @@ export class YSweetProvider {
     // doesn't mean we entirely trust the browser, since it can be wrong
     // (e.g. in the case that the connection is over localhost).
     this.checkSync()
-    this.setConnectionTimeout()
   }
 
   private online() {
@@ -197,7 +196,6 @@ export class YSweetProvider {
     }
     this.heartbeatHandle = setTimeout(() => {
       this.checkSync()
-      this.setConnectionTimeout()
       this.heartbeatHandle = null
     }, MAX_TIMEOUT_BETWEEN_HEARTBEATS)
   }
@@ -271,6 +269,7 @@ export class YSweetProvider {
     this.send(encoding.toUint8Array(encoder))
 
     this.updateSyncedState()
+    this.setConnectionTimeout()
   }
 
   private async ensureClientToken(): Promise<ClientToken> {
