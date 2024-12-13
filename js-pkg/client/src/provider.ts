@@ -485,6 +485,7 @@ export class YSweetProvider {
   private websocketClose(event: CloseEvent) {
     this.emit(EVENT_CONNECTION_CLOSE, event)
     this.setStatus(STATUS_ERROR)
+    this.clearHeartbeat()
     this.connect()
 
     // Remove all awareness states except for our own.
@@ -500,6 +501,7 @@ export class YSweetProvider {
   private websocketError(event: Event) {
     this.emit(EVENT_CONNECTION_ERROR, event)
     this.setStatus(STATUS_ERROR)
+    this.clearHeartbeat()
 
     this.connect()
   }
