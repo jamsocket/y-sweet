@@ -155,9 +155,34 @@ export class YSweetProvider {
     this.awareness.on('update', this.handleAwarenessUpdate.bind(this))
     this.WebSocketPolyfill = extraOptions.WebSocketPolyfill || WebSocket
 
+    this.online = this.online.bind(this)
+    this.offline = this.offline.bind(this)
+    if (typeof window !== 'undefined') {
+      window.addEventListener("offline", this.offline)
+      window.addEventListener("online", this.online)
+    }
+
     doc.on('update', this.update.bind(this))
 
     if (extraOptions.connect !== false) {
+      this.connect()
+    }
+  }
+
+  private offline() {
+    console.log('offline')
+    // When the browser indicates that we are offline, we immediately
+    // probe the connection status.
+    // This accelerates the process of discovering we are offline, but
+    // doesn't mean we entirely true the browser, since it can be wrong
+    // (e.g. in the case that the connection is over localhost).
+    this.checkSync()
+    this.setConnectionTimeout()
+  }
+
+  private online() {
+    console.log('online')
+    if (this.status === STATUS_OFFLINE) {
       this.connect()
     }
   }
@@ -501,6 +526,11 @@ export class YSweetProvider {
     }
 
     awarenessProtocol.removeAwarenessStates(this.awareness, [this.doc.clientID], 'window unload')
+
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('offline', this.offline)
+      window.removeEventListener('online', this.online)
+    }
   }
 
   private _on(
