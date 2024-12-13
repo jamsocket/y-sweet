@@ -165,7 +165,6 @@ export class YSweetProvider {
     }
     
     if (extraOptions.offlineSupport) {
-      console.log('Enabling IndexedDBProvider')
       this.indexedDBProvider = createIndexedDBProvider(doc, docId)
     }
 
