@@ -191,7 +191,6 @@ export class YSweetProvider {
     this.clearHeartbeat()
     this.heartbeatHandle = setTimeout(() => {
       this.checkSync()
-      this.setConnectionTimeout()
       this.heartbeatHandle = null
     }, MAX_TIMEOUT_BETWEEN_HEARTBEATS)
   }
