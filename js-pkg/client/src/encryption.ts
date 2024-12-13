@@ -1,3 +1,9 @@
+const ALGORITHM: AesKeyGenParams = {
+  name: 'AES-GCM',
+  length: 256,
+}
+const KEY_USAGE: KeyUsage[] = ['encrypt', 'decrypt']
+
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return btoa(String.fromCharCode(...new Uint8Array(buffer)))
 }
@@ -10,10 +16,7 @@ function base64ToArrayBuffer(base64: string): ArrayBuffer {
 
 export async function importKey(key: string): Promise<CryptoKey> {
   const rawKey = base64ToArrayBuffer(key)
-  return await crypto.subtle.importKey('raw', rawKey, { name: 'AES-GCM', length: 256 }, true, [
-    'encrypt',
-    'decrypt',
-  ])
+  return await crypto.subtle.importKey('raw', rawKey, ALGORITHM, true, KEY_USAGE)
 }
 
 export async function exportKey(key: CryptoKey): Promise<string> {
@@ -21,13 +24,13 @@ export async function exportKey(key: CryptoKey): Promise<string> {
   return arrayBufferToBase64(rawKey)
 }
 
-export function generateEncryptionKey(): Promise<CryptoKey> {
-  return crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt'])
+export async function generateEncryptionKey(): Promise<CryptoKey> {
+  return crypto.subtle.generateKey(ALGORITHM, true, KEY_USAGE)
 }
 
 export async function encryptData(data: Uint8Array, key: CryptoKey): Promise<Uint8Array> {
   const iv = crypto.getRandomValues(new Uint8Array(12))
-  const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, data)
+  const encrypted = await crypto.subtle.encrypt({ name: ALGORITHM.name, iv }, key, data)
 
   const result = new Uint8Array(iv.length + encrypted.byteLength)
   result.set(iv)
@@ -38,6 +41,6 @@ export async function encryptData(data: Uint8Array, key: CryptoKey): Promise<Uin
 export async function decryptData(encryptedData: Uint8Array, key: CryptoKey): Promise<Uint8Array> {
   const iv = encryptedData.slice(0, 12)
   const data = encryptedData.slice(12)
-  const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, data)
+  const decrypted = await crypto.subtle.decrypt({ name: ALGORITHM.name, iv }, key, data)
   return new Uint8Array(decrypted)
 }
