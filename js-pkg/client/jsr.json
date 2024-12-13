@@ -1,0 +1,6 @@
+{
+  "name": "@y-sweet/client",
+  "version": "0.6.4",
+  "license": "MIT",
+  "exports": "./src/main.ts"
+}

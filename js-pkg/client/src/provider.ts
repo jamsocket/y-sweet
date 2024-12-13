@@ -301,7 +301,7 @@ export class YSweetProvider {
     this.websocket.onerror = this.websocketError.bind(this)
   }
 
-  generateUrl(clientToken: ClientToken) {
+  generateUrl(clientToken: ClientToken): string {
     const url = clientToken.url + `/${clientToken.docId}`
     if (clientToken.token) {
       return `${url}?token=${clientToken.token}`
@@ -495,7 +495,7 @@ export class YSweetProvider {
    *
    * @deprecated use provider.status === 'connected' || provider.status === 'handshaking' instead.
    */
-  get wsconnected() {
+  get wsconnected(): boolean {
     return this.status === STATUS_CONNECTED || this.status === STATUS_HANDSHAKING
   }
 
@@ -504,7 +504,7 @@ export class YSweetProvider {
    *
    * @deprecated use provider.status === 'connecting' instead.
    */
-  get wsconnecting() {
+  get wsconnecting(): boolean {
     return this.status === STATUS_CONNECTING
   }
 
@@ -513,7 +513,7 @@ export class YSweetProvider {
    *
    * @deprecated use provider.status === 'connected' instead.
    * */
-  get synced() {
+  get synced(): boolean {
     return this.status === STATUS_CONNECTED
   }
 }
