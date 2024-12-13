@@ -4,6 +4,7 @@ import * as encoding from 'lib0/encoding'
 import * as awarenessProtocol from 'y-protocols/awareness'
 import * as syncProtocol from 'y-protocols/sync'
 import * as Y from 'yjs'
+import { Sleeper } from './sleeper'
 import {
   EVENT_CONNECTION_CLOSE,
   EVENT_CONNECTION_ERROR,
@@ -82,10 +83,6 @@ export type YSweetProviderParams = {
   initialClientToken?: ClientToken
 }
 
-async function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
 async function getClientToken(authEndpoint: AuthEndpoint, roomname: string): Promise<ClientToken> {
   if (typeof authEndpoint === 'function') {
     return await authEndpoint()
@@ -138,6 +135,8 @@ export class YSweetProvider {
   private heartbeatHandle: ReturnType<typeof setTimeout> | null = null
   private connectionTimeoutHandle: ReturnType<typeof setTimeout> | null = null
 
+  private reconnectSleeper: Sleeper | null = null
+
   constructor(
     private authEndpoint: AuthEndpoint,
     private docId: string,
@@ -170,7 +169,6 @@ export class YSweetProvider {
   }
 
   private offline() {
-    console.log('offline')
     // When the browser indicates that we are offline, we immediately
     // probe the connection status.
     // This accelerates the process of discovering we are offline, but
@@ -181,9 +179,8 @@ export class YSweetProvider {
   }
 
   private online() {
-    console.log('online')
-    if (this.status === STATUS_OFFLINE) {
-      this.connect()
+    if (this.reconnectSleeper) {
+      this.reconnectSleeper.wake()
     }
   }
 
@@ -220,6 +217,7 @@ export class YSweetProvider {
       if (this.websocket) {
         this.websocket.close()
         this.setStatus(STATUS_ERROR)
+        this.connect()
       }
       this.connectionTimeoutHandle = null
     }, MAX_TIMEOUT_WITHOUT_RECEIVING_HEARTBEAT)
@@ -332,7 +330,8 @@ export class YSweetProvider {
       } catch (e) {
         console.warn('Failed to get client token', e)
         this.setStatus(STATUS_ERROR)
-        await sleep(DELAY_MS_BEFORE_RETRY_TOKEN_REFRESH)
+        this.reconnectSleeper = new Sleeper(DELAY_MS_BEFORE_RETRY_TOKEN_REFRESH)
+        await this.reconnectSleeper.sleep()
         continue
       }
 
@@ -341,7 +340,8 @@ export class YSweetProvider {
           break
         }
 
-        await sleep(DELAY_MS_BEFORE_RECONNECT)
+        this.reconnectSleeper = new Sleeper(DELAY_MS_BEFORE_RECONNECT)
+        await this.reconnectSleeper.sleep()
       }
 
       // Delete the current client token to force a token refresh on the next attempt.
