@@ -24,7 +24,7 @@ export async function exportKey(key: CryptoKey): Promise<string> {
   return arrayBufferToBase64(rawKey)
 }
 
-export async function generateEncryptionKey(): Promise<CryptoKey> {
+export function generateEncryptionKey(): Promise<CryptoKey> {
   return crypto.subtle.generateKey(ALGORITHM, true, KEY_USAGE)
 }
 
