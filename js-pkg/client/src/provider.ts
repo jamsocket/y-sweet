@@ -503,6 +503,7 @@ export class YSweetProvider {
     this.emit(EVENT_CONNECTION_ERROR, event)
     this.setStatus(STATUS_ERROR)
     this.clearHeartbeat()
+    this.clearConnectionTimeout()
 
     this.connect()
   }
