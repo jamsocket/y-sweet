@@ -158,8 +158,8 @@ export class YSweetProvider {
     this.online = this.online.bind(this)
     this.offline = this.offline.bind(this)
     if (typeof window !== 'undefined') {
-      window.addEventListener("offline", this.offline)
-      window.addEventListener("online", this.online)
+      window.addEventListener('offline', this.offline)
+      window.addEventListener('online', this.online)
     }
 
     doc.on('update', this.update.bind(this))
