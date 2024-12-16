@@ -65,7 +65,6 @@ export class IndexedDBProvider {
 
   private updateKey() {
     this.lastUpdateKey += 1
-    console.log('update key', this.lastUpdateKey)
     return this.lastUpdateKey
   }
 
@@ -156,7 +155,6 @@ export class IndexedDBProvider {
       .transaction(OBJECT_STORE_NAME, 'readwrite')
       .objectStore(OBJECT_STORE_NAME)
 
-    console.log('iv')
     let updateKey = this.updateKey()
 
     const request = objectStore.put({
