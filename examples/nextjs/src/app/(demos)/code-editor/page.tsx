@@ -5,7 +5,7 @@ import { CodeEditor } from './CodeEditor'
 export default function Home({ searchParams }: { searchParams: { doc: string } }) {
   const docId = searchParams.doc ?? randomId()
   return (
-    <YDocProvider docId={docId} setQueryParam="doc" authEndpoint="/api/auth">
+    <YDocProvider docId={docId} setQueryParam="doc" authEndpoint="/api/auth" offlineSupport={true}>
       <CodeEditor />
     </YDocProvider>
   )

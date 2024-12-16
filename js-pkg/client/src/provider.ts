@@ -88,7 +88,7 @@ export type YSweetProviderParams = {
 
   /**
    * If set, document state is stored locally for offline use and faster re-opens.
-   * Defaults to `true`; set to `false` to disable.
+   * Defaults to `false`; set to `true` to enable.
    */
   offlineSupport?: boolean
 }
@@ -172,7 +172,7 @@ export class YSweetProvider {
       window.addEventListener('online', this.online)
     }
 
-    if (extraOptions.offlineSupport !== false && typeof indexedDB !== 'undefined') {
+    if (extraOptions.offlineSupport === true && typeof indexedDB !== 'undefined') {
       ;(async () => {
         this.indexedDBProvider = await createIndexedDBProvider(doc, docId)
       })()
