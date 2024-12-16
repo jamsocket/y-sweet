@@ -21,8 +21,8 @@ interface BytesWithKey {
 function openIndexedDB(name: string): Promise<IDBDatabase> {
   return new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(name, 4)
-    request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
-      const db = (event.target! as any).result as IDBDatabase
+    request.onupgradeneeded = () => {
+      const db = request.result
       db.createObjectStore(OBJECT_STORE_NAME, { keyPath: 'key' })
     }
     request.onsuccess = () => resolve(request.result)
