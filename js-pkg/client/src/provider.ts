@@ -22,7 +22,7 @@ const RETRIES_BEFORE_TOKEN_REFRESH = 3
 const DELAY_MS_BEFORE_RECONNECT = 500
 const DELAY_MS_BEFORE_RETRY_TOKEN_REFRESH = 3_000
 
-const BACKOFF_BASE = 1.05
+const BACKOFF_BASE = 1.1
 const MAX_BACKOFF_COEFFICIENT = 10
 
 /** Amount of time without receiving any message that we should send a MESSAGE_SYNC_STATUS message. */
@@ -356,7 +356,7 @@ export class YSweetProvider {
         console.warn('Failed to get client token', e)
         this.setStatus(STATUS_ERROR)
         let timeout =
-          DELAY_MS_BEFORE_RECONNECT *
+          DELAY_MS_BEFORE_RETRY_TOKEN_REFRESH *
           Math.min(MAX_BACKOFF_COEFFICIENT, Math.pow(BACKOFF_BASE, this.retries))
         this.retries += 1
         this.reconnectSleeper = new Sleeper(timeout)
@@ -371,7 +371,7 @@ export class YSweetProvider {
         }
 
         let timeout =
-          DELAY_MS_BEFORE_RETRY_TOKEN_REFRESH *
+          DELAY_MS_BEFORE_RECONNECT *
           Math.min(MAX_BACKOFF_COEFFICIENT, Math.pow(BACKOFF_BASE, this.retries))
         this.retries += 1
         this.reconnectSleeper = new Sleeper(timeout)
