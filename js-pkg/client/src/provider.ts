@@ -144,7 +144,7 @@ export class YSweetProvider {
 
   private reconnectSleeper: Sleeper | null = null
 
-  private indexedDBProvider: Promise<IndexedDBProvider> | null = null
+  private indexedDBProvider: IndexedDBProvider | null = null
 
   private retries: number = 0
 
@@ -173,7 +173,9 @@ export class YSweetProvider {
     }
 
     if (extraOptions.offlineSupport !== false && typeof indexedDB !== 'undefined') {
-      this.indexedDBProvider = createIndexedDBProvider(doc, docId)
+      ;(async () => {
+        this.indexedDBProvider = await createIndexedDBProvider(doc, docId)
+      })()
     }
 
     doc.on('update', this.update.bind(this))
@@ -274,16 +276,24 @@ export class YSweetProvider {
     this.emit(EVENT_CONNECTION_STATUS, status)
   }
 
-  private update(update: Uint8Array, origin: any) {
-    if (origin !== this && origin !== this.indexedDBProvider) {
-      const encoder = encoding.createEncoder()
-      encoding.writeVarUint(encoder, MESSAGE_SYNC)
-      syncProtocol.writeUpdate(encoder, update)
-      this.send(encoding.toUint8Array(encoder))
-
-      this.incrementLocalVersion()
-      this.checkSync()
+  private update(update: Uint8Array, origin: YSweetProvider | IndexedDBProvider) {
+    if (origin === this) {
+      // Ignore updates from ourselves.
+      return
     }
+
+    if (this.indexedDBProvider && origin !== this.indexedDBProvider) {
+      // Ignore updates from our own IndexedDB provider.
+      return
+    }
+
+    const encoder = encoding.createEncoder()
+    encoding.writeVarUint(encoder, MESSAGE_SYNC)
+    syncProtocol.writeUpdate(encoder, update)
+    this.send(encoding.toUint8Array(encoder))
+
+    this.incrementLocalVersion()
+    this.checkSync()
   }
 
   private checkSync() {
@@ -562,7 +572,7 @@ export class YSweetProvider {
     }
 
     if (this.indexedDBProvider) {
-      this.indexedDBProvider.then((provider) => provider.destroy())
+      this.indexedDBProvider.destroy()
     }
 
     awarenessProtocol.removeAwarenessStates(this.awareness, [this.doc.clientID], 'window unload')
