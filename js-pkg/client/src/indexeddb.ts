@@ -122,12 +122,8 @@ export class IndexedDBProvider {
     const request = objectStore.getAll(range)
 
     let result = await new Promise<Array<BytesWithKey>>((resolve, reject) => {
-      request.onsuccess = async () => {
-        try {
-          resolve(request.result)
-        } catch (error) {
-          reject(error)
-        }
+      request.onsuccess = () => {
+        resolve(request.result)
       }
       request.onerror = reject
     })
