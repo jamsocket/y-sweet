@@ -355,10 +355,10 @@ export class YSweetProvider {
       } catch (e) {
         console.warn('Failed to get client token', e)
         this.setStatus(STATUS_ERROR)
-        this.retries += 1
         let timeout =
           DELAY_MS_BEFORE_RECONNECT *
           Math.min(MAX_BACKOFF_COEFFICIENT, Math.pow(BACKOFF_BASE, this.retries))
+        this.retries += 1
         this.reconnectSleeper = new Sleeper(timeout)
         await this.reconnectSleeper.sleep()
         continue
@@ -370,10 +370,10 @@ export class YSweetProvider {
           break
         }
 
-        this.retries += 1
         let timeout =
           DELAY_MS_BEFORE_RETRY_TOKEN_REFRESH *
           Math.min(MAX_BACKOFF_COEFFICIENT, Math.pow(BACKOFF_BASE, this.retries))
+        this.retries += 1
         this.reconnectSleeper = new Sleeper(timeout)
         await this.reconnectSleeper.sleep()
       }
