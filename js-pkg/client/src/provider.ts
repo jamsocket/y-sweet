@@ -83,7 +83,10 @@ export type YSweetProviderParams = {
   /** An initial client token to use (skips the first auth request if provided.) */
   initialClientToken?: ClientToken
 
-  /** If set, document state is stored locally for offline use and faster re-opens. */
+  /**
+   * If set, document state is stored locally for offline use and faster re-opens.
+   * Defaults to `true`; set to `false` to disable.
+   */
   offlineSupport?: boolean
 }
 
@@ -164,7 +167,7 @@ export class YSweetProvider {
       window.addEventListener('online', this.online)
     }
 
-    if (extraOptions.offlineSupport) {
+    if (extraOptions.offlineSupport !== false) {
       this.indexedDBProvider = createIndexedDBProvider(doc, docId)
     }
 

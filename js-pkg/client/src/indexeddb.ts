@@ -68,7 +68,8 @@ export class IndexedDBProvider {
       return
     }
 
-    await this.setValue(update)
+    let result = await this.insertValue(update)
+    console.log('inserted update', result)
 
     this.objectCount += 1
     if (this.objectCount > MAX_UPDATES_IN_STORE) {
@@ -104,15 +105,15 @@ export class IndexedDBProvider {
     objectStore.add(encryptedUpdate)
   }
 
-  async setValue(value: Uint8Array): Promise<void> {
+  async insertValue(value: Uint8Array): Promise<IDBValidKey> {
     const encryptedValue = await encryptData(value, this.encryptionKey)
     let objectStore = this.db
       .transaction(OBJECT_STORE_NAME, 'readwrite')
       .objectStore(OBJECT_STORE_NAME)
     const request = objectStore.put(encryptedValue)
 
-    return new Promise<void>((resolve, reject) => {
-      request.onsuccess = () => resolve()
+    return new Promise<IDBValidKey>((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result)
       request.onerror = reject
     })
   }
