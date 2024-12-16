@@ -39,7 +39,6 @@ export async function createIndexedDBProvider(doc: Doc, docId: string): Promise<
 }
 
 export class IndexedDBProvider {
-  objectCount: number = 0
   lastUpdateKey: number = -1
   broadcastChannel: BroadcastChannel
 
@@ -72,8 +71,6 @@ export class IndexedDBProvider {
     let range = IDBKeyRange.lowerBound(this.lastUpdateKey, true)
     const updates = await this.getAllValues(range)
 
-    this.objectCount = updates.length
-
     this.doc.transact(() => {
       for (const update of updates) {
         Y.applyUpdate(this.doc, update.value)
@@ -94,10 +91,10 @@ export class IndexedDBProvider {
     }
 
     await this.loadFromDb()
-    await this.insertValue(update)
+    let newCount = await this.insertValue(update)
 
-    this.objectCount += 1
-    if (this.objectCount > MAX_UPDATES_IN_STORE) {
+    console.log('newCount', newCount)
+    if (newCount > MAX_UPDATES_IN_STORE) {
       this.saveWholeState()
     }
 
@@ -141,6 +138,7 @@ export class IndexedDBProvider {
     let updateKey = this.updateKey()
 
     let range = IDBKeyRange.upperBound(updateKey, false)
+    console.log('deleting', range)
     objectStore.delete(range)
 
     objectStore.add({
@@ -149,7 +147,8 @@ export class IndexedDBProvider {
     })
   }
 
-  async insertValue(value: Uint8Array): Promise<void> {
+  /** Insert a value into IndexedDB. Return the new count of updates in the store. */
+  async insertValue(value: Uint8Array): Promise<number> {
     const encryptedValue = await encryptData(value, this.encryptionKey)
     let objectStore = this.db
       .transaction(OBJECT_STORE_NAME, 'readwrite')
@@ -166,5 +165,13 @@ export class IndexedDBProvider {
       request.onsuccess = () => resolve()
       request.onerror = reject
     })
+
+    let countRequest = objectStore.count()
+    let count = await new Promise<number>((resolve, reject) => {
+      countRequest.onsuccess = () => resolve(countRequest.result)
+      countRequest.onerror = reject
+    })
+
+    return count
   }
 }
