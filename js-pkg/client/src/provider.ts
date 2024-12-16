@@ -274,8 +274,8 @@ export class YSweetProvider {
     this.emit(EVENT_CONNECTION_STATUS, status)
   }
 
-  private update(update: Uint8Array, origin: YSweetProvider) {
-    if (origin !== this) {
+  private update(update: Uint8Array, origin: any) {
+    if (origin !== this && origin !== this.indexedDBProvider) {
       const encoder = encoding.createEncoder()
       encoding.writeVarUint(encoder, MESSAGE_SYNC)
       syncProtocol.writeUpdate(encoder, update)
