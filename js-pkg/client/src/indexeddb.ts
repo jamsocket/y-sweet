@@ -10,7 +10,7 @@ const OBJECT_STORE_NAME = 'updates'
  * Maximum number of independent updates to store in IndexedDB.
  * If this is exceeded, all of the updates are compacted into one.
  */
-const MAX_UPDATES_IN_STORE = 5
+const MAX_UPDATES_IN_STORE = 50
 
 /** Pair of key and value, used both for the encrypted entry and decrypted entry. */
 interface BytesWithKey {
