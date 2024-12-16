@@ -11,6 +11,7 @@ import {
   WebSocketCompatLayer,
   YWebsocketEvent,
 } from './ws-status'
+import { createIndexedDBProvider, IndexedDBProvider } from './indexeddb'
 
 const MESSAGE_SYNC = 0
 const MESSAGE_QUERY_AWARENESS = 3
@@ -20,6 +21,9 @@ const MESSAGE_SYNC_STATUS = 102
 const RETRIES_BEFORE_TOKEN_REFRESH = 3
 const DELAY_MS_BEFORE_RECONNECT = 500
 const DELAY_MS_BEFORE_RETRY_TOKEN_REFRESH = 3_000
+
+const BACKOFF_BASE = 1.1
+const MAX_BACKOFF_COEFFICIENT = 10
 
 /** Amount of time without receiving any message that we should send a MESSAGE_SYNC_STATUS message. */
 const MAX_TIMEOUT_BETWEEN_HEARTBEATS = 2_000
@@ -81,6 +85,12 @@ export type YSweetProviderParams = {
 
   /** An initial client token to use (skips the first auth request if provided.) */
   initialClientToken?: ClientToken
+
+  /**
+   * If set, document state is stored locally for offline use and faster re-opens.
+   * Defaults to `false`; set to `true` to enable.
+   */
+  offlineSupport?: boolean
 }
 
 async function getClientToken(authEndpoint: AuthEndpoint, roomname: string): Promise<ClientToken> {
@@ -126,13 +136,17 @@ export class YSweetProvider {
   private localVersion: number = 0
   private ackedVersion: number = -1
 
-  /** Whether a (re)connect loop is currently running. This acts as a lock to prevent two concurrent connect loops. */
+  /** Whether we are currently in the process of connecting. */
   private isConnecting: boolean = false
 
   private heartbeatHandle: ReturnType<typeof setTimeout> | null = null
   private connectionTimeoutHandle: ReturnType<typeof setTimeout> | null = null
 
   private reconnectSleeper: Sleeper | null = null
+
+  private indexedDBProvider: IndexedDBProvider | null = null
+
+  private retries: number = 0
 
   constructor(
     private authEndpoint: AuthEndpoint,
@@ -156,6 +170,12 @@ export class YSweetProvider {
     if (typeof window !== 'undefined') {
       window.addEventListener('offline', this.offline)
       window.addEventListener('online', this.online)
+    }
+
+    if (extraOptions.offlineSupport === true && typeof indexedDB !== 'undefined') {
+      ;(async () => {
+        this.indexedDBProvider = await createIndexedDBProvider(doc, docId)
+      })()
     }
 
     doc.on('update', this.update.bind(this))
@@ -256,16 +276,24 @@ export class YSweetProvider {
     this.emit(EVENT_CONNECTION_STATUS, status)
   }
 
-  private update(update: Uint8Array, origin: YSweetProvider) {
-    if (origin !== this) {
-      const encoder = encoding.createEncoder()
-      encoding.writeVarUint(encoder, MESSAGE_SYNC)
-      syncProtocol.writeUpdate(encoder, update)
-      this.send(encoding.toUint8Array(encoder))
-
-      this.incrementLocalVersion()
-      this.checkSync()
+  private update(update: Uint8Array, origin: YSweetProvider | IndexedDBProvider) {
+    if (origin === this) {
+      // Ignore updates from ourselves.
+      return
     }
+
+    if (this.indexedDBProvider && origin !== this.indexedDBProvider) {
+      // Ignore updates from our own IndexedDB provider.
+      return
+    }
+
+    const encoder = encoding.createEncoder()
+    encoding.writeVarUint(encoder, MESSAGE_SYNC)
+    syncProtocol.writeUpdate(encoder, update)
+    this.send(encoding.toUint8Array(encoder))
+
+    this.incrementLocalVersion()
+    this.checkSync()
   }
 
   private checkSync() {
@@ -337,17 +365,26 @@ export class YSweetProvider {
       } catch (e) {
         console.warn('Failed to get client token', e)
         this.setStatus(STATUS_ERROR)
-        this.reconnectSleeper = new Sleeper(DELAY_MS_BEFORE_RETRY_TOKEN_REFRESH)
+        let timeout =
+          DELAY_MS_BEFORE_RETRY_TOKEN_REFRESH *
+          Math.min(MAX_BACKOFF_COEFFICIENT, Math.pow(BACKOFF_BASE, this.retries))
+        this.retries += 1
+        this.reconnectSleeper = new Sleeper(timeout)
         await this.reconnectSleeper.sleep()
         continue
       }
 
       for (let i = 0; i < RETRIES_BEFORE_TOKEN_REFRESH; i++) {
         if (await this.attemptToConnect(clientToken)) {
+          this.retries = 0
           break
         }
 
-        this.reconnectSleeper = new Sleeper(DELAY_MS_BEFORE_RECONNECT)
+        let timeout =
+          DELAY_MS_BEFORE_RECONNECT *
+          Math.min(MAX_BACKOFF_COEFFICIENT, Math.pow(BACKOFF_BASE, this.retries))
+        this.retries += 1
+        this.reconnectSleeper = new Sleeper(timeout)
         await this.reconnectSleeper.sleep()
       }
 
@@ -532,6 +569,10 @@ export class YSweetProvider {
   public destroy() {
     if (this.websocket) {
       this.websocket.close()
+    }
+
+    if (this.indexedDBProvider) {
+      this.indexedDBProvider.destroy()
     }
 
     awarenessProtocol.removeAwarenessStates(this.awareness, [this.doc.clientID], 'window unload')
