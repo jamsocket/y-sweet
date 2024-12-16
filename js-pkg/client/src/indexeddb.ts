@@ -90,12 +90,27 @@ export class IndexedDBProvider {
       return
     }
 
-    await this.loadFromDb()
-    let newCount = await this.insertValue(update)
+    // We attempt to write in a loop. If we are preempted by another writer, we load the latest
+    // updates and try again.
+    while (true) {
+      await this.loadFromDb()
+      let key = this.updateKey()
+      let newCount = await this.insertValue(key, update)
 
-    console.log('newCount', newCount)
-    if (newCount > MAX_UPDATES_IN_STORE) {
-      this.saveWholeState()
+      if (newCount === null) {
+        // Another writer wrote before we could; reload and try again.
+        continue
+      }
+
+      if (newCount > MAX_UPDATES_IN_STORE) {
+        key = this.updateKey()
+        if (!(await this.saveWholeState(key))) {
+          // Another writer wrote before we could; reload and try again.
+          continue
+        }
+      }
+
+      break
     }
 
     this.broadcastChannel.postMessage(this.lastUpdateKey)
@@ -129,35 +144,53 @@ export class IndexedDBProvider {
     )
   }
 
-  async saveWholeState() {
+  async saveWholeState(key: number): Promise<boolean> {
     const update = Y.encodeStateAsUpdate(this.doc)
     const encryptedUpdate = await encryptData(update, this.encryptionKey)
     let transaction = this.db.transaction(OBJECT_STORE_NAME, 'readwrite')
     let objectStore = transaction.objectStore(OBJECT_STORE_NAME)
 
-    let updateKey = this.updateKey()
+    if (await this.hasValue(objectStore, key)) {
+      return false
+    }
 
-    let range = IDBKeyRange.upperBound(updateKey, false)
-    console.log('deleting', range)
+    let range = IDBKeyRange.upperBound(key, false)
     objectStore.delete(range)
 
     objectStore.add({
-      key: updateKey,
+      key,
       value: encryptedUpdate,
     })
+
+    return true
   }
 
-  /** Insert a value into IndexedDB. Return the new count of updates in the store. */
-  async insertValue(value: Uint8Array): Promise<number> {
+  async hasValue(objectStore: IDBObjectStore, key: number): Promise<boolean> {
+    const request = objectStore.get(key)
+    await new Promise<void>((resolve, reject) => {
+      request.onsuccess = () => resolve()
+      request.onerror = reject
+    })
+
+    return request.result !== undefined
+  }
+
+  /**
+   * Insert a value into IndexedDB. Return the new count of updates in the store if the value was inserted,
+   * or null if the desired key already exists.
+   **/
+  async insertValue(key: number, value: Uint8Array): Promise<number | null> {
     const encryptedValue = await encryptData(value, this.encryptionKey)
     let objectStore = this.db
       .transaction(OBJECT_STORE_NAME, 'readwrite')
       .objectStore(OBJECT_STORE_NAME)
 
-    let updateKey = this.updateKey()
+    if (await this.hasValue(objectStore, key)) {
+      return null
+    }
 
     const request = objectStore.put({
-      key: updateKey,
+      key,
       value: encryptedValue,
     })
 
