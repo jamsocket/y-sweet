@@ -4,6 +4,7 @@ import * as encoding from 'lib0/encoding'
 import * as awarenessProtocol from 'y-protocols/awareness'
 import * as syncProtocol from 'y-protocols/sync'
 import * as Y from 'yjs'
+import { Sleeper } from './sleeper'
 import {
   EVENT_CONNECTION_CLOSE,
   EVENT_CONNECTION_ERROR,
@@ -18,7 +19,16 @@ const MESSAGE_SYNC_STATUS = 102
 
 const RETRIES_BEFORE_TOKEN_REFRESH = 3
 const DELAY_MS_BEFORE_RECONNECT = 500
-const DELAY_MS_BEFORE_RETRY_TOKEN_REFRESH = 3000
+const DELAY_MS_BEFORE_RETRY_TOKEN_REFRESH = 3_000
+
+/** Amount of time without receiving any message that we should send a MESSAGE_SYNC_STATUS message. */
+const MAX_TIMEOUT_BETWEEN_HEARTBEATS = 2_000
+
+/**
+ * Amount of time after sending a MESSAGE_SYNC_STATUS message that we should close the connection
+ * unless any message has been received.
+ **/
+const MAX_TIMEOUT_WITHOUT_RECEIVING_HEARTBEAT = 3_000
 
 // Note: These should not conflict with y-websocket's events, defined in `ws-status.ts`.
 export const EVENT_LOCAL_CHANGES = 'local-changes'
@@ -73,10 +83,6 @@ export type YSweetProviderParams = {
   initialClientToken?: ClientToken
 }
 
-async function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
 async function getClientToken(authEndpoint: AuthEndpoint, roomname: string): Promise<ClientToken> {
   if (typeof authEndpoint === 'function') {
     return await authEndpoint()
@@ -110,9 +116,6 @@ export class YSweetProvider {
   /** Current client token. */
   public clientToken: ClientToken | null = null
 
-  /** Whether the local document has unsynced changes. */
-  public hasLocalChanges: boolean = true
-
   /** Connection status. */
   public status: YSweetStatus = STATUS_OFFLINE
 
@@ -120,11 +123,16 @@ export class YSweetProvider {
   private WebSocketPolyfill: WebSocketPolyfillType
   private listeners: Map<YSweetEvent | YWebsocketEvent, Set<EventListener>> = new Map()
 
-  private lastSyncSent: number = 0
-  private lastSyncAcked: number = -1
+  private localVersion: number = 0
+  private ackedVersion: number = -1
 
   /** Whether a (re)connect loop is currently running. This acts as a lock to prevent two concurrent connect loops. */
   private isConnecting: boolean = false
+
+  private heartbeatHandle: ReturnType<typeof setTimeout> | null = null
+  private connectionTimeoutHandle: ReturnType<typeof setTimeout> | null = null
+
+  private reconnectSleeper: Sleeper | null = null
 
   constructor(
     private authEndpoint: AuthEndpoint,
@@ -143,11 +151,69 @@ export class YSweetProvider {
     this.awareness.on('update', this.handleAwarenessUpdate.bind(this))
     this.WebSocketPolyfill = extraOptions.WebSocketPolyfill || WebSocket
 
+    this.online = this.online.bind(this)
+    this.offline = this.offline.bind(this)
+    if (typeof window !== 'undefined') {
+      window.addEventListener('offline', this.offline)
+      window.addEventListener('online', this.online)
+    }
+
     doc.on('update', this.update.bind(this))
 
     if (extraOptions.connect !== false) {
       this.connect()
     }
+  }
+
+  private offline() {
+    // When the browser indicates that we are offline, we immediately
+    // probe the connection status.
+    // This accelerates the process of discovering we are offline, but
+    // doesn't mean we entirely trust the browser, since it can be wrong
+    // (e.g. in the case that the connection is over localhost).
+    this.checkSync()
+  }
+
+  private online() {
+    if (this.reconnectSleeper) {
+      this.reconnectSleeper.wake()
+    }
+  }
+
+  private clearHeartbeat() {
+    if (this.heartbeatHandle) {
+      clearTimeout(this.heartbeatHandle)
+      this.heartbeatHandle = null
+    }
+  }
+
+  private resetHeartbeat() {
+    this.clearHeartbeat()
+    this.heartbeatHandle = setTimeout(() => {
+      this.checkSync()
+      this.heartbeatHandle = null
+    }, MAX_TIMEOUT_BETWEEN_HEARTBEATS)
+  }
+
+  private clearConnectionTimeout() {
+    if (this.connectionTimeoutHandle) {
+      clearTimeout(this.connectionTimeoutHandle)
+      this.connectionTimeoutHandle = null
+    }
+  }
+
+  private setConnectionTimeout() {
+    if (this.connectionTimeoutHandle) {
+      return
+    }
+    this.connectionTimeoutHandle = setTimeout(() => {
+      if (this.websocket) {
+        this.websocket.close()
+        this.setStatus(STATUS_ERROR)
+        this.connect()
+      }
+      this.connectionTimeoutHandle = null
+    }, MAX_TIMEOUT_WITHOUT_RECEIVING_HEARTBEAT)
   }
 
   private send(message: Uint8Array) {
@@ -156,14 +222,29 @@ export class YSweetProvider {
     }
   }
 
-  private updateSyncedState() {
-    let hasLocalChanges = this.lastSyncAcked !== this.lastSyncSent
-    if (hasLocalChanges === this.hasLocalChanges) {
-      return
-    }
+  private incrementLocalVersion() {
+    // We need to increment the local version before we emit, so that event
+    // listeners see the right hasLocalChanges value.
+    let emit = !this.hasLocalChanges
+    this.localVersion += 1
 
-    this.hasLocalChanges = hasLocalChanges
-    this.emit(EVENT_LOCAL_CHANGES, hasLocalChanges)
+    if (emit) {
+      this.emit(EVENT_LOCAL_CHANGES, true)
+    }
+  }
+
+  private updateAckedVersion(version: number) {
+    // The version _should_ never go backwards, but we guard for that in case it does.
+    version = Math.max(version, this.ackedVersion)
+
+    // We need to increment the local version before we emit, so that event
+    // listeners see the right hasLocalChanges value.
+    let emit = this.hasLocalChanges && version === this.localVersion
+    this.ackedVersion = version
+
+    if (emit) {
+      this.emit(EVENT_LOCAL_CHANGES, false)
+    }
   }
 
   private setStatus(status: YSweetStatus) {
@@ -182,22 +263,21 @@ export class YSweetProvider {
       syncProtocol.writeUpdate(encoder, update)
       this.send(encoding.toUint8Array(encoder))
 
+      this.incrementLocalVersion()
       this.checkSync()
     }
   }
 
   private checkSync() {
-    this.lastSyncSent += 1
     const encoder = encoding.createEncoder()
     encoding.writeVarUint(encoder, MESSAGE_SYNC_STATUS)
 
     const versionEncoder = encoding.createEncoder()
-    encoding.writeVarUint(versionEncoder, this.lastSyncSent)
+    encoding.writeVarUint(versionEncoder, this.localVersion)
     encoding.writeVarUint8Array(encoder, encoding.toUint8Array(versionEncoder))
 
     this.send(encoding.toUint8Array(encoder))
-
-    this.updateSyncedState()
+    this.setConnectionTimeout()
   }
 
   private async ensureClientToken(): Promise<ClientToken> {
@@ -257,7 +337,8 @@ export class YSweetProvider {
       } catch (e) {
         console.warn('Failed to get client token', e)
         this.setStatus(STATUS_ERROR)
-        await sleep(DELAY_MS_BEFORE_RETRY_TOKEN_REFRESH)
+        this.reconnectSleeper = new Sleeper(DELAY_MS_BEFORE_RETRY_TOKEN_REFRESH)
+        await this.reconnectSleeper.sleep()
         continue
       }
 
@@ -266,7 +347,8 @@ export class YSweetProvider {
           break
         }
 
-        await sleep(DELAY_MS_BEFORE_RECONNECT)
+        this.reconnectSleeper = new Sleeper(DELAY_MS_BEFORE_RECONNECT)
+        await this.reconnectSleeper.sleep()
       }
 
       // Delete the current client token to force a token refresh on the next attempt.
@@ -368,9 +450,13 @@ export class YSweetProvider {
     this.syncStep1()
     this.checkSync()
     this.broadcastAwareness()
+    this.resetHeartbeat()
   }
 
   private receiveMessage(event: MessageEvent) {
+    this.clearConnectionTimeout()
+    this.resetHeartbeat()
+
     let message: Uint8Array = new Uint8Array(event.data)
     const decoder = decoding.createDecoder(message)
     const messageType = decoding.readVarUint(decoder)
@@ -387,8 +473,8 @@ export class YSweetProvider {
       case MESSAGE_SYNC_STATUS:
         let lastSyncBytes = decoding.readVarUint8Array(decoder)
         let d2 = decoding.createDecoder(lastSyncBytes)
-        this.lastSyncAcked = decoding.readVarUint(d2)
-        this.updateSyncedState()
+        let ackedVersion = decoding.readVarUint(d2)
+        this.updateAckedVersion(ackedVersion)
         break
       default:
         break
@@ -398,6 +484,8 @@ export class YSweetProvider {
   private websocketClose(event: CloseEvent) {
     this.emit(EVENT_CONNECTION_CLOSE, event)
     this.setStatus(STATUS_ERROR)
+    this.clearHeartbeat()
+    this.clearConnectionTimeout()
     this.connect()
 
     // Remove all awareness states except for our own.
@@ -413,6 +501,8 @@ export class YSweetProvider {
   private websocketError(event: Event) {
     this.emit(EVENT_CONNECTION_ERROR, event)
     this.setStatus(STATUS_ERROR)
+    this.clearHeartbeat()
+    this.clearConnectionTimeout()
 
     this.connect()
   }
@@ -436,7 +526,7 @@ export class YSweetProvider {
       awarenessProtocol.encodeAwarenessUpdate(this.awareness, changedClients),
     )
 
-    this.websocket?.send(encoding.toUint8Array(encoder))
+    this.send(encoding.toUint8Array(encoder))
   }
 
   public destroy() {
@@ -445,6 +535,11 @@ export class YSweetProvider {
     }
 
     awarenessProtocol.removeAwarenessStates(this.awareness, [this.doc.clientID], 'window unload')
+
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('offline', this.offline)
+      window.removeEventListener('online', this.online)
+    }
   }
 
   private _on(
@@ -479,6 +574,13 @@ export class YSweetProvider {
     if (listeners) {
       listeners.delete(listener)
     }
+  }
+
+  /**
+   * Whether the document has local changes.
+   */
+  get hasLocalChanges() {
+    return this.ackedVersion !== this.localVersion
   }
 
   /**
