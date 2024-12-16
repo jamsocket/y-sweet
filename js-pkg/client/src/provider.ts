@@ -163,7 +163,7 @@ export class YSweetProvider {
       window.addEventListener('offline', this.offline)
       window.addEventListener('online', this.online)
     }
-    
+
     if (extraOptions.offlineSupport) {
       this.indexedDBProvider = createIndexedDBProvider(doc, docId)
     }
