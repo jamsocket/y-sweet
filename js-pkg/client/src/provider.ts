@@ -309,16 +309,10 @@ export class YSweetProvider {
   }
 
   private async ensureClientToken(): Promise<ClientToken> {
-    if (this.clientToken) {
-      return this.clientToken
-    }
-    if (typeof this.authEndpoint === 'string') {
+    if (this.clientToken === null) {
       this.clientToken = await getClientToken(this.authEndpoint, this.docId)
-      return this.clientToken
-    } else {
-      this.clientToken = await this.authEndpoint()
-      return this.clientToken
     }
+    return this.clientToken
   }
 
   /**
