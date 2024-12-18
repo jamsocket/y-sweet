@@ -1,6 +1,6 @@
 {
   "name": "y-sweet-integration-tests",
-  "version": "0.6.4",
+  "version": "0.7.0",
   "private": true,
   "description": "Integration tests for Y-sweet.",
   "scripts": {
@@ -18,7 +18,7 @@
     "yjs": "^13.6.7"
   },
   "dependencies": {
-    "@y-sweet/react": "0.6.4",
-    "@y-sweet/sdk": "0.6.4"
+    "@y-sweet/react": "0.7.0",
+    "@y-sweet/sdk": "0.7.0"
   }
 }
