@@ -148,6 +148,17 @@ export class YSweetProvider {
 
   private retries: number = 0
 
+  /**
+   * Older versions of the Y-Sweet server did not support the sync message, and would ignore it.
+   * This may lead to the client thinking the server is offline, when really it just doesn't
+   * know how to return a heartbeat.
+   *
+   * Eventually, we will build protocol version negotiation into the handshake. Until then, we
+   * use a simple approach: until we receive the first sync message back, we assume the server
+   * is an older version for the purpose of the heartbeat logic.
+   */
+  private receivedAtLeastOneSyncResponse: boolean = false
+
   constructor(
     private authEndpoint: AuthEndpoint,
     private docId: string,
@@ -226,6 +237,13 @@ export class YSweetProvider {
     if (this.connectionTimeoutHandle) {
       return
     }
+
+    if (!this.receivedAtLeastOneSyncResponse) {
+      // Until we receive the first sync response on the connection, we assume
+      // the server is an older version.
+      return
+    }
+
     this.connectionTimeoutHandle = setTimeout(() => {
       if (this.websocket) {
         this.websocket.close()
@@ -265,6 +283,8 @@ export class YSweetProvider {
     if (emit) {
       this.emit(EVENT_LOCAL_CHANGES, false)
     }
+
+    this.receivedAtLeastOneSyncResponse = true
   }
 
   private setStatus(status: YSweetStatus) {
@@ -482,6 +502,8 @@ export class YSweetProvider {
     this.checkSync()
     this.broadcastAwareness()
     this.resetHeartbeat()
+
+    this.receivedAtLeastOneSyncResponse = false
   }
 
   private receiveMessage(event: MessageEvent) {
