@@ -302,7 +302,7 @@ export class YSweetProvider {
       return
     }
 
-    if (this.indexedDBProvider && origin !== this.indexedDBProvider) {
+    if (this.indexedDBProvider && origin === this.indexedDBProvider) {
       // Ignore updates from our own IndexedDB provider.
       return
     }
