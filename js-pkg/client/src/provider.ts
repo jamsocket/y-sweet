@@ -152,7 +152,7 @@ export class YSweetProvider {
    * Older versions of the Y-Sweet server did not support the sync message, and would ignore it.
    * This may lead to the client thinking the server is offline, when really it just doesn't
    * know how to return a heartbeat.
-   * 
+   *
    * Eventually, we will build protocol version negotiation into the handshake. Until then, we
    * use a simple approach: until we receive the first sync message back, we assume the server
    * is an older version for the purpose of the heartbeat logic.
