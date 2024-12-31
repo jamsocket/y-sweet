@@ -703,7 +703,12 @@ async fn auth_doc(
     };
 
     let base_url = if let Some(url_prefix) = &server_state.url_prefix {
-        format!("{url_prefix}/d/{doc_id}")
+        let mut url_prefix = url_prefix.to_string();
+        if !url_prefix.ends_with('/') {
+            url_prefix = format!("{url_prefix}/");
+        }
+
+        format!("{url_prefix}d/{doc_id}")
     } else {
         format!("http://{host}/d/{doc_id}")
     };
