@@ -20,8 +20,3 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           args: --all-features --manifest-path=crates/Cargo.toml
-      - name: Clippy check y-sweet-worker
-        uses: actions-rs/clippy-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-features --manifest-path=crates/y-sweet-worker/Cargo.toml --target=wasm32-unknown-unknown
