@@ -247,6 +247,28 @@ describe.each(CONFIGURATIONS)(
       expect(doc2.getMap('test').get('foo')).toBe('bar')
     })
 
+    test('Create doc with initial content', async () => {
+      const doc = new Y.Doc()
+      const map = doc.getMap('test')
+      map.set('initial', 'content')
+
+      const update = Y.encodeStateAsUpdate(doc)
+      const docResult = await DOCUMENT_MANANGER.createDocWithContent(update)
+
+      // Verify the doc was created
+      expect(typeof docResult.docId).toBe('string')
+
+      // Connect to the doc and verify the content
+      const getClientToken = async () => await DOCUMENT_MANANGER.getClientToken(docResult)
+      const newDoc = new Y.Doc()
+      const provider = createYjsProvider(newDoc, docResult.docId, getClientToken, {})
+
+      await waitForProviderSync(provider)
+
+      const newMap = newDoc.getMap('test')
+      expect(newMap.get('initial')).toBe('content')
+    })
+
     if (configuration.useAuth) {
       test('Connecting with 0 validForSeconds should fail', async () => {
         const docResult = await DOCUMENT_MANANGER.createDoc()
@@ -309,27 +331,5 @@ describe.each(CONFIGURATIONS)(
         await expect(result).rejects.toContain('401')
       })
     }
-
-    test('Create doc with initial content', async () => {
-      const doc = new Y.Doc()
-      const map = doc.getMap('test')
-      map.set('initial', 'content')
-
-      const update = Y.encodeStateAsUpdate(doc)
-      const docResult = await DOCUMENT_MANANGER.createDocWithContent(update)
-
-      // Verify the doc was created
-      expect(typeof docResult.docId).toBe('string')
-
-      // Connect to the doc and verify the content
-      const getClientToken = async () => await DOCUMENT_MANANGER.getClientToken(docResult)
-      const newDoc = new Y.Doc()
-      const provider = createYjsProvider(newDoc, docResult.docId, getClientToken, {})
-
-      await waitForProviderSync(provider)
-
-      const newMap = newDoc.getMap('test')
-      expect(newMap.get('initial')).toBe('content')
-    })
   },
 )
