@@ -44,7 +44,7 @@ For more information, check out our [documentation](https://docs.jamsocket.com/y
     - [React hooks](https://docs.jamsocket.com/y-sweet/reference/react)
     - [Document management SDK](https://docs.jamsocket.com/y-sweet/reference/sdk)
 - [Y-Sweet on Jamsocket (managed service) docs](https://docs.jamsocket.com/y-sweet/quickstart)
-- [Self Hosting](https://github.com/jamsocket/y-sweet/blob/main/docs/running.md)
+- [Self Hosting and Running Locally](https://github.com/jamsocket/y-sweet/blob/main/docs/running.md)
 
 ## Examples
 
@@ -55,24 +55,6 @@ All examples are open source and live in this repository, within [/examples](htt
 ## Usage
 
 Check the [vanilla js example](/examples/vanilla/) for more details.
-
-### On the server
-``` js
-import { DocumentManager } from '@y-sweet/sdk';
-
-// Pass in a CONNECTION_STRING, which you can get from a Y-Sweet service in the Jamsocket dashboard or from running npx y-sweet@latest serve locally
-const manager = new DocumentManager(CONNECTION_STRING);
-
-// create an endpoint that auths your user and returns a Y-Sweet client token
-export async function POST(request) {
-  // in a production app, you'd want to authenticate the user
-  // and make sure they have access to the given doc
-  const body = await request.json();
-  const docId = body.docId;
-  const clientToken = await manager.getOrCreateDocAndToken(docId);
-  return Response.json(clientToken);
-}
-```
 
 ### On the client
 ``` js
@@ -97,6 +79,42 @@ mySharedMap.observe((event) => {
 });
 ```
 
+### On the server
+``` js
+import { DocumentManager } from '@y-sweet/sdk';
+
+// Pass in a CONNECTION_STRING, which you can get from a Y-Sweet service in the Jamsocket dashboard or from running npx y-sweet@latest serve locally
+const manager = new DocumentManager(CONNECTION_STRING);
+
+// create an endpoint that auths your user and returns a Y-Sweet client token
+export async function POST(request) {
+  // in a production app, you'd want to authenticate the user
+  // and make sure they have access to the given doc
+  const body = await request.json();
+  const docId = body.docId;
+  const clientToken = await manager.getOrCreateDocAndToken(docId);
+  return Response.json(clientToken);
+}
+```
+
+#### Running the Y-Sweet server locally
+
+If you have `npm`, the fastest way to run a local server is with `npx`:
+
+```bash
+npx y-sweet@latest serve
+```
+
+This will download the Y-Sweet server if you do not already have it, and run it.
+
+By default, `y-sweet serve` does not write data to disk. You can specify a directory to persist data to, like this:
+
+```bash
+npx y-sweet@latest serve /path/to/data
+```
+
+If the directory starts with `s3://`, Y-Sweet will treat it as an S3-compatible bucket path. In this case, Y-Sweet will pick up your local AWS credentials from the environment. If you do not have AWS credentials set up, you can set them up with `aws configure`.
+
 ## Packages
 
 ### Server
@@ -120,7 +138,7 @@ mySharedMap.observe((event) => {
 
 You can run Y-Sweet on your own server, or you can run it on
 [Jamsocket](https://jamsocket.com/y-sweet). Jamsocket is
-purpose-built to scale up sync backends like Y-Sweet, and 
+purpose-built to scale up sync backends like Y-Sweet, and
 allows you to bring your own storage.
 
 You can try it out for free today by following our [quickstart](https://docs.jamsocket.com/y-sweet/quickstart) guide.
