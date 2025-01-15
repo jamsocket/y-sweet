@@ -136,9 +136,6 @@ If the directory starts with `s3://`, Y-Sweet will treat it as an S3-compatible 
 
 ## Hosted Y-Sweet on Jamsocket
 
-You can run Y-Sweet on your own server, or you can run it on
-[Jamsocket](https://jamsocket.com/y-sweet). Jamsocket is
-purpose-built to scale up sync backends like Y-Sweet, and
-allows you to bring your own storage.
+You can run Y-Sweet on your own server, or you can run it on [Jamsocket](https://jamsocket.com/y-sweet). Jamsocket is purpose-built to scale up sync backends like Y-Sweet, and allows you to bring your own storage.
 
 You can try it out for free today by following our [quickstart](https://docs.jamsocket.com/y-sweet/quickstart) guide.
