@@ -6,7 +6,6 @@ import { MonacoBinding } from "y-monaco";
 import { useYDoc, useAwareness, useYjsProvider } from "@y-sweet/react";
 import { editor } from "monaco-editor";
 import Title from '@/components/Title'
-import styles from './CodeEditor.module.css'
 
 export  function CodeEditor() {
   const yDoc = useYDoc();
@@ -39,7 +38,7 @@ export  function CodeEditor() {
           defaultLanguage="javascript"
           defaultValue="// Start typing here..."
           theme="vs-dark"
-          className={styles.monacoEditor}
+          className="h-[600px] w-full"
           onMount={handleEditorMount}
           options={{
             tabSize: 2,
