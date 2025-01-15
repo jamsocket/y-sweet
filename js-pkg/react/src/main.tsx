@@ -245,12 +245,13 @@ export function YDocProvider(props: YDocProviderProps) {
     const provider = createYjsProvider(doc, docId, authEndpoint, {
       initialClientToken,
       offlineSupport: props.offlineSupport,
+      showDebuggerLink: props.showDebuggerLink,
     })
 
     setCtx({ doc, provider })
 
     return () => {
-      provider?.destroy()
+      provider.destroy()
       doc.destroy()
     }
   }, [docId])
