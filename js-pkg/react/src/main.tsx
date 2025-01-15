@@ -4,10 +4,8 @@ import {
   YSweetProvider,
   YSweetProviderParams,
   createYjsProvider,
-  debuggerUrl,
   EVENT_LOCAL_CHANGES,
   EVENT_CONNECTION_STATUS,
-  STATUS_CONNECTED,
 } from '@y-sweet/client'
 import type { AuthEndpoint, YSweetStatus } from '@y-sweet/client'
 import type { ClientToken } from '@y-sweet/sdk'
@@ -15,13 +13,7 @@ import type { ReactNode } from 'react'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
-export {
-  createYjsProvider,
-  YSweetProvider,
-  debuggerUrl,
-  type YSweetProviderParams,
-  type AuthEndpoint,
-}
+export { createYjsProvider, YSweetProvider, type YSweetProviderParams, type AuthEndpoint }
 
 type YjsContextType = {
   doc: Y.Doc
@@ -67,10 +59,8 @@ export function useYSweetDebugUrl(): string {
   if (!yjsCtx) {
     throw new Error('Yjs hooks must be used within a YDocProvider')
   }
-  if (!yjsCtx.provider.clientToken) {
-    return ''
-  }
-  return debuggerUrl(yjsCtx.provider.clientToken)
+
+  return (yjsCtx.provider as any).debugUrl || ''
 }
 
 /**
@@ -230,7 +220,7 @@ export type YDocProviderProps = {
    * will be set to the doc id provided. */
   setQueryParam?: string
 
-  /** Whether to hide the debugger link. Defaults to true. */
+  /** Whether to show the debugger link. Defaults to true. */
   showDebuggerLink?: boolean
 
   /**
@@ -242,11 +232,6 @@ export type YDocProviderProps = {
   offlineSupport?: boolean
 }
 
-function clientTokensEqual(a: ClientToken | null, b: ClientToken | null): boolean {
-  if (a === null || b === null) return false
-  return a.docId === b.docId && a.token === b.token && a.baseUrl === b.baseUrl
-}
-
 /**
  * A React component that provides a Y.Doc instance to its children given an auth endpoint and a doc id.
  */
@@ -256,52 +241,15 @@ export function YDocProvider(props: YDocProviderProps) {
   const [ctx, setCtx] = useState<YjsContextType | null>(null)
 
   useEffect(() => {
-    let canceled = false
-    let provider: YSweetProvider | null = null
     const doc = new Y.Doc()
-    ;(async () => {
-      provider = await createYjsProvider(doc, docId, authEndpoint, {
-        initialClientToken,
-        offlineSupport: props.offlineSupport,
-      })
+    const provider = createYjsProvider(doc, docId, authEndpoint, {
+      initialClientToken,
+      offlineSupport: props.offlineSupport,
+    })
 
-      // If the client reconnects, the "connected" event will fire again. We should only show the
-      // debugger link again if the client token has changed.
-      let lastClientToken: { value: ClientToken | null } = { value: null }
-
-      let connectionCallback = (status: YSweetStatus) => {
-        if (props.showDebuggerLink === false) return // note: if showDebuggerLink is undefined, we show the debugger link.
-        if (provider === null) return
-        if (status !== STATUS_CONNECTED) return
-        if (clientTokensEqual(provider?.clientToken ?? null, lastClientToken.value)) return
-        lastClientToken.value = provider.clientToken
-
-        if (provider.clientToken) {
-          const url = debuggerUrl(provider.clientToken)
-          console.log(
-            `%cOpen this in Y-Sweet Debugger ⮕ ${url}`,
-            'font-size: 1.5em; display: block; padding: 10px;',
-          )
-          console.log(
-            '%cTo hide the debugger link, pass showDebuggerLink={false} to YDocProvider',
-            'font-style: italic;',
-          )
-        }
-      }
-
-      provider.on('connection-status', connectionCallback)
-
-      if (canceled) {
-        provider.off('connection-status', connectionCallback)
-        provider.destroy()
-        return
-      }
-
-      setCtx({ doc, provider })
-    })()
+    setCtx({ doc, provider })
 
     return () => {
-      canceled = true
       provider?.destroy()
       doc.destroy()
     }
