@@ -4,7 +4,6 @@ import {
   YSweetProvider,
   YSweetProviderParams,
   createYjsProvider,
-  debuggerUrl,
   EVENT_LOCAL_CHANGES,
   EVENT_CONNECTION_STATUS,
 } from '@y-sweet/client'
@@ -14,13 +13,7 @@ import type { ReactNode } from 'react'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
-export {
-  createYjsProvider,
-  YSweetProvider,
-  debuggerUrl,
-  type YSweetProviderParams,
-  type AuthEndpoint,
-}
+export { createYjsProvider, YSweetProvider, type YSweetProviderParams, type AuthEndpoint }
 
 type YjsContextType = {
   doc: Y.Doc
@@ -66,10 +59,8 @@ export function useYSweetDebugUrl(): string {
   if (!yjsCtx) {
     throw new Error('Yjs hooks must be used within a YDocProvider')
   }
-  if (!yjsCtx.provider.clientToken) {
-    return ''
-  }
-  return debuggerUrl(yjsCtx.provider.clientToken)
+
+  return yjsCtx.provider.debugUrl || ''
 }
 
 /**
@@ -229,7 +220,7 @@ export type YDocProviderProps = {
    * will be set to the doc id provided. */
   setQueryParam?: string
 
-  /** Whether to hide the debugger link. Defaults to true. */
+  /** Whether to show the debugger link. Defaults to true. */
   showDebuggerLink?: boolean
 
   /**
@@ -250,39 +241,17 @@ export function YDocProvider(props: YDocProviderProps) {
   const [ctx, setCtx] = useState<YjsContextType | null>(null)
 
   useEffect(() => {
-    let canceled = false
-    let provider: YSweetProvider | null = null
     const doc = new Y.Doc()
+    const provider = createYjsProvider(doc, docId, authEndpoint, {
+      initialClientToken,
+      offlineSupport: props.offlineSupport,
+      showDebuggerLink: props.showDebuggerLink,
+    })
 
-    ;(async () => {
-      provider = await createYjsProvider(doc, docId, authEndpoint, {
-        initialClientToken,
-        offlineSupport: props.offlineSupport,
-      })
-
-      if ((props.showDebuggerLink ?? true) && provider.clientToken) {
-        const url = debuggerUrl(provider.clientToken)
-        console.log(
-          `%cOpen this in Y-Sweet Debugger ⮕ ${url}`,
-          'font-size: 1.5em; display: block; padding: 10px;',
-        )
-        console.log(
-          '%cTo hide the debugger link, pass showDebuggerLink={false} to YDocProvider',
-          'font-style: italic;',
-        )
-      }
-
-      if (canceled) {
-        provider.destroy()
-        return
-      }
-
-      setCtx({ doc, provider })
-    })()
+    setCtx({ doc, provider })
 
     return () => {
-      canceled = true
-      provider?.destroy()
+      provider.destroy()
       doc.destroy()
     }
   }, [docId])

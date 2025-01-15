@@ -1,4 +1,4 @@
-import { ClientToken } from '@y-sweet/sdk'
+import { encodeClientToken, type ClientToken } from '@y-sweet/sdk'
 import * as decoding from 'lib0/decoding'
 import * as encoding from 'lib0/encoding'
 import * as awarenessProtocol from 'y-protocols/awareness'
@@ -91,6 +91,9 @@ export type YSweetProviderParams = {
    * Defaults to `false`; set to `true` to enable.
    */
   offlineSupport?: boolean
+
+  /** Whether to show the debugger link. Defaults to true. */
+  showDebuggerLink?: boolean
 }
 
 async function getClientToken(authEndpoint: AuthEndpoint, roomname: string): Promise<ClientToken> {
@@ -143,6 +146,7 @@ export class YSweetProvider {
   private connectionTimeoutHandle: ReturnType<typeof setTimeout> | null = null
 
   private reconnectSleeper: Sleeper | null = null
+  private showDebuggerLink = true
 
   private indexedDBProvider: IndexedDBProvider | null = null
 
@@ -159,6 +163,14 @@ export class YSweetProvider {
    */
   private receivedAtLeastOneSyncResponse: boolean = false
 
+  /** @deprecated */
+  get debugUrl() {
+    if (!this.clientToken) return null
+
+    const payload = encodeClientToken(this.clientToken)
+    return `https://debugger.y-sweet.dev/?payload=${payload}`
+  }
+
   constructor(
     private authEndpoint: AuthEndpoint,
     private docId: string,
@@ -168,6 +180,8 @@ export class YSweetProvider {
     if (extraOptions.initialClientToken) {
       this.clientToken = extraOptions.initialClientToken
     }
+
+    this.showDebuggerLink = extraOptions.showDebuggerLink !== false
 
     // Sets up some event handlers for y-websocket compatibility.
     new WebSocketCompatLayer(this)
@@ -371,7 +385,9 @@ export class YSweetProvider {
     this.isConnecting = true
     this.setStatus(STATUS_CONNECTING)
 
-    while (![STATUS_OFFLINE, STATUS_CONNECTED].includes(this.status)) {
+    const lastDebugUrl = this.debugUrl
+
+    connecting: while (![STATUS_OFFLINE, STATUS_CONNECTED].includes(this.status)) {
       this.setStatus(STATUS_CONNECTING)
       let clientToken
       try {
@@ -391,7 +407,7 @@ export class YSweetProvider {
       for (let i = 0; i < RETRIES_BEFORE_TOKEN_REFRESH; i++) {
         if (await this.attemptToConnect(clientToken)) {
           this.retries = 0
-          break
+          break connecting
         }
 
         let timeout =
@@ -407,6 +423,17 @@ export class YSweetProvider {
     }
 
     this.isConnecting = false
+
+    if (this.showDebuggerLink && lastDebugUrl !== this.debugUrl) {
+      console.log(
+        `%cOpen this in Y-Sweet Debugger ⮕ ${this.debugUrl}`,
+        'font-size: 1.5em; display: block; padding: 10px;',
+      )
+      console.log(
+        '%cTo hide the debugger link, set the showDebuggerLink option to false when creating the provider',
+        'font-style: italic;',
+      )
+    }
   }
 
   public disconnect() {
