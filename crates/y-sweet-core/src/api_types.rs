@@ -8,9 +8,7 @@ pub struct NewDocResponse {
 
 #[derive(Serialize, Deserialize)]
 pub enum Authorization {
-    #[serde(rename = "none")]
-    Nothing,
-    #[serde(rename = "readonly")]
+    #[serde(rename = "read-only")]
     ReadOnly,
     #[serde(rename = "full")]
     Full,
