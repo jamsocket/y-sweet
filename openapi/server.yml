@@ -265,9 +265,6 @@ components:
         userId:
           type: string
           nullable: true
-        metadata:
-          type: object
-          nullable: true
         validForSeconds:
           description: |
             The duration that the returned token will be valid for, in seconds.

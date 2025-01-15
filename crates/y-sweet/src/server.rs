@@ -724,7 +724,6 @@ async fn auth_doc(
 #[cfg(test)]
 mod test {
     use super::*;
-    use std::collections::HashMap;
     use y_sweet_core::api_types::Authorization;
 
     #[tokio::test]
@@ -752,7 +751,6 @@ mod test {
             Some(Json(AuthDocRequest {
                 authorization: Authorization::Full,
                 user_id: None,
-                metadata: HashMap::new(),
                 valid_for_seconds: None,
             })),
         )

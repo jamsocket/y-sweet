@@ -1,7 +1,4 @@
-use std::collections::HashMap;
-
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
 #[derive(Serialize)]
 pub struct NewDocResponse {
@@ -27,13 +24,12 @@ impl Authorization {
 
 #[derive(Deserialize)]
 #[allow(unused)]
+#[serde(default)]
 pub struct AuthDocRequest {
     #[serde(default = "Authorization::full")]
     pub authorization: Authorization,
     #[serde(rename = "userId")]
     pub user_id: Option<String>,
-    #[serde(default)]
-    pub metadata: HashMap<String, Value>,
     #[serde(skip_serializing_if = "Option::is_none", rename = "validForSeconds")]
     pub valid_for_seconds: Option<u64>,
 }
@@ -43,7 +39,6 @@ impl Default for AuthDocRequest {
         Self {
             authorization: Authorization::Full,
             user_id: None,
-            metadata: HashMap::new(),
             valid_for_seconds: None,
         }
     }
