@@ -3,7 +3,7 @@ import Title from '@/components/Title'
 
 export default function Home() {
   return (
-    <div className="lg:h-full space-y-4 p-4 lg:p-8 relative w-auto bg-[radial-gradient(at_bottom_left,_var(--tw-gradient-stops))] from-white/90 via-pink-50/90 to-pink-100/90 rounded-lg">
+    <div className="lg:h-full overflow-y-scroll space-y-4 p-4 lg:p-8 relative w-auto bg-[radial-gradient(at_bottom_left,_var(--tw-gradient-stops))] from-white/90 via-pink-50/90 to-pink-100/90 rounded-lg">
       <Title>Demos</Title>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-2xl">
         <ProjectLink
