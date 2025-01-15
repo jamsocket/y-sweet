@@ -385,7 +385,7 @@ impl Server {
             if let Some(token) = token {
                 let authorization = authenticator
                     .verify_doc_token(token, doc, current_time_epoch_millis())
-                    .map_err(|e| (StatusCode::FORBIDDEN, e))?;
+                    .map_err(|e| (StatusCode::UNAUTHORIZED, e))?;
                 Ok(authorization)
             } else {
                 Err((StatusCode::UNAUTHORIZED, anyhow!("No token provided.")))?
