@@ -394,17 +394,19 @@ impl Server {
         s.serve_internal(listener, redact_errors, routes).await
     }
 
-    fn verify_doc_token(&self, token: Option<&str>, doc: &str) -> Result<(), AppError> {
+    fn verify_doc_token(&self, token: Option<&str>, doc: &str) -> Result<Authorization, AppError> {
         if let Some(authenticator) = &self.authenticator {
             if let Some(token) = token {
-                authenticator
+                let authorization = authenticator
                     .verify_doc_token(token, doc, current_time_epoch_millis())
                     .map_err(|e| (StatusCode::FORBIDDEN, e))?;
+                Ok(authorization)
             } else {
                 Err((StatusCode::UNAUTHORIZED, anyhow!("No token provided.")))?
             }
+        } else {
+            Ok(Authorization::Full)
         }
-        Ok(())
     }
 
     fn get_single_doc_id(&self) -> Result<String, AppError> {
@@ -426,7 +428,8 @@ async fn get_doc_as_update(
     Path(doc_id): Path<String>,
     authorization: Option<TypedHeader<headers::Authorization<headers::authorization::Bearer>>>,
 ) -> Result<Response, AppError> {
-    server_state.check_doc_auth(authorization, &doc_id)?;
+    // All authorization types allow reading the document.
+    let _ = server_state.check_doc_auth(authorization, &doc_id)?;
 
     let dwskv = server_state
         .get_or_create_doc(&doc_id)
@@ -471,7 +474,12 @@ async fn update_doc(
     authorization: Option<TypedHeader<headers::Authorization<headers::authorization::Bearer>>>,
     body: Bytes,
 ) -> Result<Response, AppError> {
-    server_state.check_doc_auth(authorization, &doc_id)?;
+    if !matches!(
+        server_state.check_doc_auth(authorization, &doc_id)?,
+        Authorization::Full
+    ) {
+        return Err(AppError(StatusCode::FORBIDDEN, anyhow!("Unauthorized.")));
+    }
 
     let dwskv = server_state
         .get_or_create_doc(&doc_id)
@@ -501,7 +509,13 @@ async fn handle_socket_upgrade(
     Query(params): Query<HandlerParams>,
     State(server_state): State<Arc<Server>>,
 ) -> Result<Response, AppError> {
-    server_state.verify_doc_token(params.token.as_deref(), &doc_id)?;
+    let auth = server_state.verify_doc_token(params.token.as_deref(), &doc_id)?;
+    if !matches!(auth, Authorization::Full) && !server_state.docs.contains_key(&doc_id) {
+        return Err(AppError(
+            StatusCode::NOT_FOUND,
+            anyhow!("Doc {} not found", doc_id),
+        ));
+    }
 
     let dwskv = server_state
         .get_or_create_doc(&doc_id)
@@ -510,7 +524,7 @@ async fn handle_socket_upgrade(
     let awareness = dwskv.awareness();
     let cancellation_token = server_state.cancellation_token.clone();
 
-    Ok(ws.on_upgrade(move |socket| handle_socket(socket, awareness, cancellation_token)))
+    Ok(ws.on_upgrade(move |socket| handle_socket(socket, awareness, auth, cancellation_token)))
 }
 
 async fn handle_socket_upgrade_deprecated(
@@ -560,6 +574,7 @@ async fn handle_socket_upgrade_single(
 async fn handle_socket(
     socket: WebSocket,
     awareness: Arc<RwLock<Awareness>>,
+    authorization: Authorization,
     cancellation_token: CancellationToken,
 ) {
     let (mut sink, mut stream) = socket.split();
@@ -571,7 +586,7 @@ async fn handle_socket(
         }
     });
 
-    let connection = DocConnection::new(awareness, move |bytes| {
+    let connection = DocConnection::new(awareness, authorization, move |bytes| {
         if let Err(e) = send.try_send(bytes.to_vec()) {
             tracing::warn!(?e, "Error sending message");
         }
