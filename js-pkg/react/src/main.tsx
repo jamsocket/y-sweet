@@ -60,7 +60,7 @@ export function useYSweetDebugUrl(): string {
     throw new Error('Yjs hooks must be used within a YDocProvider')
   }
 
-  return (yjsCtx.provider as any).debugUrl || ''
+  return yjsCtx.provider.debugUrl || ''
 }
 
 /**

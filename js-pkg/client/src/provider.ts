@@ -163,7 +163,8 @@ export class YSweetProvider {
    */
   private receivedAtLeastOneSyncResponse: boolean = false
 
-  private get debugUrl() {
+  /** @deprecated */
+  get debugUrl() {
     if (!this.clientToken) return null
 
     const payload = encodeClientToken(this.clientToken)
@@ -429,7 +430,7 @@ export class YSweetProvider {
         'font-size: 1.5em; display: block; padding: 10px;',
       )
       console.log(
-        '%cTo hide the debugger link, pass showDebuggerLink={false} to YDocProvider',
+        '%cTo hide the debugger link, set the showDebuggerLink option to false when creating the provider',
         'font-style: italic;',
       )
     }
