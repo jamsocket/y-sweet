@@ -54,7 +54,10 @@ function Nav({ curRoute, onClickLink }: { curRoute: string; onClickLink?: () => 
               Slate Text Editor
             </NavLink>
             <NavLink href="/code-editor" curRoute={curRoute}>
-              Code Editor
+              CodeMirror Editor
+            </NavLink>
+            <NavLink href="/monaco" curRoute={curRoute}>
+              Monaco Editor
             </NavLink>
             <NavLink href="/tree-crdt" curRoute={curRoute}>
               Tree CRDT

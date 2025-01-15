@@ -27,9 +27,14 @@ export default function Home() {
           description="A collaborative text editor built on top of the open-source Slate package."
         />
         <ProjectLink
-          name="Code Editor"
+          name="Code Editor with CodeMirror"
           url="/code-editor"
           description="A collaborative code editor built on top of the open source CodeMirror package."
+        />
+        <ProjectLink
+          name="Code Editor with Monaco"
+          url="/monaco"
+          description="A collaborative code editor built with y-monaco."
         />
         <ProjectLink
           name="Tree CRDT"
