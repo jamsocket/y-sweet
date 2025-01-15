@@ -29,7 +29,8 @@ use tracing::{span, Instrument, Level};
 use url::Url;
 use y_sweet_core::{
     api_types::{
-        validate_doc_name, AuthDocRequest, ClientToken, DocCreationRequest, NewDocResponse,
+        validate_doc_name, AuthDocRequest, Authorization, ClientToken, DocCreationRequest,
+        NewDocResponse,
     },
     auth::{Authenticator, ExpirationTimeEpochMillis, DEFAULT_EXPIRATION_SECONDS},
     doc_connection::DocConnection,
@@ -305,18 +306,18 @@ impl Server {
         &self,
         header: Option<TypedHeader<headers::Authorization<headers::authorization::Bearer>>>,
         doc_id: &str,
-    ) -> Result<(), AppError> {
+    ) -> Result<Authorization, AppError> {
         if let Some(auth) = &self.authenticator {
             if let Some(TypedHeader(headers::Authorization(bearer))) = header {
-                if let Ok(()) =
+                if let Ok(authorization) =
                     auth.verify_doc_token(bearer.token(), doc_id, current_time_epoch_millis())
                 {
-                    return Ok(());
+                    return Ok(authorization);
                 }
             }
             Err((StatusCode::UNAUTHORIZED, anyhow!("Unauthorized.")))?
         } else {
-            Ok(())
+            Ok(Authorization::Full)
         }
     }
 
@@ -667,26 +668,32 @@ async fn new_doc(
 }
 
 async fn auth_doc(
-    authorization: Option<TypedHeader<headers::Authorization<headers::authorization::Bearer>>>,
+    authorization_header: Option<
+        TypedHeader<headers::Authorization<headers::authorization::Bearer>>,
+    >,
     TypedHeader(host): TypedHeader<headers::Host>,
     State(server_state): State<Arc<Server>>,
     Path(doc_id): Path<String>,
     body: Option<Json<AuthDocRequest>>,
 ) -> Result<Json<ClientToken>, AppError> {
-    server_state.check_auth(authorization)?;
+    server_state.check_auth(authorization_header)?;
 
-    let body = body.unwrap_or_default();
+    let Json(AuthDocRequest {
+        authorization,
+        valid_for_seconds,
+        ..
+    }) = body.unwrap_or_default();
 
     if !server_state.doc_exists(&doc_id).await {
         Err((StatusCode::NOT_FOUND, anyhow!("Doc {} not found", doc_id)))?;
     }
 
-    let valid_for_seconds = body.valid_for_seconds.unwrap_or(DEFAULT_EXPIRATION_SECONDS);
+    let valid_for_seconds = valid_for_seconds.unwrap_or(DEFAULT_EXPIRATION_SECONDS);
     let expiration_time =
         ExpirationTimeEpochMillis(current_time_epoch_millis() + valid_for_seconds * 1000);
 
     let token = if let Some(auth) = &server_state.authenticator {
-        let token = auth.gen_doc_token(&doc_id, expiration_time);
+        let token = auth.gen_doc_token(&doc_id, authorization, expiration_time);
         Some(token)
     } else {
         None
