@@ -28,13 +28,7 @@ function createYjsProvider(
   return createYjsProvider_(doc, docId, authEndpoint, extraOptions)
 }
 
-const CONFIGURATIONS: ServerConfiguration[] = [
-  { useAuth: false, server: 'native' },
-  { useAuth: true, server: 'native' },
-  // TODO: figure out why these fail on CI/CD even though they work locally.
-  // { useAuth: false, server: 'worker' },
-  // { useAuth: true, server: 'worker' },
-]
+const CONFIGURATIONS: ServerConfiguration[] = [{ useAuth: false }, { useAuth: true }]
 
 let S3_ACCESS_KEY_ID = process.env.Y_SWEET_S3_ACCESS_KEY_ID
 let S3_SECRET_KEY = process.env.Y_SWEET_S3_SECRET_KEY
@@ -45,7 +39,6 @@ let S3_BUCKET_NAME = process.env.Y_SWEET_S3_BUCKET_NAME
 if (S3_ACCESS_KEY_ID && S3_REGION && S3_SECRET_KEY && S3_BUCKET_PREFIX && S3_BUCKET_NAME) {
   CONFIGURATIONS.push({
     useAuth: true,
-    server: 'native',
     s3: {
       bucket_name: S3_BUCKET_NAME,
       bucket_prefix: S3_BUCKET_PREFIX,
@@ -56,27 +49,10 @@ if (S3_ACCESS_KEY_ID && S3_REGION && S3_SECRET_KEY && S3_BUCKET_PREFIX && S3_BUC
   })
 }
 
-let MINIO_PORT = process.env.Y_SWEET_MINIO_PORT
-//run s3 tests using minio if available
-if (MINIO_PORT && S3_BUCKET_NAME && S3_BUCKET_PREFIX) {
-  CONFIGURATIONS.push({
-    useAuth: true,
-    server: 'worker',
-    s3: {
-      bucket_name: S3_BUCKET_NAME,
-      bucket_prefix: S3_BUCKET_PREFIX,
-      endpoint: `http://localhost:${MINIO_PORT}`,
-      aws_access_key_id: 'minioadmin',
-      aws_region: 'minio',
-      aws_secret_key: 'minioadmin',
-    },
-  })
-}
-
 const TEN_MINUTES_IN_MS = 10 * 60 * 1_000
 
 describe.each(CONFIGURATIONS)(
-  'Test $server (auth: $useAuth, s3: $s3)',
+  'Test (auth: $useAuth, s3: $s3)',
   (configuration: ServerConfiguration) => {
     let SERVER: Server
     let DOCUMENT_MANANGER: DocumentManager

@@ -47,7 +47,7 @@ async function connectToDoc(server: Server, docId: string): Promise<Y.Doc> {
 }
 
 test('can convert an empty doc from an update', async () => {
-  const server = new Server({ useAuth: false, server: 'native' })
+  const server = new Server({ useAuth: false })
   await server.waitForReady()
   const doc = new Y.Doc()
   const docId = Math.random().toString(36).substring(7)
@@ -62,7 +62,7 @@ test('can convert an empty doc from an update', async () => {
 })
 
 test('can convert a doc with content from an update', async () => {
-  const server = new Server({ useAuth: false, server: 'native' })
+  const server = new Server({ useAuth: false })
   await server.waitForReady()
   const doc = new Y.Doc()
 

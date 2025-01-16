@@ -2,8 +2,6 @@ import { ChildProcess, execSync, spawn } from 'child_process'
 import { rmSync, mkdirSync } from 'fs'
 import { dirname, join } from 'path'
 
-export type ServerType = 'native' | 'worker'
-
 export const CRATE_BASE = join(dirname(__filename), '..', '..', 'crates')
 
 type S3Config = {
@@ -17,12 +15,11 @@ type S3Config = {
 
 export type ServerConfiguration = {
   useAuth: boolean
-  server: ServerType
   s3?: S3Config
 }
 
 function configToString(configuration: ServerConfiguration) {
-  let result = configuration.server
+  let result = 'test'
   if (configuration.useAuth) {
     result += '-auth'
   }
@@ -65,74 +62,27 @@ export class Server {
       console.log('Done generating auth.')
     }
 
-    if (configuration.server === 'native') {
-      execSync('cargo build > ' + join(this.outFileBase, 'build.txt'), {
-        stdio: 'ignore',
-        cwd: CRATE_BASE,
-      })
+    execSync('cargo build > ' + join(this.outFileBase, 'build.txt'), {
+      stdio: 'ignore',
+      cwd: CRATE_BASE,
+    })
 
-      let command = `target/debug/y-sweet serve --port ${this.port} ${this.dataDir} --prod`
-      if (configuration.useAuth) {
-        command += ` --auth ${auth.private_key}`
-      }
-
-      command +=
-        ' > ' + join(this.outFileBase, 'server.txt') + ' 2> ' + join(this.outFileBase, 'stderr.txt')
-
-      console.log('Spawning server.', command)
-      this.process = spawn(command, {
-        cwd: CRATE_BASE,
-        shell: true,
-        stdio: 'ignore',
-        env: { RUST_BACKTRACE: '1', ...process.env },
-      })
-      console.log('Done spawning server.')
-    } else if (configuration.server === 'worker') {
-      const workerBase = join(CRATE_BASE, 'y-sweet-worker')
-      execSync(
-        './build.sh --dev > ' +
-          join(this.outFileBase, 'build.txt') +
-          ' 2> ' +
-          join(this.outFileBase, 'build-stderr.txt'),
-        {
-          stdio: 'ignore',
-          cwd: workerBase,
-        },
-      )
-
-      const vars: Record<string, string> = {}
-
-      if (configuration.useAuth) {
-        vars['AUTH_KEY'] = auth.private_key
-      }
-
-      if (configuration.s3) {
-        vars['S3_BUCKET_NAME'] = configuration.s3.bucket_name
-        vars['S3_BUCKET_PREFIX'] = configuration.s3.bucket_prefix
-        vars['AWS_ACCESS_KEY_ID'] = configuration.s3.aws_access_key_id
-        vars['AWS_SECRET_ACCESS_KEY'] = configuration.s3.aws_secret_key
-        vars['AWS_REGION'] = configuration.s3.aws_region
-        if (configuration.s3.endpoint) vars['AWS_ENDPOINT_URL_S3'] = configuration.s3.endpoint
-        vars['BUCKET_KIND'] = 'S3'
-      }
-
-      let command = `npx --yes wrangler dev --persist-to ${this.dataDir} --port ${this.port} --env test --live-reload false`
-
-      if (Object.entries(vars).length > 0) {
-        command += ' --var'
-        for (const [key, value] of Object.entries(vars)) {
-          command += ` ${key}:${value}`
-        }
-      }
-
-      command +=
-        ' > ' + join(this.outFileBase, 'server.txt') + ' 2> ' + join(this.outFileBase, 'stderr.txt')
-
-      // For some reason, forwarding the output to a file breaks the build itself.
-      this.process = spawn(command, { cwd: workerBase, shell: true, stdio: 'ignore' })
-    } else {
-      throw new Error(`Unknown server type ${configuration.server}`)
+    let command = `target/debug/y-sweet serve --port ${this.port} ${this.dataDir} --prod`
+    if (configuration.useAuth) {
+      command += ` --auth ${auth.private_key}`
     }
+
+    command +=
+      ' > ' + join(this.outFileBase, 'server.txt') + ' 2> ' + join(this.outFileBase, 'stderr.txt')
+
+    console.log('Spawning server.', command)
+    this.process = spawn(command, {
+      cwd: CRATE_BASE,
+      shell: true,
+      stdio: 'ignore',
+      env: { RUST_BACKTRACE: '1', ...process.env },
+    })
+    console.log('Done spawning server.')
 
     this.process.on('exit', (code) => {
       if (!this.finished) {
