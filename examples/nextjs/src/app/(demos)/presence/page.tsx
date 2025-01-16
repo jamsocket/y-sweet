@@ -7,7 +7,7 @@ export default function Home({ searchParams }: { searchParams: { doc: string } }
   return (
     <YDocProvider docId={docId} setQueryParam="doc" authEndpoint="/api/auth" offlineSupport={true}>
       <div className="p-4 lg:p-8">
-      <Presence />
+        <Presence />
       </div>
     </YDocProvider>
   )

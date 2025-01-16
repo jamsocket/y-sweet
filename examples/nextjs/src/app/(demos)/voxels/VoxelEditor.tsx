@@ -204,7 +204,10 @@ export function VoxelEditor() {
 
   return (
     <>
-      <Header title="Voxel Editor" githubLink="https://github.com/jamsocket/y-sweet/tree/main/examples/nextjs/src/app/(demos)/voxels" />
+      <Header
+        title="Voxel Editor"
+        githubLink="https://github.com/jamsocket/y-sweet/tree/main/examples/nextjs/src/app/(demos)/voxels"
+      />
       <div style={{ position: 'absolute', top: 0, right: 0, left: 0, bottom: 0 }}>
         <Canvas shadows>
           <OrbitControls ref={setInitialCameraPosition} />

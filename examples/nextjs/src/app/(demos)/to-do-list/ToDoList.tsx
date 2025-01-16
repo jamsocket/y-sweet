@@ -105,7 +105,10 @@ export function ToDoList() {
 
   return (
     <div className="space-y-4 p-4 lg:p-8">
-            <Header title="To-Do List" githubLink="https://github.com/jamsocket/y-sweet/tree/main/examples/nextjs/src/app/(demos)/to-do-list" />
+      <Header
+        title="To-Do List"
+        githubLink="https://github.com/jamsocket/y-sweet/tree/main/examples/nextjs/src/app/(demos)/to-do-list"
+      />
 
       <div className="space-y-1">
         {items && items.map((item, index) => <ToDoItem key={index} item={item} />)}

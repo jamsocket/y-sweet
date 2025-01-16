@@ -20,7 +20,10 @@ export function BlockNote() {
 
   return (
     <div className="p-4 sm:p-8 flex flex-col gap-y-3 h-full">
-      <Header title="BlockNote Editor" githubLink="https://github.com/jamsocket/y-sweet/tree/main/examples/nextjs/src/app/(demos)/blocknote" />
+      <Header
+        title="BlockNote Editor"
+        githubLink="https://github.com/jamsocket/y-sweet/tree/main/examples/nextjs/src/app/(demos)/blocknote"
+      />
       <div className="flex-1 bg-white px-2 py-4 rounded-lg">
         <BlockNoteView editor={editor} theme="light" />
       </div>

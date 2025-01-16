@@ -212,7 +212,10 @@ export function TreeView() {
 
   return (
     <div className="p-4 sm:p-8 space-y-3">
-                  <Header title="Tree CRDT" githubLink="https://github.com/jamsocket/y-sweet/tree/main/examples/nextjs/src/app/(demos)/tree-crdt" />
+      <Header
+        title="Tree CRDT"
+        githubLink="https://github.com/jamsocket/y-sweet/tree/main/examples/nextjs/src/app/(demos)/tree-crdt"
+      />
 
       <Paragraph>
         This is a variation of Evan Wallace’s{' '}

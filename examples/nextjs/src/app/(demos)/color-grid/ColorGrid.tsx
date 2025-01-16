@@ -16,7 +16,10 @@ export function ColorGrid() {
 
   return (
     <div className="space-y-3">
-      <Header title="Color Grid" githubLink="https://github.com/jamsocket/y-sweet/blob/main/examples/nextjs/src/app/(demos)/color-grid" />
+      <Header
+        title="Color Grid"
+        githubLink="https://github.com/jamsocket/y-sweet/blob/main/examples/nextjs/src/app/(demos)/color-grid"
+      />
       <StateIndicator />
 
       <div className="space-x-2 flex flex-row">

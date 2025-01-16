@@ -59,7 +59,10 @@ export function CodeEditor() {
 
   return (
     <div className="p-4 lg:p-8 space-y-4">
-      <Header title="CodeMirror Editor" githubLink="https://github.com/jamsocket/y-sweet/blob/main/examples/nextjs/src/app/(demos)/code-editor" />
+      <Header
+        title="CodeMirror Editor"
+        githubLink="https://github.com/jamsocket/y-sweet/blob/main/examples/nextjs/src/app/(demos)/code-editor"
+      />
       <div>
         <textarea ref={codeMirrorRef} />
       </div>

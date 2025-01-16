@@ -27,7 +27,10 @@ export function SlateEditor() {
 
   return (
     <div className="p-4 lg:p-8 space-y-3">
-      <Header title="Slate Rich Text Editor" githubLink="https://github.com/jamsocket/y-sweet/tree/main/examples/nextjs/src/app/(demos)/slate" />
+      <Header
+        title="Slate Rich Text Editor"
+        githubLink="https://github.com/jamsocket/y-sweet/tree/main/examples/nextjs/src/app/(demos)/slate"
+      />
       <div className="bg-white rounded-lg">
         <RichtextSlateEditor sharedType={sharedType} awareness={awareness} />
       </div>
