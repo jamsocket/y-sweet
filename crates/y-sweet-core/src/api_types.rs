@@ -6,7 +6,7 @@ pub struct NewDocResponse {
     pub doc_id: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Copy, Clone, Serialize, Deserialize)]
 pub enum Authorization {
     #[serde(rename = "read-only")]
     ReadOnly,
@@ -59,6 +59,10 @@ pub struct ClientToken {
     /// An optional token that can be used to authenticate the client to the server.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub token: Option<String>,
+
+    /// The authorization level of the client.
+    #[serde(rename = "authorization")]
+    pub authorization: Authorization,
 }
 
 #[derive(Deserialize, Debug)]

@@ -25,6 +25,9 @@ export type ClientToken = {
 
   /** A string that grants the bearer access to the document. By default, the development server does not require a token. */
   token?: string
+
+  /** The authorization level of the client. */
+  authorization?: Authorization
 }
 
 export type CheckStoreResult = { ok: true } | { ok: false; error: string }

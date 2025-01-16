@@ -742,6 +742,7 @@ async fn auth_doc(
         base_url: Some(base_url),
         doc_id,
         token,
+        authorization,
     }))
 }
 
