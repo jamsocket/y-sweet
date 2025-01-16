@@ -1,7 +1,8 @@
-import { afterAll, beforeAll, test } from 'vitest'
+import { afterAll, beforeAll, expect, test } from 'vitest'
 import { ChildProcess, spawn } from 'child_process'
 import { dirname, join } from 'path'
 import { ClientToken, DocConnection } from '@y-sweet/sdk'
+import * as Y from 'yjs'
 
 const CRATE_BASE = join(dirname(__filename), '..', '..', 'crates')
 
@@ -56,13 +57,16 @@ class DocServer {
     throw new Error('Server failed to start')
   }
 
-  connection(): DocConnection {
-    let token: ClientToken = {
+  clientToken(): ClientToken {
+    return {
       baseUrl: `http://127.0.0.1:${this.port}`,
       docId: 'mydoc',
       url: '==unused==',
     }
-    return new DocConnection(token)
+  }
+
+  connection(): DocConnection {
+    return new DocConnection(this.clientToken())
   }
 
   cleanup() {
@@ -86,11 +90,59 @@ test('get doc as update', async () => {
   await connection.getAsUpdate()
 })
 
-// // Slows tests by a lot, so commented by default.
-// test('get doc as update after delay', async () => {
-//   let connection = SERVER.connection()
+test('Attempting to update a document with read-only authorization should fail', async () => {
+  const clientToken = SERVER.clientToken()
+  const updateUrl = `${clientToken.baseUrl}/update`
 
-//   await new Promise((resolve) => setTimeout(resolve, 24_000))
+  // A request with full authorization should succeed
+  const doc1 = new Y.Doc()
+  doc1.getMap('test').set('foo', 'bar')
+  let result = await fetch(updateUrl, {
+    method: 'POST',
+    body: Y.encodeStateAsUpdate(doc1),
+    headers: {
+      'Content-Type': 'application/octet-stream',
+      'X-Verified-User-Data': JSON.stringify({ authorization: 'full' }),
+    },
+  })
+  expect(result.ok).toBe(true)
 
-//   await connection.getAsUpdate()
-// }, 30_000)
+  // A request with read-only authorization should fail
+  const doc2 = new Y.Doc()
+  doc2.getMap('test').set('foo', 'qux')
+  result = await fetch(updateUrl, {
+    method: 'POST',
+    body: Y.encodeStateAsUpdate(doc2),
+    headers: {
+      'Content-Type': 'application/octet-stream',
+      'X-Verified-User-Data': JSON.stringify({ authorization: 'read-only' }),
+    },
+  })
+  expect(result.ok).toBe(false)
+
+  // A request with invalid user-data should fail
+  result = await fetch(updateUrl, {
+    method: 'POST',
+    body: Y.encodeStateAsUpdate(doc2),
+    headers: {
+      'Content-Type': 'application/octet-stream',
+      'X-Verified-User-Data': JSON.stringify({ foo: 'bar' }),
+    },
+  })
+  expect(result.ok).toBe(false)
+
+  // A request without the verified user data header should fail
+  result = await fetch(updateUrl, {
+    method: 'POST',
+    body: Y.encodeStateAsUpdate(doc2),
+    headers: {
+      'Content-Type': 'application/octet-stream',
+    },
+  })
+  expect(result.ok).toBe(false)
+
+  const connection = SERVER.connection()
+  const doc1Update = await connection.getAsUpdate()
+  expect(doc1Update).toEqual(Y.encodeStateAsUpdate(doc1))
+  expect(doc1Update).not.toEqual(Y.encodeStateAsUpdate(doc2))
+})
