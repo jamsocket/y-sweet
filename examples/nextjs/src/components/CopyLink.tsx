@@ -5,8 +5,8 @@ import Title from '@/components/Title'
 
 export default function CopyLink() {
   return (
-    <div className="mb-2 text-left items-center text-neutral-500 border-2 border-yellow-200 rounded-lg bg-yellow-50 px-6 py-3">
-      <div className="flex justify-between items-center pb-1">
+    <div className="mb-2 text-left items-center text-neutral-500 border-2 border-yellow-200 rounded-lg bg-yellow-50 px-6 py-4">
+      <div className="flex flex-col md:flex-row justify-between md:items-center gap-y-2 pb-1">
         <Title>Collaborate on this document</Title>
         <div className="flex">
           <button

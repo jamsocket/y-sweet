@@ -1,5 +1,6 @@
 'use client'
 
+import Header from '@/components/Header'
 import { usePresence, usePresenceSetter } from '@y-sweet/react'
 import { useCallback, useRef, useState } from 'react'
 
@@ -65,6 +66,8 @@ export function Presence() {
   )
 
   return (
+    <div className="w-full h-full">
+    <Header title="Live Cursors" githubLink="https://github.com/jamsocket/y-sweet/tree/main/examples/nextjs/src/app/(demos)/to-do-list" />
     <svg
       className="relative overflow-hidden w-full h-full cursor-none"
       onMouseMove={updatePresence}
@@ -73,5 +76,6 @@ export function Presence() {
         <Cursor key={key} presence={value} />
       ))}
     </svg>
+    </div>
   )
 }

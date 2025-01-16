@@ -2,7 +2,8 @@
 
 import { useMap } from '@y-sweet/react'
 import { useState } from 'react'
-import Title from '@/components/Title'
+import Header from '@/components/Header'
+import StateIndicator from '@/components/StateIndicator'
 
 const GRID_SIZE = 10
 const COLORS = ['#500724', '#831843', '#9d174d', '#be185d', '#db2777', '#f472b6', '#f9a8d4', null]
@@ -15,7 +16,9 @@ export function ColorGrid() {
 
   return (
     <div className="space-y-3">
-      <Title>Color Grid</Title>
+      <Header title="Color Grid" githubLink="https://github.com/jamsocket/y-sweet/blob/main/examples/nextjs/src/app/(demos)/color-grid" />
+      <StateIndicator />
+
       <div className="space-x-2 flex flex-row">
         {COLORS.map((c) => (
           <div
