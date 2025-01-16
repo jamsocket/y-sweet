@@ -8,7 +8,7 @@ import {
 import { WebSocket } from 'ws'
 import * as Y from 'yjs'
 import { Server, ServerConfiguration } from './server'
-import { waitForProviderSync } from './util'
+import { waitForProviderSync, waitForProviderSyncChanges } from './util'
 
 /**
  * Wraps `createYjsProvider` with a polyfill for `WebSocket` and
@@ -246,6 +246,95 @@ describe.each(CONFIGURATIONS)(
     })
 
     if (configuration.useAuth) {
+      test('Attempting to connect to a document without auth should fail', async () => {
+        const docResult = await DOCUMENT_MANANGER.createDoc()
+        const key = await DOCUMENT_MANANGER.getClientToken(docResult)
+
+        expect(key.token).toBeDefined()
+        delete key.token
+
+        let ws = new WebSocket(`${key.url}/${key.docId}`)
+        let result = new Promise<void>((resolve, reject) => {
+          ws.addEventListener('open', () => {
+            resolve()
+          })
+          ws.addEventListener('error', (e) => {
+            reject(e.message)
+          })
+        })
+
+        await expect(result).rejects.toContain('401')
+      })
+
+      test('Attempting to update a document with read-only authorization should fail', async () => {
+        const { docId } = await DOCUMENT_MANANGER.createDoc()
+        const clientToken = await DOCUMENT_MANANGER.getClientToken(docId, { authorization: 'full' })
+        const readOnlyClientToken = await DOCUMENT_MANANGER.getClientToken(docId, {
+          authorization: 'read-only',
+        })
+
+        const doc1 = new Y.Doc()
+        const provider = createYjsProvider(doc1, docId, async () => clientToken, {})
+        await waitForProviderSync(provider)
+
+        doc1.getMap('test').set('foo', 'bar')
+        await waitForProviderSyncChanges(provider)
+
+        const doc2 = new Y.Doc()
+        doc2.getMap('test').set('foo', 'qux')
+
+        const headers = new Headers()
+        headers.set('Authorization', `Bearer ${readOnlyClientToken.token}`)
+        headers.set('Content-Type', 'application/octet-stream')
+        const url = `${readOnlyClientToken.baseUrl}/update`
+        const result = await fetch(url, {
+          method: 'POST',
+          body: Y.encodeStateAsUpdate(doc2),
+          headers,
+        })
+        expect(result.ok).toBe(false)
+
+        // expect there to be no update
+        await new Promise((res, rej) => {
+          doc1.once('update', () => rej('Expected update event to not fire'))
+          setTimeout(res, 1000)
+        })
+
+        expect(doc1.getMap('test').get('foo')).toBe('bar') // doc1 should not be updated
+      })
+
+      test('Attempting to write to a document over websocket with read-only authorization should fail', async () => {
+        const { docId } = await DOCUMENT_MANANGER.createDoc()
+        const clientToken = await DOCUMENT_MANANGER.getClientToken(docId, { authorization: 'full' })
+        const readOnlyClientToken = await DOCUMENT_MANANGER.getClientToken(docId, {
+          authorization: 'read-only',
+        })
+
+        const doc1 = new Y.Doc()
+        const provider = createYjsProvider(doc1, docId, async () => clientToken, {})
+        await waitForProviderSync(provider)
+
+        doc1.getMap('test').set('foo', 'bar')
+        await waitForProviderSyncChanges(provider)
+
+        const doc2 = new Y.Doc()
+        const provider2 = createYjsProvider(doc2, docId, async () => readOnlyClientToken, {})
+        await waitForProviderSync(provider2)
+        expect(doc2.getMap('test').get('foo')).toBe('bar')
+
+        // Attempt to write to the doc.
+        doc2.getMap('test').set('foo', 'qux')
+        await waitForProviderSyncChanges(provider2)
+
+        // expect there to be no update
+        await new Promise((res, rej) => {
+          doc1.once('update', () => rej('Expected update event to not fire'))
+          setTimeout(res, 1000)
+        })
+
+        expect(doc1.getMap('test').get('foo')).toBe('bar') // doc1 should not be updated
+      })
+
       test('Connecting with 0 validForSeconds should fail', async () => {
         const docResult = await DOCUMENT_MANANGER.createDoc()
         const conn = await DOCUMENT_MANANGER.getDocConnection(docResult, { validForSeconds: 0 })
@@ -286,26 +375,6 @@ describe.each(CONFIGURATIONS)(
           }
         }
       }, 10_000)
-
-      test('Attempting to connect to a document without auth should fail', async () => {
-        const docResult = await DOCUMENT_MANANGER.createDoc()
-        const key = await DOCUMENT_MANANGER.getClientToken(docResult)
-
-        expect(key.token).toBeDefined()
-        delete key.token
-
-        let ws = new WebSocket(`${key.url}/${key.docId}`)
-        let result = new Promise<void>((resolve, reject) => {
-          ws.addEventListener('open', () => {
-            resolve()
-          })
-          ws.addEventListener('error', (e) => {
-            reject(e.message)
-          })
-        })
-
-        await expect(result).rejects.toContain('401')
-      })
     }
   },
 )
