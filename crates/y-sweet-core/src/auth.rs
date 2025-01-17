@@ -1,3 +1,4 @@
+use crate::api_types::Authorization;
 use bincode::Options;
 use data_encoding::Encoding;
 use rand::Rng;
@@ -91,9 +92,15 @@ pub struct Authenticator {
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct DocPermission {
+    pub doc_id: String,
+    pub authorization: Authorization,
+}
+
+#[derive(Serialize, Deserialize)]
 pub enum Permission {
     Server,
-    Doc(String),
+    Doc(DocPermission),
 }
 
 #[derive(Serialize, Deserialize)]
@@ -316,10 +323,16 @@ impl Authenticator {
     pub fn gen_doc_token(
         &self,
         doc_id: &str,
+        authorization: Authorization,
         expiration_time: ExpirationTimeEpochMillis,
     ) -> String {
-        let payload =
-            Payload::new_with_expiration(Permission::Doc(doc_id.to_string()), expiration_time);
+        let payload = Payload::new_with_expiration(
+            Permission::Doc(DocPermission {
+                doc_id: doc_id.to_string(),
+                authorization,
+            }),
+            expiration_time,
+        );
         self.sign(payload)
     }
 
@@ -337,18 +350,18 @@ impl Authenticator {
         token: &str,
         doc: &str,
         current_time_epoch_millis: u64,
-    ) -> Result<(), AuthError> {
+    ) -> Result<Authorization, AuthError> {
         let payload = self.verify_token(token, current_time_epoch_millis)?;
 
         match payload {
-            Permission::Doc(doc_id) => {
-                if doc_id == doc {
-                    Ok(())
+            Permission::Doc(doc_permission) => {
+                if doc_permission.doc_id == doc {
+                    Ok(doc_permission.authorization)
                 } else {
                     Err(AuthError::InvalidResource)
                 }
             }
-            Permission::Server => Ok(()), // Server tokens can access any doc.
+            Permission::Server => Ok(Authorization::Full), // Server tokens can access any doc.
         }
     }
 
@@ -386,16 +399,47 @@ mod tests {
     #[test]
     fn test_simple_auth() {
         let authenticator = Authenticator::gen_key().unwrap();
-        let token = authenticator.gen_doc_token("doc123", ExpirationTimeEpochMillis(0));
-        assert_eq!(authenticator.verify_doc_token(&token, "doc123", 0), Ok(()));
-        assert_eq!(
+        let token = authenticator.gen_doc_token(
+            "doc123",
+            Authorization::Full,
+            ExpirationTimeEpochMillis(0),
+        );
+        assert!(matches!(
+            authenticator.verify_doc_token(&token, "doc123", 0),
+            Ok(Authorization::Full)
+        ));
+        assert!(matches!(
             authenticator.verify_doc_token(&token, "doc123", DEFAULT_EXPIRATION_SECONDS + 1),
             Err(AuthError::Expired)
-        );
-        assert_eq!(
+        ));
+        assert!(matches!(
             authenticator.verify_doc_token(&token, "doc456", 0),
             Err(AuthError::InvalidResource)
+        ));
+    }
+
+    #[test]
+    fn test_read_only_auth() {
+        let authenticator = Authenticator::gen_key().unwrap();
+        let token = authenticator.gen_doc_token(
+            "doc123",
+            Authorization::ReadOnly,
+            ExpirationTimeEpochMillis(0),
         );
+        assert!(matches!(
+            authenticator.verify_doc_token(&token, "doc123", 0),
+            Ok(Authorization::ReadOnly)
+        ));
+    }
+
+    #[test]
+    fn test_server_token_for_doc_auth() {
+        let authenticator = Authenticator::gen_key().unwrap();
+        let server_token = authenticator.server_token();
+        assert!(matches!(
+            authenticator.verify_doc_token(&server_token, "doc123", 0),
+            Ok(Authorization::Full)
+        ));
     }
 
     #[test]
@@ -403,13 +447,20 @@ mod tests {
         let authenticator = Authenticator::gen_key()
             .unwrap()
             .with_key_id("myKeyId".try_into().unwrap());
-        let token = authenticator.gen_doc_token("doc123", ExpirationTimeEpochMillis(0));
+        let token = authenticator.gen_doc_token(
+            "doc123",
+            Authorization::Full,
+            ExpirationTimeEpochMillis(0),
+        );
         assert!(
             token.starts_with("myKeyId."),
             "Token {} does not start with myKeyId.",
             token
         );
-        assert_eq!(authenticator.verify_doc_token(&token, "doc123", 0), Ok(()));
+        assert!(matches!(
+            authenticator.verify_doc_token(&token, "doc123", 0),
+            Ok(Authorization::Full)
+        ));
 
         let token = authenticator.server_token();
         assert!(
@@ -438,13 +489,17 @@ mod tests {
         let authenticator = Authenticator::gen_key()
             .unwrap()
             .with_key_id("myKeyId".try_into().unwrap());
-        let token = authenticator.gen_doc_token("doc123", ExpirationTimeEpochMillis(0));
+        let token = authenticator.gen_doc_token(
+            "doc123",
+            Authorization::Full,
+            ExpirationTimeEpochMillis(0),
+        );
         let token = token.replace("myKeyId.", "aDifferentKeyId.");
         assert!(token.starts_with("aDifferentKeyId."));
-        assert_eq!(
+        assert!(matches!(
             authenticator.verify_doc_token(&token, "doc123", 0),
             Err(AuthError::KeyMismatch)
-        );
+        ));
     }
 
     #[test]
@@ -452,29 +507,40 @@ mod tests {
         let authenticator = Authenticator::gen_key()
             .unwrap()
             .with_key_id("myKeyId".try_into().unwrap());
-        let token = authenticator.gen_doc_token("doc123", ExpirationTimeEpochMillis(0));
+        let token = authenticator.gen_doc_token(
+            "doc123",
+            Authorization::Full,
+            ExpirationTimeEpochMillis(0),
+        );
         let token = token.replace("myKeyId.", "");
-        assert_eq!(
+        assert!(matches!(
             authenticator.verify_doc_token(&token, "doc123", 0),
             Err(AuthError::KeyMismatch)
-        );
+        ));
     }
 
     #[test]
     fn test_unexpected_key_id() {
         let authenticator = Authenticator::gen_key().unwrap();
-        let token = authenticator.gen_doc_token("doc123", ExpirationTimeEpochMillis(0));
+        let token = authenticator.gen_doc_token(
+            "doc123",
+            Authorization::Full,
+            ExpirationTimeEpochMillis(0),
+        );
         let token = format!("unexpectedKeyId.{}", token);
-        assert_eq!(
+        assert!(matches!(
             authenticator.verify_doc_token(&token, "doc123", 0),
             Err(AuthError::KeyMismatch)
-        );
+        ));
     }
 
     #[test]
     fn test_invalid_signature() {
         let authenticator = Authenticator::gen_key().unwrap();
-        let actual_payload = Payload::new(Permission::Doc("doc123".to_string()));
+        let actual_payload = Payload::new(Permission::Doc(DocPermission {
+            doc_id: "doc123".to_string(),
+            authorization: Authorization::Full,
+        }));
         let mut encoded_payload =
             bincode_encode(&actual_payload).expect("Bincode serialization should not fail.");
         encoded_payload.extend_from_slice(&authenticator.private_key);
@@ -482,21 +548,24 @@ mod tests {
         let token = hash(&encoded_payload);
 
         let auth_req = AuthenticatedRequest {
-            payload: Payload::new(Permission::Doc("abc123".to_string())),
+            payload: Payload::new(Permission::Doc(DocPermission {
+                doc_id: "abc123".to_string(),
+                authorization: Authorization::Full,
+            })),
             token,
         };
 
         let auth_enc = bincode_encode(&auth_req).expect("Bincode serialization should not fail.");
         let signed = b64_encode(&auth_enc);
 
-        assert_eq!(
+        assert!(matches!(
             authenticator.verify_doc_token(&signed, "doc123", 0),
             Err(AuthError::InvalidSignature)
-        );
-        assert_eq!(
+        ));
+        assert!(matches!(
             authenticator.verify_doc_token(&signed, "abc123", 0),
             Err(AuthError::InvalidSignature)
-        );
+        ));
     }
 
     #[test]

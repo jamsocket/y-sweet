@@ -1,3 +1,4 @@
+use crate::api_types::Authorization;
 use crate::sync::{
     self, awareness::Awareness, DefaultProtocol, Message, Protocol, SyncMessage, MSG_SYNC,
     MSG_SYNC_UPDATE,
@@ -30,6 +31,7 @@ pub struct DocConnection {
     doc_subscription: Subscription,
     #[allow(unused)] // acts as RAII guard
     awareness_subscription: Subscription,
+    authorization: Authorization,
     callback: Callback,
     closed: Arc<OnceLock<()>>,
 
@@ -48,14 +50,22 @@ impl DocConnection {
     }
 
     #[cfg(feature = "sync")]
-    pub fn new<F>(awareness: Arc<RwLock<Awareness>>, callback: F) -> Self
+    pub fn new<F>(
+        awareness: Arc<RwLock<Awareness>>,
+        authorization: Authorization,
+        callback: F,
+    ) -> Self
     where
         F: Fn(&[u8]) + 'static + Send + Sync,
     {
-        Self::new_inner(awareness, Arc::new(callback))
+        Self::new_inner(awareness, authorization, Arc::new(callback))
     }
 
-    pub fn new_inner(awareness: Arc<RwLock<Awareness>>, callback: Callback) -> Self {
+    pub fn new_inner(
+        awareness: Arc<RwLock<Awareness>>,
+        authorization: Authorization,
+        callback: Callback,
+    ) -> Self {
         let closed = Arc::new(OnceLock::new());
 
         let (doc_subscription, awareness_subscription) = {
@@ -127,6 +137,7 @@ impl DocConnection {
             awareness,
             doc_subscription,
             awareness_subscription,
+            authorization,
             callback,
             client_id: OnceLock::new(),
             closed,
@@ -152,6 +163,7 @@ impl DocConnection {
         protocol: &P,
         msg: Message,
     ) -> Result<Option<Message>, sync::Error> {
+        let can_write = matches!(self.authorization, Authorization::Full);
         let a = &self.awareness;
         match msg {
             Message::Sync(msg) => match msg {
@@ -160,12 +172,24 @@ impl DocConnection {
                     protocol.handle_sync_step1(&awareness, sv)
                 }
                 SyncMessage::SyncStep2(update) => {
-                    let mut awareness = a.write().unwrap();
-                    protocol.handle_sync_step2(&mut awareness, Update::decode_v1(&update)?)
+                    if can_write {
+                        let mut awareness = a.write().unwrap();
+                        protocol.handle_sync_step2(&mut awareness, Update::decode_v1(&update)?)
+                    } else {
+                        Err(sync::Error::PermissionDenied {
+                            reason: "Token does not have write access".to_string(),
+                        })
+                    }
                 }
                 SyncMessage::Update(update) => {
-                    let mut awareness = a.write().unwrap();
-                    protocol.handle_update(&mut awareness, Update::decode_v1(&update)?)
+                    if can_write {
+                        let mut awareness = a.write().unwrap();
+                        protocol.handle_update(&mut awareness, Update::decode_v1(&update)?)
+                    } else {
+                        Err(sync::Error::PermissionDenied {
+                            reason: "Token does not have write access".to_string(),
+                        })
+                    }
                 }
             },
             Message::Auth(reason) => {

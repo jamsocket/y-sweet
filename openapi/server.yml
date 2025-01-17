@@ -258,15 +258,11 @@ components:
         authorization:
           type: string
           enum:
-            - none
-            - readonly
+            - read-only
             - full
           nullable: true
         userId:
           type: string
-          nullable: true
-        metadata:
-          type: object
           nullable: true
         validForSeconds:
           description: |
