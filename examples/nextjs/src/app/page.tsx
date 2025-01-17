@@ -48,11 +48,6 @@ export default function Home() {
         />
         <ProjectLink name="Live Cursors" url="/presence" description="Live directional cursors." />
         <ProjectLink
-          name="tldraw"
-          url="/tldraw"
-          description="A collaborative whiteboard using tldraw."
-        />
-        <ProjectLink
           name="BlockNote"
           url="/blocknote"
           description="A collaborative block-based rich text editor using the open-source BlockNote package."

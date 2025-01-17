@@ -65,9 +65,6 @@ function Nav({ curRoute, onClickLink }: { curRoute: string; onClickLink?: () => 
             <NavLink href="/voxels" curRoute={curRoute}>
               Voxel Draw
             </NavLink>
-            <NavLink href="/tldraw" curRoute={curRoute}>
-              tldraw
-            </NavLink>
             <NavLink href="/blocknote" curRoute={curRoute}>
               BlockNote
             </NavLink>
