@@ -46,7 +46,6 @@ export default function Home() {
           url="/voxels"
           description="A collaborative voxel drawing app."
         />
-        <ProjectLink name="Live Cursors" url="/presence" description="Live directional cursors." />
         <ProjectLink
           name="BlockNote"
           url="/blocknote"
