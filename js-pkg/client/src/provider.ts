@@ -312,13 +312,22 @@ export class YSweetProvider {
 
   private update(update: Uint8Array, origin: YSweetProvider | IndexedDBProvider) {
     if (origin === this) {
-      // Ignore updates from ourselves.
+      // Ignore updates that came through the Y-Sweet Provider (i.e. not local changes)
       return
     }
 
     if (this.indexedDBProvider && origin === this.indexedDBProvider) {
       // Ignore updates from our own IndexedDB provider.
       return
+    }
+
+    // If we made it here, the update came from local changes.
+    // Warn if the client holds a read-only token.
+    const authorization = this.clientToken?.authorization
+    if (authorization === 'read-only') {
+      console.warn(
+        'Client with read-only authorization attempted to write to the Yjs document. These changes may appear locally, but they will not be applied to the shared document.',
+      )
     }
 
     const encoder = encoding.createEncoder()
