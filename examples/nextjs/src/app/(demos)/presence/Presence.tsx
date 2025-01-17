@@ -69,7 +69,7 @@ export function Presence() {
     <div className="w-full h-full">
       <Header
         title="Live Cursors"
-        githubLink="https://github.com/jamsocket/y-sweet/tree/main/examples/nextjs/src/app/(demos)/to-do-list"
+        githubLink="https://github.com/jamsocket/y-sweet/tree/main/examples/nextjs/src/app/(demos)/presence"
       />
       <svg
         className="relative overflow-hidden w-full h-full cursor-none"
