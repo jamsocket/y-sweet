@@ -21,8 +21,6 @@ impl Authorization {
 }
 
 #[derive(Deserialize)]
-#[allow(unused)]
-#[serde(default)]
 pub struct AuthDocRequest {
     #[serde(default = "Authorization::full")]
     pub authorization: Authorization,
