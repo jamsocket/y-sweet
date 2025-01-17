@@ -55,7 +55,7 @@ Explore our [collaborative examples](https://github.com/jamsocket/y-sweet/tree/m
 - Monaco Editor - [see code](https://github.com/jamsocket/y-sweet/tree/main/examples/nextjs/src/app/(demos)/monaco) | [see live](https://demos.y-sweet.dev/monaco)
 - BlockNote - [see code](https://github.com/jamsocket/y-sweet/tree/main/examples/nextjs/src/app/(demos)/blocknote) | [see live](https://demos.y-sweet.dev/blocknote)
 - Quill Editor - [see code](https://github.com/jamsocket/y-sweet/tree/main/examples/nextjs/src/app/(demos)/text-editor) | [see live](https://demos.y-sweet.dev/text-editor)
-- Slate Rich Text Editor - [see code](https://github.com/jamsocket/y-sweet/tree/main/examples/nextjs/src/app/(demos)/slate) | [see live](https://demos.y-sweet.dev/presence)
+- Slate Rich Text Editor - [see code](https://github.com/jamsocket/y-sweet/tree/main/examples/nextjs/src/app/(demos)/slate) | [see live](https://demos.y-sweet.dev/slate)
 
 ## Usage
 
