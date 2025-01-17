@@ -3,7 +3,7 @@
 import { useText, useAwareness } from '@y-sweet/react'
 import { useEffect, useRef } from 'react'
 import { QuillBinding } from 'y-quill'
-import Title from '@/components/Title'
+import Header from '@/components/Header'
 
 import 'quill/dist/quill.snow.css'
 
@@ -44,7 +44,10 @@ export function TextEditor() {
 
   return (
     <div className="p-4 sm:p-8 space-y-3">
-      <Title>A Collaborative Text Editor</Title>
+      <Header
+        title="Quill Text Editor"
+        githubLink="https://github.com/jamsocket/y-sweet/tree/main/examples/nextjs/src/app/(demos)/text-editor"
+      />
       <div className="bg-white/90">
         <div ref={editorRef} />
       </div>

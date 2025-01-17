@@ -5,7 +5,7 @@ import { Editor } from '@monaco-editor/react'
 import { MonacoBinding } from 'y-monaco'
 import { useYDoc, useAwareness, useYjsProvider } from '@y-sweet/react'
 import { editor } from 'monaco-editor'
-import Title from '@/components/Title'
+import Header from '@/components/Header'
 
 export function CodeEditor() {
   const yDoc = useYDoc()
@@ -32,7 +32,10 @@ export function CodeEditor() {
 
   return (
     <div className="p-4 lg:p-8 space-y-4">
-      <Title>Monaco Code Editor</Title>
+      <Header
+        title="Monaco Code Editor"
+        githubLink="https://github.com/jamsocket/y-sweet/tree/main/examples/nextjs/src/app/(demos)/monaco"
+      />
       <div>
         <Editor
           defaultLanguage="javascript"

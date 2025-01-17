@@ -4,7 +4,7 @@ import { useAwareness, useText } from '@y-sweet/react'
 import { useCallback, useRef } from 'react'
 import type { CodemirrorBinding } from 'y-codemirror'
 import type { EditorFromTextArea } from 'codemirror'
-import Title from '@/components/Title'
+import Header from '@/components/Header'
 
 import 'codemirror/lib/codemirror.css'
 if (typeof navigator !== 'undefined') {
@@ -59,7 +59,10 @@ export function CodeEditor() {
 
   return (
     <div className="p-4 lg:p-8 space-y-4">
-      <Title>Code Editor</Title>
+      <Header
+        title="CodeMirror Editor"
+        githubLink="https://github.com/jamsocket/y-sweet/blob/main/examples/nextjs/src/app/(demos)/code-editor"
+      />
       <div>
         <textarea ref={codeMirrorRef} />
       </div>

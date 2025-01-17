@@ -6,6 +6,7 @@ import { Compact } from '@uiw/react-color'
 import { usePresence, useMap, usePresenceSetter } from '@y-sweet/react'
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { Vector3, Vector3Tuple } from 'three'
+import Header from '@/components/Header'
 
 const DIM = 15
 const TRANSITION_RATE = 0.08
@@ -203,6 +204,10 @@ export function VoxelEditor() {
 
   return (
     <>
+      <Header
+        title="Voxel Editor"
+        githubLink="https://github.com/jamsocket/y-sweet/tree/main/examples/nextjs/src/app/(demos)/voxels"
+      />
       <div style={{ position: 'absolute', top: 0, right: 0, left: 0, bottom: 0 }}>
         <Canvas shadows>
           <OrbitControls ref={setInitialCameraPosition} />

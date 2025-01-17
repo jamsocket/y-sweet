@@ -4,8 +4,7 @@ import { useYDoc, useYjsProvider } from '@y-sweet/react'
 import { useCreateBlockNote } from '@blocknote/react'
 import { BlockNoteView } from '@blocknote/mantine'
 import '@blocknote/mantine/style.css'
-
-import Title from '@/components/Title'
+import Header from '@/components/Header'
 
 export function BlockNote() {
   const provider = useYjsProvider()
@@ -21,7 +20,10 @@ export function BlockNote() {
 
   return (
     <div className="p-4 sm:p-8 flex flex-col gap-y-3 h-full">
-      <Title>BlockNote</Title>
+      <Header
+        title="BlockNote Editor"
+        githubLink="https://github.com/jamsocket/y-sweet/tree/main/examples/nextjs/src/app/(demos)/blocknote"
+      />
       <div className="flex-1 bg-white px-2 py-4 rounded-lg">
         <BlockNoteView editor={editor} theme="light" />
       </div>

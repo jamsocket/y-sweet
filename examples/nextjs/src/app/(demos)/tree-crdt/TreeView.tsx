@@ -7,6 +7,7 @@ import { useMap } from '@y-sweet/react'
 import * as Y from 'yjs'
 import Paragraph from '@/components/Paragraph'
 import { Link } from '@/components/Link'
+import Header from '@/components/Header'
 
 function useDragHelper(callback: (origin: LayoutNode, target: LayoutNode) => void) {
   const [dragOrigin, setDragOrigin] = useState<LayoutNode | null>(null)
@@ -211,6 +212,11 @@ export function TreeView() {
 
   return (
     <div className="p-4 sm:p-8 space-y-3">
+      <Header
+        title="Tree CRDT"
+        githubLink="https://github.com/jamsocket/y-sweet/tree/main/examples/nextjs/src/app/(demos)/tree-crdt"
+      />
+
       <Paragraph>
         This is a variation of Evan Wallace’s{' '}
         <Link href="https://madebyevan.com/algos/crdt-mutable-tree-hierarchy/">

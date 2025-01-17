@@ -3,7 +3,7 @@
 import { useArray } from '@y-sweet/react'
 import { useCallback, useState } from 'react'
 import * as Y from 'yjs'
-import Title from '@/components/Title'
+import Header from '@/components/Header'
 
 type ToDoItem = {
   text: string
@@ -105,7 +105,11 @@ export function ToDoList() {
 
   return (
     <div className="space-y-4 p-4 lg:p-8">
-      <Title>To-do List</Title>
+      <Header
+        title="To-Do List"
+        githubLink="https://github.com/jamsocket/y-sweet/tree/main/examples/nextjs/src/app/(demos)/to-do-list"
+      />
+
       <div className="space-y-1">
         {items && items.map((item, index) => <ToDoItem key={index} item={item} />)}
       </div>

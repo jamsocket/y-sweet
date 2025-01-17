@@ -2,6 +2,7 @@
 
 import { useYDoc, useYjsProvider, useAwareness } from '@y-sweet/react'
 import { useEffect, useMemo, useState } from 'react'
+import Header from '@/components/Header'
 import * as Y from 'yjs'
 
 import RichtextSlateEditor from './RichtextSlateEditor'
@@ -25,7 +26,11 @@ export function SlateEditor() {
   if (!connected) return 'Loading...'
 
   return (
-    <div className="p-8">
+    <div className="p-4 lg:p-8 space-y-3">
+      <Header
+        title="Slate Rich Text Editor"
+        githubLink="https://github.com/jamsocket/y-sweet/tree/main/examples/nextjs/src/app/(demos)/slate"
+      />
       <div className="bg-white rounded-lg">
         <RichtextSlateEditor sharedType={sharedType} awareness={awareness} />
       </div>
