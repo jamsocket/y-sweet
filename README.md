@@ -48,9 +48,14 @@ For more information, check out our [documentation](https://docs.jamsocket.com/y
 
 ## Examples
 
-Explore our [collaborative examples](https://github.com/jamsocket/y-sweet) to help you get started.
+Explore our [collaborative examples](https://github.com/jamsocket/y-sweet/tree/main/examples) to help you get started or [play with them live](https://demos.y-sweet.dev/).
 
-All examples are open source and live in this repository, within [/examples](https://github.com/jamsocket/y-sweet/tree/main/examples).
+### Examples using Yjs Editor Bindings
+- CodeMirror Editor - [see code](https://github.com/jamsocket/y-sweet/tree/main/examples/nextjs/src/app/(demos)/code-editor) | [see live](https://demos.y-sweet.dev/code-editor)
+- Monaco Editor - [see code](https://github.com/jamsocket/y-sweet/tree/main/examples/nextjs/src/app/(demos)/monaco) | [see live](https://demos.y-sweet.dev/monaco)
+- BlockNote - [see code](https://github.com/jamsocket/y-sweet/tree/main/examples/nextjs/src/app/(demos)/blocknote) | [see live](https://demos.y-sweet.dev/blocknote)
+- Quill Editor - [see code](https://github.com/jamsocket/y-sweet/tree/main/examples/nextjs/src/app/(demos)/text-editor) | [see live](https://demos.y-sweet.dev/text-editor)
+- Slate Rich Text Editor - [see code](https://github.com/jamsocket/y-sweet/tree/main/examples/nextjs/src/app/(demos)/slate) | [see live](https://demos.y-sweet.dev/presence)
 
 ## Usage
 
