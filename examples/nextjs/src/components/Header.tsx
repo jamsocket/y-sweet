@@ -11,9 +11,9 @@ export default function Header(props: HeaderProps) {
     <div className="flex flex-col md:flex-row justify-between md:items-center gap-y-2">
       <Title>{title}</Title>
       <div className="flex">
-        <button
+        <a
           className="text-sm flex gap-2 items-center px-3 py-2 rounded-lg bg-pink-950 text-white border transition-all "
-          onClick={() => window.open(githubLink, '_blank')}
+          href={githubLink}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -28,7 +28,7 @@ export default function Header(props: HeaderProps) {
             />
           </svg>
           <span>See code on Github</span>
-        </button>
+        </a>
       </div>
     </div>
   )
