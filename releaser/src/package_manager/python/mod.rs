@@ -84,6 +84,9 @@ impl PackageManager for PythonPackageManager {
 
         let python = env.python();
 
+        // clean dist directory
+        let _ = fs::remove_dir_all(path.join("dist"));
+
         // Build the package
         let build_output = Command::new(python)
             .arg("-m")
@@ -101,13 +104,22 @@ impl PackageManager for PythonPackageManager {
         }
 
         // Upload the package
-        Command::new(python)
+        let upload_output = Command::new(python)
             .arg("-m")
             .arg("twine")
             .arg("upload")
             .arg("dist/*")
             .current_dir(path)
             .output()?;
+
+        if !upload_output.status.success() {
+            return Err(anyhow::anyhow!(
+                "Upload failed with status: {}.\nStdout: {}\nStderr: {}",
+                upload_output.status,
+                String::from_utf8_lossy(&upload_output.stdout),
+                String::from_utf8_lossy(&upload_output.stderr)
+            ));
+        }
 
         Ok(())
     }
