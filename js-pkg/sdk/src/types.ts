@@ -35,7 +35,7 @@ export type CheckStoreResult = { ok: true } | { ok: false; error: string }
 export type Authorization = 'full' | 'read-only'
 
 export type AuthDocRequest = {
-  /** The authorization level to use for the document. Defaults to 'full' (not currently enforced). */
+  /** The authorization level to use for the document. Defaults to 'full'. */
   authorization?: Authorization
 
   /** A user ID to associate with the token. Not currently used. */
