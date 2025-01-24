@@ -96,11 +96,22 @@ export type YSweetProviderParams = {
   showDebuggerLink?: boolean
 }
 
-async function getClientToken(authEndpoint: AuthEndpoint, roomname: string): Promise<ClientToken> {
-  if (typeof authEndpoint === 'function') {
-    return await authEndpoint()
+function validateClientToken(clientToken: ClientToken, docId: string) {
+  if (clientToken.docId !== docId) {
+    throw new Error(
+      `ClientToken docId does not match YSweetProvider docId: ${clientToken.docId} !== ${docId}`,
+    )
   }
-  const body = JSON.stringify({ docId: roomname })
+}
+
+async function getClientToken(authEndpoint: AuthEndpoint, docId: string): Promise<ClientToken> {
+  if (typeof authEndpoint === 'function') {
+    const clientToken = await authEndpoint()
+    validateClientToken(clientToken, docId)
+    return clientToken
+  }
+
+  const body = JSON.stringify({ docId: docId })
   const res = await fetch(authEndpoint, {
     method: 'POST',
     body,
@@ -112,12 +123,7 @@ async function getClientToken(authEndpoint: AuthEndpoint, roomname: string): Pro
   }
 
   const clientToken = await res.json()
-
-  if (clientToken.docId !== roomname) {
-    throw new Error(
-      `Client token docId does not match roomname: ${clientToken.docId} !== ${roomname}`,
-    )
-  }
+  validateClientToken(clientToken, docId)
 
   return clientToken
 }
@@ -179,6 +185,7 @@ export class YSweetProvider {
   ) {
     if (extraOptions.initialClientToken) {
       this.clientToken = extraOptions.initialClientToken
+      validateClientToken(this.clientToken, this.docId)
     }
 
     this.showDebuggerLink = extraOptions.showDebuggerLink !== false
