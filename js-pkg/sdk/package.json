@@ -7,7 +7,7 @@
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx}\"",
     "prepublishOnly": "npm run build"
   },
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "Javascript/Typescript backend SDK for building collaboration features with y-sweet.",
   "main": "./dist/main.js",
   "types": "./dist/main.d.ts",
