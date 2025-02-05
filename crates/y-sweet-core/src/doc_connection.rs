@@ -42,7 +42,11 @@ pub struct DocConnection {
 
 impl DocConnection {
     #[cfg(not(feature = "sync"))]
-    pub fn new<F>(awareness: Arc<RwLock<Awareness>>, authorization: Authorization, callback: F) -> Self
+    pub fn new<F>(
+        awareness: Arc<RwLock<Awareness>>,
+        authorization: Authorization,
+        callback: F,
+    ) -> Self
     where
         F: Fn(&[u8]) + 'static,
     {
