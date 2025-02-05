@@ -9,7 +9,8 @@ use worker::{event, Env};
 use worker::{Date, Method, Request, Response, ResponseBody, Result, RouteContext, Router, Url};
 use y_sweet_core::{
     api_types::{
-        validate_doc_name, AuthDocRequest, ClientToken, DocCreationRequest, NewDocResponse,
+        validate_doc_name, AuthDocRequest, Authorization, ClientToken, DocCreationRequest,
+        NewDocResponse,
     },
     auth::{Authenticator, ExpirationTimeEpochMillis, DEFAULT_EXPIRATION_SECONDS},
     doc_sync::DocWithSyncKv,
@@ -213,6 +214,11 @@ async fn auth_doc(
         .await
         .map_err(|_| Error::BadRequest)?;
 
+    if body.authorization != Authorization::Full {
+        // Non-full authorization is not supported on the worker.
+        return Err(Error::BadRequest);
+    }
+
     let valid_time_seconds = body.valid_for_seconds.unwrap_or(DEFAULT_EXPIRATION_SECONDS);
     let expiration_time =
         ExpirationTimeEpochMillis(get_time_millis_since_epoch() + valid_time_seconds * 1000);
@@ -220,7 +226,7 @@ async fn auth_doc(
     let token = ctx
         .data
         .auth()?
-        .map(|auth| auth.gen_doc_token(&doc_id, expiration_time));
+        .map(|auth| auth.gen_doc_token(&doc_id, body.authorization, expiration_time));
 
     let url = if let Some(url_prefix) = &ctx.data.config.url_prefix {
         let mut parsed = Url::parse(url_prefix).map_err(|_| Error::ConfigurationError {
@@ -262,6 +268,7 @@ async fn auth_doc(
     Ok(ClientToken {
         url,
         base_url: None,
+        authorization: body.authorization,
         doc_id: doc_id.to_string(),
         token,
     })
