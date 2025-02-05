@@ -186,7 +186,6 @@ export class YSweetProvider {
     private doc: Y.Doc,
     extraOptions: Partial<YSweetProviderParams> = {},
   ) {
-    this.handleBeforeUnload = this.handleBeforeUnload.bind(this)
     if (extraOptions.initialClientToken) {
       this.clientToken = extraOptions.initialClientToken
       validateClientToken(this.clientToken, this.docId)
@@ -201,6 +200,7 @@ export class YSweetProvider {
     this.awareness.on('update', this.handleAwarenessUpdate.bind(this))
     this.WebSocketPolyfill = extraOptions.WebSocketPolyfill || WebSocket
 
+    this.handleBeforeUnload = this.handleBeforeUnload.bind(this)
     this.online = this.online.bind(this)
     this.offline = this.offline.bind(this)
     if (typeof window !== 'undefined') {
