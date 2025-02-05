@@ -9,7 +9,9 @@ use worker::{
 };
 #[allow(unused)]
 use worker_sys::console_log;
-use y_sweet_core::{doc_connection::DocConnection, doc_sync::DocWithSyncKv};
+use y_sweet_core::{
+    api_types::Authorization, doc_connection::DocConnection, doc_sync::DocWithSyncKv,
+};
 
 #[durable_object]
 pub struct YServe {
@@ -170,7 +172,7 @@ async fn websocket_connect(req: Request, ctx: RouteContext<&mut YServe>) -> Resu
 
     let connection = {
         let server = server.clone();
-        DocConnection::new(awareness, move |bytes| {
+        DocConnection::new(awareness, Authorization::Full, move |bytes| {
             let uint8_array = Uint8Array::from(bytes);
             let result = server
                 .as_ref()

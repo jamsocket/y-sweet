@@ -6,7 +6,7 @@ pub struct NewDocResponse {
     pub doc_id: String,
 }
 
-#[derive(Copy, Clone, Serialize, Deserialize)]
+#[derive(Copy, Clone, Serialize, Deserialize, PartialEq)]
 pub enum Authorization {
     #[serde(rename = "read-only")]
     ReadOnly,
