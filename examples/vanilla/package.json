@@ -1,6 +1,6 @@
 {
   "name": "examples-vanilla",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,8 +10,8 @@
     "format": "prettier --write \"**/*.js\""
   },
   "dependencies": {
-    "@y-sweet/client": "0.8.1",
-    "@y-sweet/sdk": "0.8.1",
+    "@y-sweet/client": "0.8.2",
+    "@y-sweet/sdk": "0.8.2",
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "yjs": "^13.6.7"
