@@ -94,6 +94,9 @@ export type YSweetProviderParams = {
 
   /** Whether to show the debugger link. Defaults to true. */
   showDebuggerLink?: boolean
+
+  /** Whether to warn when closing tab with unsynchronized changes. Defaults to false. */
+  warnOnClose?: boolean
 }
 
 function validateClientToken(clientToken: ClientToken, docId: string) {
@@ -183,6 +186,7 @@ export class YSweetProvider {
     private doc: Y.Doc,
     extraOptions: Partial<YSweetProviderParams> = {},
   ) {
+    this.handleBeforeUnload = this.handleBeforeUnload.bind(this)
     if (extraOptions.initialClientToken) {
       this.clientToken = extraOptions.initialClientToken
       validateClientToken(this.clientToken, this.docId)
@@ -202,6 +206,9 @@ export class YSweetProvider {
     if (typeof window !== 'undefined') {
       window.addEventListener('offline', this.offline)
       window.addEventListener('online', this.online)
+      if (extraOptions.warnOnClose) {
+        window.addEventListener('beforeunload', this.handleBeforeUnload)
+      }
     }
 
     if (extraOptions.offlineSupport === true && typeof indexedDB !== 'undefined') {
@@ -453,11 +460,11 @@ export class YSweetProvider {
   }
 
   public disconnect() {
+    this.setStatus(STATUS_OFFLINE)
+
     if (this.websocket) {
       this.websocket.close()
     }
-
-    this.setStatus(STATUS_OFFLINE)
   }
 
   private bindWebsocket(websocket: WebSocket) {
@@ -639,6 +646,7 @@ export class YSweetProvider {
     if (typeof window !== 'undefined') {
       window.removeEventListener('offline', this.offline)
       window.removeEventListener('online', this.online)
+      window.removeEventListener('beforeunload', this.handleBeforeUnload)
     }
   }
 
@@ -681,6 +689,12 @@ export class YSweetProvider {
    */
   get hasLocalChanges() {
     return this.ackedVersion !== this.localVersion
+  }
+
+  private handleBeforeUnload(event: BeforeUnloadEvent) {
+    if (this.hasLocalChanges) {
+      event.preventDefault()
+    }
   }
 
   /**
