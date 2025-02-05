@@ -230,6 +230,13 @@ export type YDocProviderProps = {
    * Defaults to `true`.
    */
   offlineSupport?: boolean
+
+  /**
+   * Whether to warn when closing tab with unsynchronized changes.
+   *
+   * Defaults to `false`.
+   */
+  warnOnClose?: boolean
 }
 
 /**
@@ -246,6 +253,7 @@ export function YDocProvider(props: YDocProviderProps) {
       initialClientToken,
       offlineSupport: props.offlineSupport,
       showDebuggerLink: props.showDebuggerLink,
+      warnOnClose: props.warnOnClose,
     })
 
     setCtx({ doc, provider })
