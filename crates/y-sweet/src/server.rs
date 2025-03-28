@@ -204,6 +204,10 @@ impl Server {
 
                     if checkpoints_without_refs >= 2 {
                         tracing::info!("GCing doc");
+                        if let Some(doc) = docs.get(&doc_id) {
+                            doc.sync_kv().shutdown();
+                        }
+
                         docs.remove(&doc_id);
                         break;
                     }
@@ -229,6 +233,9 @@ impl Server {
             let is_done = tokio::select! {
                 v = recv.recv() => v.is_none(),
                 _ = cancellation_token.cancelled() => true,
+                _ = tokio::time::sleep(checkpoint_freq) => {
+                    sync_kv.is_shutdown()
+                }
             };
 
             tracing::info!("Received signal. done: {}", is_done);
