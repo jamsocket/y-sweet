@@ -1,0 +1,11 @@
+{
+    "name": "y-sweet-local-first-landscape",
+    "private": true,
+    "devDependencies": {
+        "@biomejs/biome": "1.9.4",
+        "typescript": "^5.7.2"
+    },
+    "dependencies": {
+        "@localfirstfm/landscape-schema": "^0.0.2"
+    }
+}
