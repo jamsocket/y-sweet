@@ -272,8 +272,6 @@ export function YDocProvider(props: YDocProviderProps) {
     }
   }, [props.setQueryParam, docId])
 
-  if (ctx === null) return null
-
   return <YjsContext.Provider value={ctx}>{children}</YjsContext.Provider>
 }
 
