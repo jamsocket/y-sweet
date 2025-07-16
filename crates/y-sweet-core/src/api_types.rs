@@ -40,7 +40,7 @@ impl Default for AuthDocRequest {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct ClientToken {
     /// The URL compatible with the y-websocket provider. The provider will append
     /// a document ID to this string and establish a WebSocket connection.
