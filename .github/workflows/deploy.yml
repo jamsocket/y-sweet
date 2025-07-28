@@ -1,0 +1,140 @@
+name: Deploy to Amazon ECS (y-sweet)
+
+on:
+  push:
+    branches:
+      - main
+      - release/**
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_REGION: ap-northeast-1
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set environment variables based on branch
+        id: set-vars
+        run: |
+          if [[ "${{ github.ref_name }}" == "main" ]]; then
+            echo "ENVIRONMENT=b-dev" >> $GITHUB_ENV
+            echo "ASSUME_ROLE=${{ secrets.DEV_ASSUME_ROLE }}" >> $GITHUB_ENV
+            echo "SERVICE_NUM=${{ vars.DEV_SERVICE_NUM }}" >> $GITHUB_ENV
+          elif [[ "${{ github.ref_name }}" == release/* ]]; then
+            echo "ENVIRONMENT=stg" >> $GITHUB_ENV
+            echo "ASSUME_ROLE=${{ secrets.STG_ASSUME_ROLE }}" >> $GITHUB_ENV
+            echo "SERVICE_NUM=${{ vars.STG_SERVICE_NUM }}" >> $GITHUB_ENV
+          elif [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            echo "ENV=prd" >> $GITHUB_ENV
+            echo "ASSUME_ROLE=${{ secrets.PRD_ASSUME_ROLE }}" >> $GITHUB_ENV
+            echo "SERVICE_NUM=${{ vars.PRD_SERVICE_NUM }}" >> $GITHUB_ENV
+          fi
+
+      - name: Set additional environment variables
+        if: env.ENVIRONMENT != ''
+        run: |
+          echo "ECR_REPOSITORY=${ENVIRONMENT}-kokuyo-digital-campus-ws-app" >> $GITHUB_ENV
+          echo "ECS_CLUSTER_NAME=${ENVIRONMENT}-kokuyo-digital-campus-ws" >> $GITHUB_ENV
+
+      - name: Configure AWS credentials with OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.ASSUME_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Get AWS Account ID
+        run: |
+          echo "AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)" >> $GITHUB_ENV
+
+      - name: Build and Tag Docker image
+        run: |
+          COMMIT_HASH=${{ github.sha }}
+          docker build -f docker/y-sweet.Dockerfile -t ${{ env.ECR_REPOSITORY }}:${COMMIT_HASH} -t ${{ env.ECR_REPOSITORY }}:latest .
+          docker tag ${{ env.ECR_REPOSITORY }}:${COMMIT_HASH} ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${COMMIT_HASH}
+          docker tag ${{ env.ECR_REPOSITORY }}:latest ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest
+
+      - name: Push Docker images to Amazon ECR
+        run: |
+          COMMIT_HASH=${{ github.sha }}
+          docker push ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${COMMIT_HASH}
+          docker push ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest
+
+      - name: Deploy to multiple ECS services
+        run: |
+          COMMIT_HASH=${{ github.sha }}
+          ECR_IMAGE="${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${COMMIT_HASH}"
+          
+          # サービス数を取得
+          SERVICE_NUM=${{ env.SERVICE_NUM }}
+          
+          for i in $(seq 0 $((SERVICE_NUM-1))); do
+            SERVICE_NAME="page-$(printf "%03d" $i)"
+            echo "Deploying to service: $SERVICE_NAME"
+            
+            # タスク定義名を生成（各サービス固有のタスク定義）
+            TASK_DEFINITION_NAME="${ENVIRONMENT}-kokuyo-digital-campus-ws-${SERVICE_NAME}"
+            
+            # 既存のタスク定義を取得
+            EXISTING_TASK_DEF=$(aws ecs describe-task-definition --task-definition $TASK_DEFINITION_NAME)
+            
+            # 新しいイメージでタスク定義を更新
+            # 各サービス固有の設定を保持しながら、イメージのみを更新
+            NEW_TASK_DEF=$(echo $EXISTING_TASK_DEF | jq --arg IMAGE "$ECR_IMAGE" '
+              .taskDefinition | 
+              .containerDefinitions[0].image = $IMAGE | 
+              {
+                containerDefinitions,
+                family,
+                networkMode,
+                taskRoleArn,
+                executionRoleArn,
+                requiresCompatibilities,
+                cpu,
+                memory,
+                volumes: .volumes,
+                placementConstraints: .placementConstraints,
+                tags: .tags
+              }
+            ')
+            
+            # 新しいタスク定義を登録
+            REGISTERED_TASK_DEF=$(aws ecs register-task-definition --cli-input-json "$(echo $NEW_TASK_DEF)")
+            NEW_TASK_DEF_VER=$(echo $REGISTERED_TASK_DEF | jq -r '.taskDefinition.taskDefinitionArn' | awk -F: '{print $7}')
+            
+            echo "New task definition version for $SERVICE_NAME: $NEW_TASK_DEF_VER"
+            
+            # ECSサービスを更新（各サービス固有のタスク定義を使用）
+            aws ecs update-service --cluster ${{ env.ECS_CLUSTER_NAME }} \
+              --service $SERVICE_NAME \
+              --task-definition $TASK_DEFINITION_NAME:$NEW_TASK_DEF_VER \
+              --force-new-deployment
+          done
+
+      - name: Wait for all ECS Service Deployments
+        run: |
+          # サービス数を取得
+          SERVICE_NUM=${{ env.SERVICE_NUM }}
+          
+          # すべてのサービスが安定するまで待機
+          for i in $(seq 0 $((SERVICE_NUM-1))); do
+            SERVICE_NAME="page-$(printf "%03d" $i)"
+            aws ecs wait services-stable --cluster ${{ env.ECS_CLUSTER_NAME }} \
+              --services "$SERVICE_NAME"
+          done
