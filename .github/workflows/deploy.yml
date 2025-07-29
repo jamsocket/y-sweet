@@ -108,9 +108,7 @@ jobs:
                 requiresCompatibilities,
                 cpu,
                 memory,
-                volumes: .volumes,
-                placementConstraints: .placementConstraints,
-                tags: .tags
+                volumes: (.volumes // [])
               }
             ')
             
