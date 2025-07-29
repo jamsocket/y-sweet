@@ -1,0 +1,34 @@
+name: Run Python tests
+
+on:
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - "python/**"
+      - ".github/workflows/python-tests.yml"
+
+jobs:
+  uv-example:
+    name: python
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./python
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Set up Python
+        run: uv python install
+
+      - name: Install the project
+        run: uv sync --all-extras --dev
+
+      - name: Run tests
+        run: uv run pytest tests
+
+      - name: Check formatting
+        run: uv run ruff format --check
