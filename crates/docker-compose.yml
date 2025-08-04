@@ -1,0 +1,21 @@
+services:
+  y-sweet:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 8080:8080
+    environment:
+      ENV: "local"
+      DATA_DIR: "/data"
+      PRIVATE_KEY: "y2LQ3pUncnycVjJYUXM1sHF06GEP9dlUFdEHri4T"
+      # server_token: "AAAg0NFB57WWjaDZUh3vFSEepBH843FsU9qER96Ic71Sfj4"
+      SERVER_URL: "http://localhost:8080"
+    volumes:
+      - ./data:/data
+    networks:
+      - y-sweet-network
+
+networks:
+  y-sweet-network:
+    driver: bridge
