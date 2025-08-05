@@ -11,8 +11,34 @@ services:
       PRIVATE_KEY: "y2LQ3pUncnycVjJYUXM1sHF06GEP9dlUFdEHri4T"
       # server_token: "AAAg0NFB57WWjaDZUh3vFSEepBH843FsU9qER96Ic71Sfj4"
       SERVER_URL: "http://localhost:8080"
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_REGION: ap-northeast-1
+      AWS_ENDPOINT_URL_S3: http://aws:4566
+      AWS_S3_USE_PATH_STYLE: true
     volumes:
       - ./data:/data
+    depends_on:
+      - aws
+    networks:
+      - y-sweet-network
+
+  aws:
+    build: ./localstack
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${LOCALSTACK_VOLUME_DIR:-./localstack/data}:/var/lib/localstack
+    environment:
+      SERVICES: s3
+      DEBUG: ${DEBUG:-0}
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_DEFAULT_REGION: ap-northeast-1
+      DISABLE_CORS_CHECKS: 1
+    ports:
+      - 4566:4566
+      - 8000:8080
+      - 4572:4572
     networks:
       - y-sweet-network
 

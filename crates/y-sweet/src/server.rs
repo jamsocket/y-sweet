@@ -33,8 +33,8 @@ use tracing::{error, info, span, warn, Instrument, Level};
 use url::Url;
 use y_sweet_core::{
     api_types::{
-        validate_doc_name, AuthDocRequest, Authorization, ClientToken, ContentUploadRequest,
-        ContentUploadResponse, DocCreationRequest, NewDocResponse,
+        validate_doc_name, AssetUrl, AssetsResponse, AuthDocRequest, Authorization, ClientToken,
+        ContentUploadRequest, ContentUploadResponse, DocCreationRequest, NewDocResponse,
     },
     auth::{Authenticator, ExpirationTimeEpochMillis, DEFAULT_EXPIRATION_SECONDS},
     doc_connection::DocConnection,
@@ -425,10 +425,8 @@ impl Server {
             .route("/doc/:doc_id/update", post(update_doc_deprecated))
             .route("/d/:doc_id/as-update", get(get_doc_as_update))
             .route("/d/:doc_id/update", post(update_doc))
-            .route(
-                "/d/:doc_id/generate-upload-presigned-url",
-                post(generate_upload_presigned_url),
-            )
+            .route("/d/:doc_id/assets", post(generate_upload_presigned_url))
+            .route("/d/:doc_id/assets", get(get_doc_assets))
             .route(
                 "/d/:doc_id/ws/:doc_id2",
                 get(handle_socket_upgrade_full_path),
@@ -442,10 +440,8 @@ impl Server {
             .route("/ws/:doc_id", get(handle_socket_upgrade_single))
             .route("/as-update", get(get_doc_as_update_single))
             .route("/update", post(update_doc_single))
-            .route(
-                "/generate-upload-presigned-url",
-                post(generate_upload_presigned_url_single),
-            )
+            .route("/assets", post(generate_upload_presigned_url_single))
+            .route("/assets", get(get_doc_assets_single))
             .layer(middleware::from_fn(Self::logging_middleware))
             .with_state(self.clone())
     }
@@ -911,6 +907,17 @@ fn get_extension_from_content_type(content_type: &str) -> String {
     format!(".{}", extension)
 }
 
+fn extract_asset_id_from_filename(filename: &str) -> Option<String> {
+    // Find the last dot to separate asset_id and extension
+    if let Some(last_dot_pos) = filename.rfind('.') {
+        if last_dot_pos > 0 {
+            return Some(filename[..last_dot_pos].to_string());
+        }
+    }
+    // If no extension found, return the filename as is
+    Some(filename.to_string())
+}
+
 async fn generate_upload_presigned_url(
     Path(doc_id): Path<String>,
     State(server_state): State<Arc<Server>>,
@@ -925,13 +932,13 @@ async fn generate_upload_presigned_url(
         Err((StatusCode::NOT_FOUND, anyhow!("Doc {} not found", doc_id)))?;
     }
 
-    // Generate object ID with cuid and extension
-    let object_id = cuid2();
+    // Generate asset ID with cuid and extension
+    let asset_id = cuid2();
     let extension = get_extension_from_content_type(&body.content_type);
-    let object_name = format!("{}{}", object_id, extension);
+    let asset_name = format!("{}{}", asset_id, extension);
 
-    // Create the key path: {doc_id}/assets/{object_name}
-    let key = format!("{}/assets/{}", doc_id, object_name);
+    // Create the key path: {doc_id}/assets/{asset_name}
+    let key = format!("{}/assets/{}", doc_id, asset_name);
 
     let upload_url = if let Some(store) = &server_state.store {
         store
@@ -950,7 +957,7 @@ async fn generate_upload_presigned_url(
 
     Ok(Json(ContentUploadResponse {
         upload_url,
-        object_id: object_name,
+        asset_id: asset_name,
     }))
 }
 
@@ -965,13 +972,13 @@ async fn generate_upload_presigned_url_single(
     // headers to be used for authorization.
     let _ = get_authorization_from_plane_header(headers)?;
 
-    // Generate object ID with cuid and extension
-    let object_id = cuid2();
+    // Generate asset ID with cuid and extension
+    let asset_id = cuid2();
     let extension = get_extension_from_content_type(&body.content_type);
-    let object_name = format!("{}{}", object_id, extension);
+    let asset_name = format!("{}{}", asset_id, extension);
 
-    // Create the key path: {doc_id}/assets/{object_name}
-    let key = format!("{}/assets/{}", doc_id, object_name);
+    // Create the key path: {doc_id}/assets/{asset_name}
+    let key = format!("{}/assets/{}", doc_id, asset_name);
 
     let upload_url = if let Some(store) = &server_state.store {
         store
@@ -990,8 +997,125 @@ async fn generate_upload_presigned_url_single(
 
     Ok(Json(ContentUploadResponse {
         upload_url,
-        object_id: object_name,
+        asset_id: asset_name,
     }))
+}
+
+async fn get_doc_assets(
+    Path(doc_id): Path<String>,
+    State(server_state): State<Arc<Server>>,
+    auth_header: Option<TypedHeader<headers::Authorization<headers::authorization::Bearer>>>,
+) -> Result<Json<AssetsResponse>, AppError> {
+    let token = get_token_from_header(auth_header);
+    let _ = server_state.verify_doc_token(token.as_deref(), &doc_id)?;
+
+    // Check if document exists
+    if !server_state.doc_exists(&doc_id).await {
+        Err((StatusCode::NOT_FOUND, anyhow!("Doc {} not found", doc_id)))?;
+    }
+
+    let assets = if let Some(store) = &server_state.store {
+        // List assets in the assets directory
+        let assets_prefix = format!("{}/assets/", doc_id);
+        let asset_names = store.list_objects(&assets_prefix).await.map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                anyhow!("Failed to list assets: {:?}", e),
+            )
+        })?;
+
+        // Generate signed URLs for each asset
+        let mut asset_urls = Vec::new();
+        for filename in asset_names {
+            // Extract asset_id from filename (remove extension)
+            if let Some(asset_id) = extract_asset_id_from_filename(&filename) {
+                let key = format!("{}/assets/{}", doc_id, filename);
+                let download_url =
+                    store
+                        .generate_download_presigned_url(&key)
+                        .await
+                        .map_err(|e| {
+                            (
+                                StatusCode::INTERNAL_SERVER_ERROR,
+                                anyhow!(
+                                    "Failed to generate download URL for {}: {:?}",
+                                    filename,
+                                    e
+                                ),
+                            )
+                        })?;
+
+                asset_urls.push(AssetUrl {
+                    asset_id,
+                    download_url,
+                });
+            }
+        }
+
+        asset_urls
+    } else {
+        // For local development without store, return empty list
+        Vec::new()
+    };
+
+    Ok(Json(AssetsResponse { assets }))
+}
+
+async fn get_doc_assets_single(
+    State(server_state): State<Arc<Server>>,
+    headers: HeaderMap,
+) -> Result<Json<AssetsResponse>, AppError> {
+    let doc_id = server_state.get_single_doc_id()?;
+
+    // the doc server is meant to be run in Plane, so we expect verified plane
+    // headers to be used for authorization.
+    let _ = get_authorization_from_plane_header(headers)?;
+
+    let assets = if let Some(store) = &server_state.store {
+        // List assets in the assets directory
+        let assets_prefix = format!("{}/assets/", doc_id);
+        let asset_names = store.list_objects(&assets_prefix).await.map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                anyhow!("Failed to list assets: {:?}", e),
+            )
+        })?;
+
+        // Generate signed URLs for each asset
+        let mut asset_urls = Vec::new();
+        for filename in asset_names {
+            // Extract asset_id from filename (remove extension)
+            if let Some(asset_id) = extract_asset_id_from_filename(&filename) {
+                let key = format!("{}/assets/{}", doc_id, filename);
+                let download_url =
+                    store
+                        .generate_download_presigned_url(&key)
+                        .await
+                        .map_err(|e| {
+                            (
+                                StatusCode::INTERNAL_SERVER_ERROR,
+                                anyhow!(
+                                    "Failed to generate download URL for {}: {:?}",
+                                    filename,
+                                    e
+                                ),
+                            )
+                        })?;
+
+                asset_urls.push(AssetUrl {
+                    asset_id,
+                    download_url,
+                });
+            }
+        }
+
+        asset_urls
+    } else {
+        // For local development without store, return empty list
+        Vec::new()
+    };
+
+    Ok(Json(AssetsResponse { assets }))
 }
 
 #[cfg(test)]

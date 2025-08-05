@@ -76,9 +76,26 @@ pub struct ContentUploadResponse {
     #[serde(rename = "uploadUrl")]
     pub upload_url: String,
 
-    /// The object ID that will be used to store the content
-    #[serde(rename = "objectId")]
-    pub object_id: String,
+    /// The asset ID that will be used to store the content
+    #[serde(rename = "assetId")]
+    pub asset_id: String,
+}
+
+#[derive(Serialize)]
+pub struct AssetUrl {
+    /// The asset ID (without extension) of the asset
+    #[serde(rename = "assetId")]
+    pub asset_id: String,
+
+    /// The signed URL for downloading the asset
+    #[serde(rename = "downloadUrl")]
+    pub download_url: String,
+}
+
+#[derive(Serialize)]
+pub struct AssetsResponse {
+    /// List of asset URLs with signed download URLs
+    pub assets: Vec<AssetUrl>,
 }
 
 #[derive(Deserialize, Debug)]

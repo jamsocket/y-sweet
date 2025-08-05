@@ -231,6 +231,21 @@ mod test {
         async fn exists(&self, key: &str) -> Result<bool> {
             Ok(self.data.contains_key(key))
         }
+
+        async fn generate_upload_presigned_url(&self, key: &str) -> Result<String> {
+            // For memory store, return a dummy URL
+            Ok(format!("memory://localhost/{}", key))
+        }
+
+        async fn generate_download_presigned_url(&self, key: &str) -> Result<String> {
+            // For memory store, return a dummy URL
+            Ok(format!("memory://localhost/{}", key))
+        }
+
+        async fn list_objects(&self, _prefix: &str) -> Result<Vec<String>> {
+            // For memory store, return empty list as it doesn't support listing
+            Ok(Vec::new())
+        }
     }
 
     #[derive(Default, Clone)]

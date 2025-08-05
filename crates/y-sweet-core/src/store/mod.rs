@@ -26,6 +26,8 @@ pub trait Store: 'static {
     async fn remove(&self, key: &str) -> Result<()>;
     async fn exists(&self, key: &str) -> Result<bool>;
     async fn generate_upload_presigned_url(&self, key: &str) -> Result<String>;
+    async fn generate_download_presigned_url(&self, key: &str) -> Result<String>;
+    async fn list_objects(&self, prefix: &str) -> Result<Vec<String>>;
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -37,4 +39,6 @@ pub trait Store: Send + Sync {
     async fn remove(&self, key: &str) -> Result<()>;
     async fn exists(&self, key: &str) -> Result<bool>;
     async fn generate_upload_presigned_url(&self, key: &str) -> Result<String>;
+    async fn generate_download_presigned_url(&self, key: &str) -> Result<String>;
+    async fn list_objects(&self, prefix: &str) -> Result<Vec<String>>;
 }

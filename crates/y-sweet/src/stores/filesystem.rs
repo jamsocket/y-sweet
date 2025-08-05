@@ -58,4 +58,32 @@ impl Store for FileSystemStore {
         // This is not a real upload URL, but serves as a placeholder for local development
         Ok(format!("file://localhost/{}", key))
     }
+
+    async fn generate_download_presigned_url(&self, key: &str) -> Result<String> {
+        // For local filesystem, return a dummy URL that indicates local storage
+        // This is not a real download URL, but serves as a placeholder for local development
+        Ok(format!("file://localhost/{}", key))
+    }
+
+    async fn list_objects(&self, prefix: &str) -> Result<Vec<String>> {
+        // For local filesystem, list files in the directory
+        let path = self.base_path.join(prefix);
+        if !path.exists() {
+            return Ok(Vec::new());
+        }
+
+        let mut objects = Vec::new();
+        if let Ok(entries) = std::fs::read_dir(path) {
+            for entry in entries {
+                if let Ok(entry) = entry {
+                    let file_name = entry.file_name();
+                    if let Ok(name) = file_name.into_string() {
+                        objects.push(name);
+                    }
+                }
+            }
+        }
+
+        Ok(objects)
+    }
 }

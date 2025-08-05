@@ -77,6 +77,71 @@ impl S3Store {
         Ok(url.to_string())
     }
 
+    pub async fn generate_download_presigned_url(&self, key: &str) -> Result<String> {
+        self.init().await?;
+        let prefixed_key = self.prefixed_key(key);
+        let action = self
+            .bucket
+            .get_object(Some(&self.credentials), &prefixed_key);
+        let url = action.sign_with_time(PRESIGNED_URL_DURATION, &OffsetDateTime::now_utc());
+        Ok(url.to_string())
+    }
+
+    pub async fn list_objects(&self, prefix: &str) -> Result<Vec<String>> {
+        self.init().await?;
+        let prefixed_prefix = self.prefixed_key(prefix);
+        let mut action = self.bucket.list_objects_v2(Some(&self.credentials));
+        action.with_prefix(&prefixed_prefix);
+        let url = action.sign_with_time(PRESIGNED_URL_DURATION, &OffsetDateTime::now_utc());
+
+        let response = self
+            .client
+            .get(url)
+            .send()
+            .await
+            .map_err(|e| StoreError::ConnectionError(e.to_string()))?;
+
+        if !response.status().is_success() {
+            return Err(StoreError::ConnectionError(format!(
+                "Received {} from S3-compatible API.",
+                response.status()
+            )));
+        }
+
+        let body = response
+            .text()
+            .await
+            .map_err(|e| StoreError::ConnectionError(e.to_string()))?;
+
+        // Parse XML response to extract object keys
+        let objects = self.parse_list_objects_response(&body, prefix)?;
+        Ok(objects)
+    }
+
+    fn parse_list_objects_response(&self, xml: &str, prefix: &str) -> Result<Vec<String>> {
+        // Simple XML parsing for ListObjectsV2 response
+        let mut objects = Vec::new();
+        let lines: Vec<&str> = xml.lines().collect();
+
+        for line in lines {
+            if line.trim().starts_with("<Key>") && line.trim().ends_with("</Key>") {
+                let key = line
+                    .trim()
+                    .trim_start_matches("<Key>")
+                    .trim_end_matches("</Key>");
+
+                // Remove the prefix from the key to get relative path
+                if let Some(relative_key) = key.strip_prefix(&self.prefixed_key(prefix)) {
+                    if !relative_key.is_empty() {
+                        objects.push(relative_key.trim_start_matches('/').to_string());
+                    }
+                }
+            }
+        }
+
+        Ok(objects)
+    }
+
     async fn store_request<'a, A: S3Action<'a>>(
         &self,
         method: Method,
@@ -236,6 +301,14 @@ impl Store for S3Store {
     async fn generate_upload_presigned_url(&self, key: &str) -> Result<String> {
         self.generate_upload_presigned_url(key).await
     }
+
+    async fn generate_download_presigned_url(&self, key: &str) -> Result<String> {
+        self.generate_download_presigned_url(key).await
+    }
+
+    async fn list_objects(&self, prefix: &str) -> Result<Vec<String>> {
+        self.list_objects(prefix).await
+    }
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -263,5 +336,13 @@ impl Store for S3Store {
 
     async fn generate_upload_presigned_url(&self, key: &str) -> Result<String> {
         self.generate_upload_presigned_url(key).await
+    }
+
+    async fn generate_download_presigned_url(&self, key: &str) -> Result<String> {
+        self.generate_download_presigned_url(key).await
+    }
+
+    async fn list_objects(&self, prefix: &str) -> Result<Vec<String>> {
+        self.list_objects(prefix).await
     }
 }
