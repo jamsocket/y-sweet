@@ -63,6 +63,24 @@ pub struct ClientToken {
     pub authorization: Authorization,
 }
 
+#[derive(Deserialize)]
+pub struct ContentUploadRequest {
+    /// The content type of the file to upload
+    #[serde(rename = "contentType")]
+    pub content_type: String,
+}
+
+#[derive(Serialize)]
+pub struct ContentUploadResponse {
+    /// The signed URL for uploading the content
+    #[serde(rename = "uploadUrl")]
+    pub upload_url: String,
+
+    /// The object ID that will be used to store the content
+    #[serde(rename = "objectId")]
+    pub object_id: String,
+}
+
 #[derive(Deserialize, Debug)]
 pub struct DocCreationRequest {
     /// The ID of the document to create. If not provided, a random ID will be generated.

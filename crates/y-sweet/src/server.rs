@@ -15,25 +15,26 @@ use axum::{
     Json, Router,
 };
 use axum_extra::typed_header::TypedHeader;
+use cuid::cuid2;
 use dashmap::{mapref::one::MappedRef, DashMap};
 use futures::{SinkExt, StreamExt};
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::{
     sync::{Arc, RwLock},
-    time::Duration,
+    time::{Duration, Instant},
 };
 use tokio::{
     net::TcpListener,
     sync::mpsc::{channel, Receiver},
 };
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
-use tracing::{span, Instrument, Level};
+use tracing::{error, info, span, warn, Instrument, Level};
 use url::Url;
 use y_sweet_core::{
     api_types::{
-        validate_doc_name, AuthDocRequest, Authorization, ClientToken, DocCreationRequest,
-        NewDocResponse,
+        validate_doc_name, AuthDocRequest, Authorization, ClientToken, ContentUploadRequest,
+        ContentUploadResponse, DocCreationRequest, NewDocResponse,
     },
     auth::{Authenticator, ExpirationTimeEpochMillis, DEFAULT_EXPIRATION_SECONDS},
     doc_connection::DocConnection,
@@ -56,6 +57,13 @@ pub struct AppError(StatusCode, anyhow::Error);
 impl std::error::Error for AppError {}
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
+        // Log the error with structured logging
+        error!(
+            event = "app_error",
+            status_code = %self.0,
+            error = %self.1,
+            error_debug = ?self.1
+        );
         (self.0, format!("Something went wrong: {}", self.1)).into_response()
     }
 }
@@ -124,8 +132,9 @@ impl Server {
 
     pub async fn create_doc(&self) -> Result<String> {
         let doc_id = nanoid::nanoid!();
+        info!(event = "document_creation_started", doc_id = %doc_id);
         self.load_doc(&doc_id).await?;
-        tracing::info!(doc_id=?doc_id, "Created doc");
+        info!(event = "document_created", doc_id = %doc_id);
         Ok(doc_id)
     }
 
@@ -314,6 +323,86 @@ impl Server {
         }
     }
 
+    /// Structured logging middleware for request/response logging
+    pub async fn logging_middleware(req: Request, next: Next) -> impl IntoResponse {
+        let start = Instant::now();
+        let method = req.method().clone();
+        let uri = req.uri().clone();
+        let user_agent = req
+            .headers()
+            .get("user-agent")
+            .and_then(|h| h.to_str().ok())
+            .unwrap_or("unknown");
+        let remote_addr = req
+            .extensions()
+            .get::<std::net::SocketAddr>()
+            .map(|addr| addr.to_string())
+            .unwrap_or_else(|| "unknown".to_string());
+
+        // Extract path parameters for better logging
+        let path_params = if let Some(path) = uri.path().split('/').collect::<Vec<_>>().get(2..) {
+            path.join("/")
+        } else {
+            "".to_string()
+        };
+
+        let span = span!(
+            Level::INFO,
+            "http_request",
+            method = %method,
+            uri = %uri,
+            user_agent = %user_agent,
+            remote_addr = %remote_addr,
+            path = %path_params
+        );
+
+        let _enter = span.enter();
+
+        info!(
+            event = "request_started",
+            method = %method,
+            uri = %uri,
+            user_agent = %user_agent,
+            remote_addr = %remote_addr,
+            path = %path_params
+        );
+
+        let response = next.run(req).await;
+        let status = response.status();
+        let duration = start.elapsed();
+
+        // Log response with appropriate level based on status code
+        if status.is_server_error() {
+            error!(
+                event = "request_failed",
+                method = %method,
+                uri = %uri,
+                status = %status,
+                duration_ms = %duration.as_millis(),
+                error_type = "server_error"
+            );
+        } else if status.is_client_error() {
+            warn!(
+                event = "request_failed",
+                method = %method,
+                uri = %uri,
+                status = %status,
+                duration_ms = %duration.as_millis(),
+                error_type = "client_error"
+            );
+        } else {
+            info!(
+                event = "request_completed",
+                method = %method,
+                uri = %uri,
+                status = %status,
+                duration_ms = %duration.as_millis()
+            );
+        }
+
+        response
+    }
+
     pub async fn redact_error_middleware(req: Request, next: Next) -> impl IntoResponse {
         let resp = next.run(req).await;
         if resp.status().is_server_error() || resp.status().is_client_error() {
@@ -337,9 +426,14 @@ impl Server {
             .route("/d/:doc_id/as-update", get(get_doc_as_update))
             .route("/d/:doc_id/update", post(update_doc))
             .route(
+                "/d/:doc_id/generate-upload-presigned-url",
+                post(generate_upload_presigned_url),
+            )
+            .route(
                 "/d/:doc_id/ws/:doc_id2",
                 get(handle_socket_upgrade_full_path),
             )
+            .layer(middleware::from_fn(Self::logging_middleware))
             .with_state(self.clone())
     }
 
@@ -348,6 +442,11 @@ impl Server {
             .route("/ws/:doc_id", get(handle_socket_upgrade_single))
             .route("/as-update", get(get_doc_as_update_single))
             .route("/update", post(update_doc_single))
+            .route(
+                "/generate-upload-presigned-url",
+                post(generate_upload_presigned_url_single),
+            )
+            .layer(middleware::from_fn(Self::logging_middleware))
             .with_state(self.clone())
     }
 
@@ -539,8 +638,10 @@ async fn handle_socket_upgrade_deprecated(
     Query(params): Query<HandlerParams>,
     State(server_state): State<Arc<Server>>,
 ) -> Result<Response, AppError> {
-    tracing::warn!(
-        "/doc/ws/:doc_id is deprecated; call /doc/:doc_id/auth instead and use the returned URL."
+    warn!(
+        event = "deprecated_endpoint_used",
+        endpoint = "/doc/ws/:doc_id",
+        suggestion = "call /doc/:doc_id/auth instead and use the returned URL"
     );
     let authorization = server_state.verify_doc_token(params.token.as_deref(), &doc_id)?;
     handle_socket_upgrade(ws, Path(doc_id), authorization, State(server_state)).await
@@ -591,41 +692,60 @@ async fn handle_socket(
     let (mut sink, mut stream) = socket.split();
     let (send, mut recv) = channel(1024);
 
+    info!(
+        event = "websocket_connected",
+        authorization_type = %match authorization {
+            Authorization::Full => "Full",
+            Authorization::ReadOnly => "ReadOnly",
+        }
+    );
+
     tokio::spawn(async move {
         while let Some(msg) = recv.recv().await {
-            let _ = sink.send(Message::Binary(msg)).await;
+            if let Err(e) = sink.send(Message::Binary(msg)).await {
+                error!(event = "websocket_send_error", error = %e);
+                break;
+            }
         }
     });
 
     let connection = DocConnection::new(awareness, authorization, move |bytes| {
         if let Err(e) = send.try_send(bytes.to_vec()) {
-            tracing::warn!(?e, "Error sending message");
+            warn!(event = "websocket_message_error", error = %e);
         }
     });
 
+    let mut message_count = 0u64;
     loop {
         tokio::select! {
             Some(msg) = stream.next() => {
                 let msg = match msg {
-                    Ok(Message::Binary(bytes)) => bytes,
-                    Ok(Message::Close(_)) => break,
-                    Err(_e) => {
+                    Ok(Message::Binary(bytes)) => {
+                        message_count += 1;
+                        bytes
+                    }
+                    Ok(Message::Close(_)) => {
+                        info!(event = "websocket_closed", total_messages = %message_count, reason = "client_close");
+                        break;
+                    }
+                    Err(e) => {
                         // The stream will complain about things like
                         // connections being lost without handshake.
+                        warn!(event = "websocket_stream_error", error = %e);
                         continue;
                     }
                     msg => {
-                        tracing::warn!(?msg, "Received non-binary message");
+                        warn!(event = "websocket_invalid_message", message = ?msg);
                         continue;
                     }
                 };
 
                 if let Err(e) = connection.send(&msg).await {
-                    tracing::warn!(?e, "Error handling message");
+                    error!(event = "websocket_message_handling_error", error = %e, message_count = %message_count);
                 }
             }
             _ = cancellation_token.cancelled() => {
-                tracing::debug!("Closing doc connection due to server cancel...");
+                info!(event = "websocket_closed", total_messages = %message_count, reason = "server_shutdown");
                 break;
             }
         }
@@ -651,8 +771,10 @@ async fn check_store_deprecated(
     auth_header: Option<TypedHeader<headers::Authorization<headers::authorization::Bearer>>>,
     State(server_state): State<Arc<Server>>,
 ) -> Result<Json<Value>, AppError> {
-    tracing::warn!(
-        "GET check_store is deprecated, use POST check_store with an empty body instead."
+    warn!(
+        event = "deprecated_endpoint_used",
+        endpoint = "GET /check_store",
+        suggestion = "use POST /check_store with an empty body instead"
     );
     check_store(auth_header, State(server_state)).await
 }
@@ -779,6 +901,99 @@ fn get_authorization_from_plane_header(headers: HeaderMap) -> Result<Authorizati
     }
 }
 
+fn get_extension_from_content_type(content_type: &str) -> String {
+    let mime = content_type
+        .parse::<mime::Mime>()
+        .unwrap_or(mime::APPLICATION_OCTET_STREAM);
+    let extension = mime_guess::get_mime_extensions(&mime)
+        .and_then(|exts| exts.first())
+        .unwrap_or(&"bin");
+    format!(".{}", extension)
+}
+
+async fn generate_upload_presigned_url(
+    Path(doc_id): Path<String>,
+    State(server_state): State<Arc<Server>>,
+    auth_header: Option<TypedHeader<headers::Authorization<headers::authorization::Bearer>>>,
+    Json(body): Json<ContentUploadRequest>,
+) -> Result<Json<ContentUploadResponse>, AppError> {
+    let token = get_token_from_header(auth_header);
+    let _ = server_state.verify_doc_token(token.as_deref(), &doc_id)?;
+
+    // Check if document exists
+    if !server_state.doc_exists(&doc_id).await {
+        Err((StatusCode::NOT_FOUND, anyhow!("Doc {} not found", doc_id)))?;
+    }
+
+    // Generate object ID with cuid and extension
+    let object_id = cuid2();
+    let extension = get_extension_from_content_type(&body.content_type);
+    let object_name = format!("{}{}", object_id, extension);
+
+    // Create the key path: {doc_id}/assets/{object_name}
+    let key = format!("{}/assets/{}", doc_id, object_name);
+
+    let upload_url = if let Some(store) = &server_state.store {
+        store
+            .generate_upload_presigned_url(&key)
+            .await
+            .map_err(|e| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    anyhow!("Failed to generate upload URL: {:?}", e),
+                )
+            })?
+    } else {
+        // For local development without store, return a dummy URL
+        format!("file://localhost/{}", key)
+    };
+
+    Ok(Json(ContentUploadResponse {
+        upload_url,
+        object_id: object_name,
+    }))
+}
+
+async fn generate_upload_presigned_url_single(
+    State(server_state): State<Arc<Server>>,
+    headers: HeaderMap,
+    Json(body): Json<ContentUploadRequest>,
+) -> Result<Json<ContentUploadResponse>, AppError> {
+    let doc_id = server_state.get_single_doc_id()?;
+
+    // the doc server is meant to be run in Plane, so we expect verified plane
+    // headers to be used for authorization.
+    let _ = get_authorization_from_plane_header(headers)?;
+
+    // Generate object ID with cuid and extension
+    let object_id = cuid2();
+    let extension = get_extension_from_content_type(&body.content_type);
+    let object_name = format!("{}{}", object_id, extension);
+
+    // Create the key path: {doc_id}/assets/{object_name}
+    let key = format!("{}/assets/{}", doc_id, object_name);
+
+    let upload_url = if let Some(store) = &server_state.store {
+        store
+            .generate_upload_presigned_url(&key)
+            .await
+            .map_err(|e| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    anyhow!("Failed to generate upload URL: {:?}", e),
+                )
+            })?
+    } else {
+        // For local development without store, return a dummy URL
+        format!("file://localhost/{}", key)
+    };
+
+    Ok(Json(ContentUploadResponse {
+        upload_url,
+        object_id: object_name,
+    }))
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -853,5 +1068,21 @@ mod test {
         assert_eq!(token.url, expected_url);
         assert_eq!(token.doc_id, doc_id);
         assert!(token.token.is_none());
+    }
+
+    #[test]
+    fn test_get_extension_from_content_type() {
+        // Test with actual extensions returned by mime_guess
+        let jpeg_ext = get_extension_from_content_type("image/jpeg");
+        assert!(jpeg_ext == ".jfif" || jpeg_ext == ".jpeg" || jpeg_ext == ".jpg");
+
+        assert_eq!(get_extension_from_content_type("image/png"), ".png");
+        assert_eq!(get_extension_from_content_type("video/mp4"), ".mp4");
+        assert_eq!(get_extension_from_content_type("application/pdf"), ".pdf");
+
+        let text_ext = get_extension_from_content_type("text/plain");
+        assert!(text_ext == ".txt" || text_ext == ".asm");
+
+        assert_eq!(get_extension_from_content_type("invalid/type"), ".bin");
     }
 }

@@ -24,6 +24,7 @@ pub struct S3Config {
 }
 
 const PRESIGNED_URL_DURATION: Duration = Duration::from_secs(60 * 60);
+const UPLOAD_PRESIGNED_URL_DURATION: Duration = Duration::from_secs(15 * 60); // 15 minutes
 
 pub struct S3Store {
     bucket: Bucket,
@@ -64,6 +65,16 @@ impl S3Store {
             credentials,
             prefix: config.bucket_prefix,
         }
+    }
+
+    pub async fn generate_upload_presigned_url(&self, key: &str) -> Result<String> {
+        self.init().await?;
+        let prefixed_key = self.prefixed_key(key);
+        let action = self
+            .bucket
+            .put_object(Some(&self.credentials), &prefixed_key);
+        let url = action.sign_with_time(UPLOAD_PRESIGNED_URL_DURATION, &OffsetDateTime::now_utc());
+        Ok(url.to_string())
     }
 
     async fn store_request<'a, A: S3Action<'a>>(
@@ -221,6 +232,10 @@ impl Store for S3Store {
     async fn exists(&self, key: &str) -> Result<bool> {
         self.exists(key).await
     }
+
+    async fn generate_upload_presigned_url(&self, key: &str) -> Result<String> {
+        self.generate_upload_presigned_url(key).await
+    }
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -244,5 +259,9 @@ impl Store for S3Store {
 
     async fn exists(&self, key: &str) -> Result<bool> {
         self.exists(key).await
+    }
+
+    async fn generate_upload_presigned_url(&self, key: &str) -> Result<String> {
+        self.generate_upload_presigned_url(key).await
     }
 }

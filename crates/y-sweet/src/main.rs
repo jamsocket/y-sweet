@@ -155,7 +155,14 @@ async fn main() -> Result<()> {
         .with_default_directive(LevelFilter::INFO.into())
         .from_env_lossy();
     tracing_subscriber::registry()
-        .with(tracing_subscriber::fmt::layer())
+        .with(
+            tracing_subscriber::fmt::layer()
+                .json()
+                .with_timer(tracing_subscriber::fmt::time::UtcTime::rfc_3339())
+                .with_target(true)
+                .with_thread_ids(true)
+                .with_thread_names(true),
+        )
         .with(filter)
         .init();
 
