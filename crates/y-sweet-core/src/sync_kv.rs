@@ -246,6 +246,35 @@ mod test {
             // For memory store, return empty list as it doesn't support listing
             Ok(Vec::new())
         }
+
+        async fn copy_document(&self, source_doc_id: &str, destination_doc_id: &str) -> Result<()> {
+            // For memory store, copy all keys that start with the source document prefix
+            let source_prefix = format!("{}/", source_doc_id);
+            let destination_prefix = format!("{}/", destination_doc_id);
+
+            // Get all keys that start with the source prefix
+            let keys_to_copy: Vec<(String, Vec<u8>)> = self
+                .data
+                .iter()
+                .filter_map(|entry| {
+                    let key = entry.key();
+                    if key.starts_with(&source_prefix) {
+                        let relative_path = &key[source_prefix.len()..];
+                        let destination_key = format!("{}{}", destination_prefix, relative_path);
+                        Some((destination_key, entry.value().clone()))
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+
+            // Copy all the data to the destination
+            for (key, value) in keys_to_copy {
+                self.data.insert(key, value);
+            }
+
+            Ok(())
+        }
     }
 
     #[derive(Default, Clone)]

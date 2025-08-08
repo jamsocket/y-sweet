@@ -105,6 +105,25 @@ pub struct DocCreationRequest {
     pub doc_id: Option<String>,
 }
 
+#[derive(Deserialize)]
+pub struct DocCopyRequest {
+    /// The ID of the destination document where the source document will be copied to
+    #[serde(rename = "destinationDocId")]
+    pub destination_doc_id: String,
+}
+
+#[derive(Serialize)]
+pub struct DocCopyResponse {
+    /// The ID of the source document that was copied
+    #[serde(rename = "sourceDocId")]
+    pub source_doc_id: String,
+    /// The ID of the destination document where the copy was created
+    #[serde(rename = "destinationDocId")]
+    pub destination_doc_id: String,
+    /// Whether the copy operation was successful
+    pub success: bool,
+}
+
 /// Validate that the document name contains only alphanumeric characters, dashes, and underscores.
 /// This is the same alphabet used by nanoid when we generate a document name.
 pub fn validate_doc_name(doc_name: &str) -> bool {

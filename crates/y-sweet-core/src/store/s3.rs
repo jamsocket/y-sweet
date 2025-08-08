@@ -273,6 +273,35 @@ impl S3Store {
             Err(e) => Err(e),
         }
     }
+
+    async fn copy_document(&self, source_doc_id: &str, destination_doc_id: &str) -> Result<()> {
+        self.init().await?;
+
+        // List all objects with the source document prefix
+        let source_prefix = format!("{}/", source_doc_id);
+        let source_objects = self.list_objects(&source_prefix).await?;
+
+        // Copy each object from source to destination (overwrite if exists)
+        for object_key in source_objects {
+            // Get the relative path from the source document
+            let relative_path = if object_key.starts_with(&source_prefix) {
+                &object_key[source_prefix.len()..]
+            } else {
+                continue; // Skip if not properly prefixed
+            };
+
+            // Create the destination key
+            let destination_key = format!("{}/{}", destination_doc_id, relative_path);
+
+            // Get the source object content
+            if let Some(content) = self.get(&object_key).await? {
+                // Set the content to the destination (this will overwrite if exists)
+                self.set(&destination_key, content).await?;
+            }
+        }
+
+        Ok(())
+    }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -309,6 +338,10 @@ impl Store for S3Store {
     async fn list_objects(&self, prefix: &str) -> Result<Vec<String>> {
         self.list_objects(prefix).await
     }
+
+    async fn copy_document(&self, source_doc_id: &str, destination_doc_id: &str) -> Result<()> {
+        self.copy_document(source_doc_id, destination_doc_id).await
+    }
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -344,5 +377,9 @@ impl Store for S3Store {
 
     async fn list_objects(&self, prefix: &str) -> Result<Vec<String>> {
         self.list_objects(prefix).await
+    }
+
+    async fn copy_document(&self, source_doc_id: &str, destination_doc_id: &str) -> Result<()> {
+        self.copy_document(source_doc_id, destination_doc_id).await
     }
 }

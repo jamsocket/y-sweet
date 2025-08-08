@@ -86,4 +86,54 @@ impl Store for FileSystemStore {
 
         Ok(objects)
     }
+
+    async fn copy_document(&self, source_doc_id: &str, destination_doc_id: &str) -> Result<()> {
+        use std::fs;
+        use std::io;
+
+        let source_path = self.base_path.join(source_doc_id);
+        let destination_path = self.base_path.join(destination_doc_id);
+
+        // Remove destination directory if it exists (to ensure clean copy)
+        if destination_path.exists() {
+            fs::remove_dir_all(&destination_path).map_err(|e| {
+                StoreError::ConnectionError(format!(
+                    "Failed to remove existing destination directory: {}",
+                    e
+                ))
+            })?;
+        }
+
+        // Create destination directory
+        fs::create_dir_all(&destination_path).map_err(|e| {
+            StoreError::ConnectionError(format!("Failed to create destination directory: {}", e))
+        })?;
+
+        // Copy all files and subdirectories recursively
+        fn copy_recursive(src: &std::path::Path, dst: &std::path::Path) -> io::Result<()> {
+            if src.is_file() {
+                fs::copy(src, dst)?;
+            } else if src.is_dir() {
+                fs::create_dir_all(dst)?;
+                for entry in fs::read_dir(src)? {
+                    let entry = entry?;
+                    let file_type = entry.file_type()?;
+                    let src_path = entry.path();
+                    let dst_path = dst.join(entry.file_name());
+
+                    if file_type.is_dir() {
+                        copy_recursive(&src_path, &dst_path)?;
+                    } else {
+                        fs::copy(&src_path, &dst_path)?;
+                    }
+                }
+            }
+            Ok(())
+        }
+
+        copy_recursive(&source_path, &destination_path)
+            .map_err(|e| StoreError::ConnectionError(format!("Failed to copy document: {}", e)))?;
+
+        Ok(())
+    }
 }

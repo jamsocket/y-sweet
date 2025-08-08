@@ -34,7 +34,8 @@ use url::Url;
 use y_sweet_core::{
     api_types::{
         validate_doc_name, AssetUrl, AssetsResponse, AuthDocRequest, Authorization, ClientToken,
-        ContentUploadRequest, ContentUploadResponse, DocCreationRequest, NewDocResponse,
+        ContentUploadRequest, ContentUploadResponse, DocCopyRequest, DocCopyResponse,
+        DocCreationRequest, NewDocResponse,
     },
     auth::{Authenticator, ExpirationTimeEpochMillis, DEFAULT_EXPIRATION_SECONDS},
     doc_connection::DocConnection,
@@ -431,6 +432,7 @@ impl Server {
                 "/d/:doc_id/ws/:doc_id2",
                 get(handle_socket_upgrade_full_path),
             )
+            .route("/d/:doc_id/copy", post(copy_document))
             .layer(middleware::from_fn(Self::logging_middleware))
             .with_state(self.clone())
     }
@@ -1066,56 +1068,117 @@ async fn get_doc_assets_single(
     headers: HeaderMap,
 ) -> Result<Json<AssetsResponse>, AppError> {
     let doc_id = server_state.get_single_doc_id()?;
+    let _authorization = get_authorization_from_plane_header(headers)?;
 
-    // the doc server is meant to be run in Plane, so we expect verified plane
-    // headers to be used for authorization.
-    let _ = get_authorization_from_plane_header(headers)?;
+    if let Some(store) = &server_state.store {
+        let mut assets = Vec::new();
 
-    let assets = if let Some(store) = &server_state.store {
-        // List assets in the assets directory
+        // List all objects in the document's assets directory
         let assets_prefix = format!("{}/assets/", doc_id);
-        let asset_names = store.list_objects(&assets_prefix).await.map_err(|e| {
-            (
+        let objects = store.list_objects(&assets_prefix).await.map_err(|e| {
+            AppError(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                anyhow!("Failed to list assets: {:?}", e),
+                anyhow!("Failed to list assets: {}", e),
             )
         })?;
 
-        // Generate signed URLs for each asset
-        let mut asset_urls = Vec::new();
-        for filename in asset_names {
-            // Extract asset_id from filename (remove extension)
-            if let Some(asset_id) = extract_asset_id_from_filename(&filename) {
-                let key = format!("{}/assets/{}", doc_id, filename);
-                let download_url =
-                    store
-                        .generate_download_presigned_url(&key)
-                        .await
-                        .map_err(|e| {
-                            (
-                                StatusCode::INTERNAL_SERVER_ERROR,
-                                anyhow!(
-                                    "Failed to generate download URL for {}: {:?}",
-                                    filename,
-                                    e
-                                ),
-                            )
-                        })?;
+        for object_key in objects {
+            // Extract asset ID from the object key
+            if let Some(asset_id) = extract_asset_id_from_filename(&object_key) {
+                let download_url = store
+                    .generate_download_presigned_url(&object_key)
+                    .await
+                    .map_err(|e| {
+                        AppError(
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            anyhow!("Failed to generate download URL: {}", e),
+                        )
+                    })?;
 
-                asset_urls.push(AssetUrl {
+                assets.push(AssetUrl {
                     asset_id,
                     download_url,
                 });
             }
         }
 
-        asset_urls
+        Ok(Json(AssetsResponse { assets }))
     } else {
-        // For local development without store, return empty list
-        Vec::new()
-    };
+        Err(AppError(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            anyhow!("No store configured"),
+        ))
+    }
+}
 
-    Ok(Json(AssetsResponse { assets }))
+async fn copy_document(
+    Path(source_doc_id): Path<String>,
+    State(server_state): State<Arc<Server>>,
+    auth_header: Option<TypedHeader<headers::Authorization<headers::authorization::Bearer>>>,
+    Json(body): Json<DocCopyRequest>,
+) -> Result<Json<DocCopyResponse>, AppError> {
+    // Check authentication - this is an admin-only API
+    server_state.check_auth(auth_header)?;
+
+    let destination_doc_id = body.destination_doc_id;
+
+    // Validate document IDs
+    if !validate_doc_name(&source_doc_id) {
+        return Err(AppError(
+            StatusCode::BAD_REQUEST,
+            anyhow!("Invalid source document ID"),
+        ));
+    }
+
+    if !validate_doc_name(&destination_doc_id) {
+        return Err(AppError(
+            StatusCode::BAD_REQUEST,
+            anyhow!("Invalid destination document ID"),
+        ));
+    }
+
+    // Check if source document exists
+    if !server_state.doc_exists(&source_doc_id).await {
+        return Err(AppError(
+            StatusCode::NOT_FOUND,
+            anyhow!("Source document not found"),
+        ));
+    }
+
+    // Perform the copy operation (will overwrite if destination exists)
+    if let Some(store) = &server_state.store {
+        store
+            .copy_document(&source_doc_id, &destination_doc_id)
+            .await
+            .map_err(|e| {
+                AppError(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    anyhow!("Failed to copy document: {}", e),
+                )
+            })?;
+
+        // Load the destination document into memory (or reload if it already exists)
+        server_state
+            .load_doc(&destination_doc_id)
+            .await
+            .map_err(|e| {
+                AppError(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    anyhow!("Failed to load copied document: {}", e),
+                )
+            })?;
+
+        Ok(Json(DocCopyResponse {
+            source_doc_id,
+            destination_doc_id,
+            success: true,
+        }))
+    } else {
+        Err(AppError(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            anyhow!("No store configured"),
+        ))
+    }
 }
 
 #[cfg(test)]

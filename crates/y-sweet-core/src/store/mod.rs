@@ -28,6 +28,7 @@ pub trait Store: 'static {
     async fn generate_upload_presigned_url(&self, key: &str) -> Result<String>;
     async fn generate_download_presigned_url(&self, key: &str) -> Result<String>;
     async fn list_objects(&self, prefix: &str) -> Result<Vec<String>>;
+    async fn copy_document(&self, source_doc_id: &str, destination_doc_id: &str) -> Result<()>;
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -41,4 +42,5 @@ pub trait Store: Send + Sync {
     async fn generate_upload_presigned_url(&self, key: &str) -> Result<String>;
     async fn generate_download_presigned_url(&self, key: &str) -> Result<String>;
     async fn list_objects(&self, prefix: &str) -> Result<Vec<String>>;
+    async fn copy_document(&self, source_doc_id: &str, destination_doc_id: &str) -> Result<()>;
 }
