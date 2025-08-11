@@ -42,7 +42,7 @@ enum ServSubcommand {
         port: u16,
         #[clap(long, env = "Y_SWEET_HOST")]
         host: Option<IpAddr>,
-        #[clap(long, default_value = "10", env = "Y_SWEET_CHECKPOINT_FREQ_SECONDS")]
+        #[clap(long, default_value = "1", env = "Y_SWEET_CHECKPOINT_FREQ_SECONDS")]
         checkpoint_freq_seconds: u64,
 
         #[clap(long, env = "Y_SWEET_AUTH")]
