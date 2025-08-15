@@ -36,7 +36,7 @@ jobs:
             echo "ASSUME_ROLE=${{ secrets.STG_ASSUME_ROLE }}" >> $GITHUB_ENV
             echo "SERVICE_NUM=${{ vars.STG_SERVICE_NUM }}" >> $GITHUB_ENV
           elif [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
-            echo "ENV=prd" >> $GITHUB_ENV
+            echo "ENVIRONMENT=prd" >> $GITHUB_ENV
             echo "ASSUME_ROLE=${{ secrets.PRD_ASSUME_ROLE }}" >> $GITHUB_ENV
             echo "SERVICE_NUM=${{ vars.PRD_SERVICE_NUM }}" >> $GITHUB_ENV
           fi
