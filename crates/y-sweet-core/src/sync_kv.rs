@@ -30,14 +30,26 @@ impl SyncKv {
 
         let data = if let Some(store) = &store {
             if let Some(snapshot) = store.get(&key).await.context("Failed to get from store.")? {
-                tracing::info!(size=?snapshot.len(), "Loaded snapshot");
+                tracing::debug!(size=?snapshot.len(), "Loaded snapshot for key: {}", key);
                 bincode::deserialize(&snapshot).context("Failed to deserialize.")?
             } else {
+                tracing::debug!("No snapshot found for key: {}, creating new document", key);
                 BTreeMap::new()
             }
         } else {
+            tracing::debug!(
+                "No store configured for key: {}, creating new document",
+                key
+            );
             BTreeMap::new()
         };
+
+        let data_len = data.len();
+        tracing::debug!(
+            "Created SyncKv with {} key-value pairs for key: {}",
+            data_len,
+            key
+        );
 
         Ok(Self {
             data: Arc::new(Mutex::new(data)),
@@ -63,7 +75,7 @@ impl SyncKv {
                 bincode::serialize(&*data)?
             };
 
-            tracing::info!(size=?snapshot.len(), "Persisting snapshot");
+            tracing::debug!(size=?snapshot.len(), "Persisting snapshot");
             store.set(&self.key, snapshot).await?;
         }
         self.dirty.store(false, Ordering::Relaxed);

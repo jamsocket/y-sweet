@@ -10,7 +10,7 @@ use std::{
 use tokio::io::AsyncReadExt;
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
-use tracing::metadata::LevelFilter;
+
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 use url::Url;
 use y_sweet::cli::{print_auth_message, print_server_url};
@@ -151,9 +151,13 @@ fn get_store_from_opts(store_path: &str) -> Result<Box<dyn Store>> {
 async fn main() -> Result<()> {
     let opts = Opts::parse();
 
-    let filter = EnvFilter::builder()
-        .with_default_directive(LevelFilter::INFO.into())
-        .from_env_lossy();
+    // Logging: default WARN, override via Y_SWEET_LOG (e.g. "info", "debug", "trace" or full filter spec)
+    // Example: Y_SWEET_LOG=y_sweet=info,y_sweet_core=info,hyper=warn
+    let filter = if let Ok(spec) = std::env::var("Y_SWEET_LOG") {
+        EnvFilter::new(spec)
+    } else {
+        EnvFilter::new("info")
+    };
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::fmt::layer()

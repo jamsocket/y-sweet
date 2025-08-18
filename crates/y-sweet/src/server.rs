@@ -206,14 +206,14 @@ impl Server {
                             tracing::debug!("doc is still alive - it has {} references", awareness.strong_count());
                         } else {
                             checkpoints_without_refs += 1;
-                            tracing::info!("doc has only one reference, candidate for GC. checkpoints_without_refs: {}", checkpoints_without_refs);
+                            tracing::debug!("doc has only one reference, candidate for GC. checkpoints_without_refs: {}", checkpoints_without_refs);
                         }
                     } else {
                         break;
                     }
 
                     if checkpoints_without_refs >= 2 {
-                        tracing::info!("GCing doc");
+                        tracing::debug!("GCing doc");
                         if let Some(doc) = docs.get(&doc_id) {
                             doc.sync_kv().shutdown();
                         }
@@ -227,7 +227,7 @@ impl Server {
                 }
             };
         }
-        tracing::info!("Exiting gc_loop");
+        tracing::debug!("Exiting gc_loop");
     }
 
     async fn doc_persistence_worker(
@@ -248,12 +248,12 @@ impl Server {
                 }
             };
 
-            tracing::info!("Received signal. done: {}", is_done);
+            tracing::debug!("Received signal. done: {}", is_done);
             let now = std::time::Instant::now();
             if !is_done && now - last_save < checkpoint_freq {
                 let sleep = tokio::time::sleep(checkpoint_freq - (now - last_save));
                 tokio::pin!(sleep);
-                tracing::info!("Throttling.");
+                tracing::debug!("Throttling.");
 
                 loop {
                     tokio::select! {
@@ -261,25 +261,25 @@ impl Server {
                             break;
                         }
                         v = recv.recv() => {
-                            tracing::info!("Received dirty while throttling.");
+                            tracing::debug!("Received dirty while throttling.");
                             if v.is_none() {
                                 break;
                             }
                         }
                         _ = cancellation_token.cancelled() => {
-                            tracing::info!("Received cancellation while throttling.");
+                            tracing::debug!("Received cancellation while throttling.");
                             break;
                         }
 
                     }
-                    tracing::info!("Done throttling.");
+                    tracing::debug!("Done throttling.");
                 }
             }
-            tracing::info!("Persisting.");
+            tracing::debug!("Persisting.");
             if let Err(e) = sync_kv.persist().await {
                 tracing::error!(?e, "Error persisting.");
             } else {
-                tracing::info!("Done persisting.");
+                tracing::debug!("Done persisting.");
             }
             last_save = std::time::Instant::now();
 
@@ -287,7 +287,7 @@ impl Server {
                 break;
             }
         }
-        tracing::info!("Terminating loop for {}", doc_id);
+        tracing::debug!("Terminating loop for {}", doc_id);
     }
 
     pub async fn get_or_create_doc(
@@ -295,7 +295,7 @@ impl Server {
         doc_id: &str,
     ) -> Result<MappedRef<String, DocWithSyncKv, DocWithSyncKv>> {
         if !self.docs.contains_key(doc_id) {
-            tracing::info!(doc_id=?doc_id, "Loading doc");
+            tracing::debug!(doc_id=?doc_id, "Loading doc");
             self.load_doc(doc_id).await?;
         }
 
@@ -1154,17 +1154,6 @@ async fn copy_document(
                 AppError(
                     StatusCode::INTERNAL_SERVER_ERROR,
                     anyhow!("Failed to copy document: {}", e),
-                )
-            })?;
-
-        // Load the destination document into memory (or reload if it already exists)
-        server_state
-            .load_doc(&destination_doc_id)
-            .await
-            .map_err(|e| {
-                AppError(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    anyhow!("Failed to load copied document: {}", e),
                 )
             })?;
 

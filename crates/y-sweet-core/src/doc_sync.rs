@@ -37,9 +37,17 @@ impl DocWithSyncKv {
 
         {
             let mut txn = doc.transact_mut();
-            sync_kv
-                .load_doc(DOC_NAME, &mut txn)
-                .map_err(|_| anyhow!("Failed to load doc"))?;
+            tracing::debug!("Attempting to load existing document data for {}", key);
+
+            match sync_kv.load_doc(DOC_NAME, &mut txn) {
+                Ok(result) => {
+                    tracing::debug!("Successfully loaded document data, result: {:?}", result);
+                }
+                Err(e) => {
+                    tracing::error!("Failed to load document data: {:?}", e);
+                    return Err(anyhow!("Failed to load doc: {:?}", e));
+                }
+            }
         }
 
         let subscription = {
