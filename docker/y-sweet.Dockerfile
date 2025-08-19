@@ -1,5 +1,5 @@
 # ---------- Build Stage ----------
-FROM rust:1.78 as builder
+FROM rust:1.88 as builder
 
 WORKDIR /app
 COPY crates/ ./
