@@ -168,7 +168,7 @@ async fn main() -> Result<()> {
                 .with_thread_names(false)
                 .with_file(false)
                 .with_line_number(false)
-                .with_current_span(false)
+                .with_current_span(true)
                 .with_span_list(false)
                 .with_span_events(tracing_subscriber::fmt::format::FmtSpan::NONE),
         )
