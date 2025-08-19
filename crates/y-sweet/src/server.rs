@@ -18,6 +18,7 @@ use axum_extra::typed_header::TypedHeader;
 use cuid::cuid2;
 use dashmap::{mapref::one::MappedRef, DashMap};
 use futures::{SinkExt, StreamExt};
+use http_body_util::BodyExt;
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::{
@@ -58,12 +59,17 @@ pub struct AppError(StatusCode, anyhow::Error);
 impl std::error::Error for AppError {}
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
-        // Log the error with structured logging
+        // Log the error with detailed message at top level
+        let error_message = format!("{}", self.1);
+        let error_debug = format!("{:?}", self.1);
+
         error!(
+            message = %error_message,
             event = "app_error",
             status_code = %self.0,
             error = %self.1,
-            error_debug = ?self.1
+            error_debug = %error_debug,
+            error_type = "application_error"
         );
         (self.0, format!("Something went wrong: {}", self.1)).into_response()
     }
@@ -133,9 +139,17 @@ impl Server {
 
     pub async fn create_doc(&self) -> Result<String> {
         let doc_id = nanoid::nanoid!();
-        info!(event = "document_creation_started", doc_id = %doc_id);
+        info!(
+            message = format!("Document creation started: {}", doc_id),
+            event = "document_creation_started",
+            doc_id = %doc_id
+        );
         self.load_doc(&doc_id).await?;
-        info!(event = "document_created", doc_id = %doc_id);
+        info!(
+            message = format!("Document created: {}", doc_id),
+            event = "document_created",
+            doc_id = %doc_id
+        );
         Ok(doc_id)
     }
 
@@ -271,9 +285,13 @@ impl Server {
             }
             tracing::debug!("Persisting.");
             if let Err(e) = sync_kv.persist().await {
-                tracing::error!(?e, "Error persisting.");
+                tracing::error!(
+                    message = format!("Error persisting: {}", e),
+                    event = "persist_error",
+                    error = ?e
+                );
             } else {
-                tracing::debug!("Done persisting.");
+                tracing::debug!(message = "Done persisting", event = "persist_completed");
             }
             last_save = std::time::Instant::now();
 
@@ -281,7 +299,11 @@ impl Server {
                 break;
             }
         }
-        tracing::debug!("Terminating loop for {}", doc_id);
+        tracing::debug!(
+            message = format!("Terminating loop for: {}", doc_id),
+            event = "doc_loop_terminated",
+            doc_id = %doc_id
+        );
     }
 
     pub async fn get_or_create_doc(
@@ -289,7 +311,11 @@ impl Server {
         doc_id: &str,
     ) -> Result<MappedRef<String, DocWithSyncKv, DocWithSyncKv>> {
         if !self.docs.contains_key(doc_id) {
-            tracing::debug!(doc_id=?doc_id, "Loading doc");
+            tracing::debug!(
+                message = format!("Loading doc: {}", doc_id),
+                event = "doc_loading_started",
+                doc_id = ?doc_id
+            );
             self.load_doc(doc_id).await?;
         }
 
@@ -323,6 +349,54 @@ impl Server {
         let start = Instant::now();
         let method = req.method().clone();
         let uri = req.uri().clone();
+
+        // Extract path parameters for better logging
+        let path_params = if let Some(path) = uri.path().split('/').collect::<Vec<_>>().get(2..) {
+            path.join("/")
+        } else {
+            "".to_string()
+        };
+
+        // Extract and log request body for POST/PUT requests
+        let (request_body, req) = if method == "POST" || method == "PUT" {
+            // Clone the request to avoid consuming it
+            let (parts, body) = req.into_parts();
+            let bytes = match body.collect().await {
+                Ok(collected) => collected.to_bytes(),
+                Err(_) => Bytes::new(),
+            };
+
+            // Process body content for logging
+            let request_body = if !bytes.is_empty() {
+                // Try to parse as JSON for better readability
+                if let Ok(json_value) = serde_json::from_slice::<serde_json::Value>(&bytes) {
+                    Some(json_value) // Store the parsed JSON value directly
+                } else {
+                    // For non-JSON content, show first 1000 characters
+                    let body_str = String::from_utf8_lossy(&bytes);
+                    if body_str.len() > 1000 {
+                        Some(serde_json::Value::String(format!(
+                            "{}... (truncated)",
+                            &body_str[..1000]
+                        )))
+                    } else {
+                        Some(serde_json::Value::String(body_str.to_string()))
+                    }
+                }
+            } else {
+                None
+            };
+
+            // Reconstruct the request for the next middleware
+            let body_stream = axum::body::Body::from(bytes);
+            let req = Request::from_parts(parts, body_stream);
+
+            (request_body, req)
+        } else {
+            (None, req)
+        };
+
+        // Now extract headers after req has been potentially reconstructed
         let user_agent = req
             .headers()
             .get("user-agent")
@@ -333,13 +407,6 @@ impl Server {
             .get::<std::net::SocketAddr>()
             .map(|addr| addr.to_string())
             .unwrap_or_else(|| "unknown".to_string());
-
-        // Extract path parameters for better logging
-        let path_params = if let Some(path) = uri.path().split('/').collect::<Vec<_>>().get(2..) {
-            path.join("/")
-        } else {
-            "".to_string()
-        };
 
         let span = span!(
             Level::INFO,
@@ -353,45 +420,82 @@ impl Server {
 
         let _enter = span.enter();
 
-        info!(
-            event = "request_started",
-            method = %method,
-            uri = %uri,
-            user_agent = %user_agent,
-            remote_addr = %remote_addr,
-            path = %path_params
-        );
+        // Store variables before moving req
+        let method_clone = method.clone();
+        let uri_clone = uri.clone();
+        let user_agent_clone = user_agent.to_string();
+        let remote_addr_clone = remote_addr.clone();
+        let path_params_clone = path_params.clone();
+        let request_body_clone = request_body.clone();
 
         let response = next.run(req).await;
         let status = response.status();
         let duration = start.elapsed();
 
-        // Log response with appropriate level based on status code
+        // Single log per request with message at top level
+        let message = if status.is_server_error() {
+            format!(
+                "Request failed with server error: {} {} - {}ms",
+                method_clone,
+                uri_clone,
+                duration.as_millis()
+            )
+        } else if status.is_client_error() {
+            format!(
+                "Request failed with client error: {} {} - {}ms",
+                method_clone,
+                uri_clone,
+                duration.as_millis()
+            )
+        } else {
+            format!(
+                "Request completed: {} {} - {}ms",
+                method_clone,
+                uri_clone,
+                duration.as_millis()
+            )
+        };
+
         if status.is_server_error() {
             error!(
+                message = %message,
                 event = "request_failed",
-                method = %method,
-                uri = %uri,
+                method = %method_clone,
+                uri = %uri_clone,
                 status = %status,
                 duration_ms = %duration.as_millis(),
-                error_type = "server_error"
+                error_type = "server_error",
+                remote_addr = %remote_addr_clone,
+                path = %path_params_clone,
+                user_agent = %user_agent_clone,
+                request_body = %request_body_clone.as_ref().map(|b| serde_json::to_string(b).unwrap_or_default()).unwrap_or_default(),
             );
         } else if status.is_client_error() {
             warn!(
+                message = %message,
                 event = "request_failed",
-                method = %method,
-                uri = %uri,
+                method = %method_clone,
+                uri = %uri_clone,
                 status = %status,
                 duration_ms = %duration.as_millis(),
-                error_type = "client_error"
+                error_type = "client_error",
+                remote_addr = %remote_addr_clone,
+                path = %path_params_clone,
+                user_agent = %user_agent_clone,
+                request_body = %request_body_clone.as_ref().map(|b| serde_json::to_string(b).unwrap_or_default()).unwrap_or_default(),
             );
         } else {
             info!(
+                message = %message,
                 event = "request_completed",
-                method = %method,
-                uri = %uri,
+                method = %method_clone,
+                uri = %uri_clone,
                 status = %status,
-                duration_ms = %duration.as_millis()
+                duration_ms = %duration.as_millis(),
+                remote_addr = %remote_addr_clone,
+                path = %path_params_clone,
+                user_agent = %user_agent_clone,
+                request_body = %request_body_clone.as_ref().map(|b| serde_json::to_string(b).unwrap_or_default()).unwrap_or_default(),
             );
         }
 
@@ -522,7 +626,11 @@ async fn get_doc_as_update(
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let update = dwskv.as_update();
-    tracing::debug!("update: {:?}", update);
+    tracing::debug!(
+        message = format!("update: {:?}", update),
+        event = "update_debug",
+        update = ?update
+    );
     Ok(update.into_response())
 }
 
@@ -685,6 +793,7 @@ async fn handle_socket(
     let (send, mut recv) = channel(1024);
 
     info!(
+        message = "WebSocket connected",
         event = "websocket_connected",
         authorization_type = %match authorization {
             Authorization::Full => "Full",
@@ -695,7 +804,12 @@ async fn handle_socket(
     tokio::spawn(async move {
         while let Some(msg) = recv.recv().await {
             if let Err(e) = sink.send(Message::Binary(msg)).await {
-                error!(event = "websocket_send_error", error = %e);
+                let error_message = format!("WebSocket send error: {}", e);
+                error!(
+                    message = %error_message,
+                    event = "websocket_send_error",
+                    error = %e
+                );
                 break;
             }
         }
@@ -703,7 +817,12 @@ async fn handle_socket(
 
     let connection = DocConnection::new(awareness, authorization, move |bytes| {
         if let Err(e) = send.try_send(bytes.to_vec()) {
-            warn!(event = "websocket_message_error", error = %e);
+            let error_message = format!("WebSocket message error: {}", e);
+            warn!(
+                message = %error_message,
+                event = "websocket_message_error",
+                error = %e
+            );
         }
     });
 
@@ -717,27 +836,53 @@ async fn handle_socket(
                         bytes
                     }
                     Ok(Message::Close(_)) => {
-                        info!(event = "websocket_closed", total_messages = %message_count, reason = "client_close");
+                        info!(
+                            message = "WebSocket closed by client",
+                            event = "websocket_closed",
+                            total_messages = %message_count,
+                            reason = "client_close"
+                        );
                         break;
                     }
                     Err(e) => {
                         // The stream will complain about things like
                         // connections being lost without handshake.
-                        warn!(event = "websocket_stream_error", error = %e);
+                        let error_message = format!("WebSocket stream error: {}", e);
+                        warn!(
+                            message = %error_message,
+                            event = "websocket_stream_error",
+                            error = %e
+                        );
                         continue;
                     }
                     msg => {
-                        warn!(event = "websocket_invalid_message", message = ?msg);
+                        let error_message = format!("WebSocket invalid message: {:?}", msg);
+                        warn!(
+                            message = %error_message,
+                            event = "websocket_invalid_message",
+                            message = ?msg
+                        );
                         continue;
                     }
                 };
 
                 if let Err(e) = connection.send(&msg).await {
-                    error!(event = "websocket_message_handling_error", error = %e, message_count = %message_count);
+                    let error_message = format!("WebSocket message handling error: {}", e);
+                    error!(
+                        message = %error_message,
+                        event = "websocket_message_handling_error",
+                        error = %e,
+                        message_count = %message_count
+                    );
                 }
             }
             _ = cancellation_token.cancelled() => {
-                info!(event = "websocket_closed", total_messages = %message_count, reason = "server_shutdown");
+                info!(
+                    message = "WebSocket closed due to server shutdown",
+                    event = "websocket_closed",
+                    total_messages = %message_count,
+                    reason = "server_shutdown"
+                );
                 break;
             }
         }
@@ -764,6 +909,7 @@ async fn check_store_deprecated(
     State(server_state): State<Arc<Server>>,
 ) -> Result<Json<Value>, AppError> {
     warn!(
+        message = "Deprecated endpoint used",
         event = "deprecated_endpoint_used",
         endpoint = "GET /check_store",
         suggestion = "use POST /check_store with an empty body instead"
@@ -792,14 +938,27 @@ async fn new_doc(
             .get_or_create_doc(doc_id.as_str())
             .await
             .map_err(|e| {
-                tracing::error!(?e, "Failed to create doc");
+                let error_message = format!("Failed to create doc: {}", e);
+                tracing::error!(
+                    message = %error_message,
+                    event = "doc_creation_failed",
+                    error = %e,
+                    error_debug = ?e,
+                    doc_id = %doc_id
+                );
                 (StatusCode::INTERNAL_SERVER_ERROR, e)
             })?;
 
         doc_id
     } else {
         server_state.create_doc().await.map_err(|d| {
-            tracing::error!(?d, "Failed to create doc");
+            let error_message = format!("Failed to create doc: {}", d);
+            tracing::error!(
+                message = %error_message,
+                event = "doc_creation_failed",
+                error = %d,
+                error_debug = ?d
+            );
             (StatusCode::INTERNAL_SERVER_ERROR, d)
         })?
     };

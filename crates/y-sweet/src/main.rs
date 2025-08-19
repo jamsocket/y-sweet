@@ -163,9 +163,14 @@ async fn main() -> Result<()> {
             tracing_subscriber::fmt::layer()
                 .json()
                 .with_timer(tracing_subscriber::fmt::time::UtcTime::rfc_3339())
-                .with_target(true)
-                .with_thread_ids(true)
-                .with_thread_names(true),
+                .with_target(false)
+                .with_thread_ids(false)
+                .with_thread_names(false)
+                .with_file(false)
+                .with_line_number(false)
+                .with_current_span(false)
+                .with_span_list(false)
+                .with_span_events(tracing_subscriber::fmt::format::FmtSpan::NONE),
         )
         .with(filter)
         .init();
@@ -183,7 +188,10 @@ async fn main() -> Result<()> {
             let auth = if let Some(auth) = auth {
                 Some(Authenticator::new(auth)?)
             } else {
-                tracing::warn!("No auth key set. Only use this for local development!");
+                tracing::warn!(
+                    message = "No auth key set. Only use this for local development!",
+                    event = "auth_warning"
+                );
                 None
             };
 
@@ -200,7 +208,10 @@ async fn main() -> Result<()> {
                 store.init().await?;
                 Some(store)
             } else {
-                tracing::warn!("No store set. Documents will be stored in memory only.");
+                tracing::warn!(
+                    message = "No store set. Documents will be stored in memory only.",
+                    event = "store_warning"
+                );
                 None
             };
 
@@ -225,17 +236,27 @@ async fn main() -> Result<()> {
                 server.serve(listener, prod).await.unwrap();
             });
 
-            tracing::info!("Listening on ws://{}", addr);
+            tracing::info!(
+                message = format!("Listening on ws://{}", addr),
+                event = "server_started",
+                address = %addr
+            );
 
             tokio::signal::ctrl_c()
                 .await
                 .expect("Failed to install CTRL+C signal handler");
 
-            tracing::info!("Shutting down.");
+            tracing::info!(
+                message = "Shutting down.",
+                event = "server_shutdown_started"
+            );
             token.cancel();
 
             handle.await?;
-            tracing::info!("Server shut down.");
+            tracing::info!(
+                message = "Server shut down.",
+                event = "server_shutdown_completed"
+            );
         }
         ServSubcommand::GenAuth { json } => {
             let auth = Authenticator::gen_key()?;
@@ -334,18 +355,30 @@ async fn main() -> Result<()> {
                 server.serve_doc(listener, false).await.unwrap();
             });
 
-            tracing::info!("Listening on http://{}", addr);
+            tracing::info!(
+                message = format!("Listening on ws://{}", addr),
+                event = "doc_server_started",
+                address = %addr
+            );
 
             tokio::select! {
                 _ = tokio::signal::ctrl_c() => {
-                    tracing::info!("Received Ctrl+C, shutting down.");
+                    tracing::info!(
+                        message = "Received Ctrl+C, shutting down.",
+                        event = "shutdown_signal_received",
+                        signal = "ctrl_c"
+                    );
                 },
                 _ = async {
                     #[cfg(unix)]
                     match tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate()) {
                         Ok(mut signal) => signal.recv().await,
                         Err(e) => {
-                            tracing::error!("Failed to install SIGTERM handler: {}", e);
+                            tracing::error!(
+                                message = format!("Failed to install SIGTERM handler: {}", e),
+                                event = "sigterm_handler_error",
+                                error = %e
+                            );
                             std::future::pending::<Option<()>>().await
                         }
                     }
@@ -353,12 +386,24 @@ async fn main() -> Result<()> {
                     #[cfg(not(unix))]
                     std::future::pending::<Option<()>>().await
                 } => {
-                    tracing::info!("Received SIGTERM, shutting down.");
+                    tracing::info!(
+                        message = "Received SIGTERM, shutting down.",
+                        event = "shutdown_signal_received",
+                        signal = "sigterm"
+                    );
                 }
             }
 
             cancellation_token.cancel();
-            tracing::info!("Server shut down.");
+            tracing::info!(
+                message = "Shutting down.",
+                event = "doc_server_shutdown_started"
+            );
+
+            tracing::info!(
+                message = "Server shut down.",
+                event = "doc_server_shutdown_completed"
+            );
         }
     }
 
