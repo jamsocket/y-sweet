@@ -29,7 +29,7 @@ use tokio::{
     sync::mpsc::{channel, Receiver},
 };
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
-use tracing::{error, info, span, warn, Instrument, Level};
+use tracing::{error, info, span, warn, Level};
 use url::Url;
 use y_sweet_core::{
     api_types::{
@@ -160,27 +160,21 @@ impl Server {
             let cancellation_token = self.cancellation_token.clone();
 
             // Spawn a task to save the document to the store when it changes.
-            self.doc_worker_tracker.spawn(
-                Self::doc_persistence_worker(
-                    recv,
-                    sync_kv,
-                    checkpoint_freq,
-                    doc_id.clone(),
-                    cancellation_token.clone(),
-                )
-                .instrument(span!(Level::INFO, "save_loop", doc_id=?doc_id)),
-            );
+            self.doc_worker_tracker.spawn(Self::doc_persistence_worker(
+                recv,
+                sync_kv,
+                checkpoint_freq,
+                doc_id.clone(),
+                cancellation_token.clone(),
+            ));
 
             if self.doc_gc {
-                self.doc_worker_tracker.spawn(
-                    Self::doc_gc_worker(
-                        self.docs.clone(),
-                        doc_id.clone(),
-                        checkpoint_freq,
-                        cancellation_token,
-                    )
-                    .instrument(span!(Level::INFO, "gc_loop", doc_id=?doc_id)),
-                );
+                self.doc_worker_tracker.spawn(Self::doc_gc_worker(
+                    self.docs.clone(),
+                    doc_id.clone(),
+                    checkpoint_freq,
+                    cancellation_token,
+                ));
             }
         }
 

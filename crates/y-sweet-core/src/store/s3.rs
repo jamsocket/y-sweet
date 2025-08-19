@@ -282,19 +282,15 @@ impl S3Store {
         let source_objects = self.list_objects(&source_prefix).await?;
 
         // Copy each object from source to destination (overwrite if exists)
-        for object_key in source_objects {
-            // Get the relative path from the source document
-            let relative_path = if object_key.starts_with(&source_prefix) {
-                &object_key[source_prefix.len()..]
-            } else {
-                continue; // Skip if not properly prefixed
-            };
+        for relative_path in source_objects {
+            // Create the source key (with prefix if configured)
+            let source_key = format!("{}/{}", source_doc_id, relative_path);
 
-            // Create the destination key
+            // Create the destination key (with prefix if configured)
             let destination_key = format!("{}/{}", destination_doc_id, relative_path);
 
-            // Get the source object content
-            if let Some(content) = self.get(&object_key).await? {
+            // Get the source object content using the full source key
+            if let Some(content) = self.get(&source_key).await? {
                 // Set the content to the destination (this will overwrite if exists)
                 self.set(&destination_key, content).await?;
             }
