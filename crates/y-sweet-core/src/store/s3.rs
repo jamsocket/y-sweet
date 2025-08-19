@@ -1,381 +1,429 @@
 use super::{Result, StoreError};
 use crate::store::Store;
 use async_trait::async_trait;
-use bytes::Bytes;
-use reqwest::{Client, Method, Response, StatusCode, Url};
-use rusty_s3::{Bucket, Credentials, S3Action};
-use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
 use std::time::Duration;
-use time::OffsetDateTime;
+
+use aws_credential_types::Credentials as AwsCredentials;
+use aws_sdk_s3::primitives::ByteStream;
+use aws_sdk_s3::{Client, Config};
+use aws_types::region::Region;
+
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct S3Config {
     pub key: String,
-    pub endpoint: String,
     pub secret: String,
     pub token: Option<String>,
     pub bucket: String,
     pub region: String,
-    pub bucket_prefix: Option<String>,
-
-    // Use old path-style URLs, needed to support some S3-compatible APIs (including some minio setups)
-    pub path_style: bool,
+    pub endpoint: String, // 例: "https://s3.amazonaws.com" or "http://localhost:9000"
+    pub bucket_prefix: Option<String>, // 例: Some("app-prefix")
+    pub path_style: bool, // MinIO などで true 推奨
 }
 
-const PRESIGNED_URL_DURATION: Duration = Duration::from_secs(60 * 60);
-const UPLOAD_PRESIGNED_URL_DURATION: Duration = Duration::from_secs(15 * 60); // 15 minutes
+const PRESIGNED_URL_DURATION: Duration = Duration::from_secs(60 * 60); // 60 min
+const UPLOAD_PRESIGNED_URL_DURATION: Duration = Duration::from_secs(15 * 60); // 15 min
 
 pub struct S3Store {
-    bucket: Bucket,
-    _bucket_checked: OnceLock<()>,
     client: Client,
-    credentials: Credentials,
+    bucket: String,
     prefix: Option<String>,
+    _bucket_checked: OnceLock<()>,
 }
 
 impl S3Store {
-    pub fn new(config: S3Config) -> Self {
-        let credentials = if let Some(token) = config.token {
-            Credentials::new_with_token(config.key, config.secret, token)
-        } else {
-            Credentials::new(config.key, config.secret)
-        };
-        let endpoint: Url = config.endpoint.parse().expect("endpoint is a valid url");
+    /// 公式 SDK を使った初期化
+    pub async fn new(config: S3Config) -> Result<Self> {
+        // 既定のローダにリージョンを設定
+        let loader = aws_config::from_env().region(Region::new(config.region.clone()));
+        let base = loader.load().await;
 
-        let path_style = if config.path_style {
-            rusty_s3::UrlStyle::Path
-        } else if endpoint.host_str() == Some("localhost") {
-            // Since this was the old behavior before we added AWS_S3_USE_PATH_STYLE,
-            // we continue to support it, but complain a bit.
-            tracing::warn!("Inferring path-style URLs for localhost for backwards-compatibility. This behavior may change in the future. Set AWS_S3_USE_PATH_STYLE=true to ensure that path-style URLs are used.");
-            rusty_s3::UrlStyle::Path
-        } else {
-            rusty_s3::UrlStyle::VirtualHost
-        };
+        // Explicit credentials (not needed if environment variables or ~/.aws exist, but useful for compatible S3 and CI)
+        let creds = AwsCredentials::new(
+            config.key,
+            config.secret,
+            config.token,
+            None,     // expires_after
+            "manual", // provider_name
+        );
 
-        let bucket = Bucket::new(endpoint, path_style, config.bucket, config.region)
-            .expect("Url has a valid scheme and host");
-        let client = Client::new();
+        let mut builder = aws_sdk_s3::config::Builder::from(&base)
+            .region(Region::new(config.region))
+            .credentials_provider(creds)
+            .force_path_style(config.path_style);
 
-        S3Store {
-            bucket,
-            _bucket_checked: OnceLock::new(),
+        // Override endpoint for compatible S3 or local (MinIO) usage
+        if !config.endpoint.is_empty() {
+            builder = builder.endpoint_url(config.endpoint);
+        }
+
+        let conf: Config = builder.build();
+        let client = Client::from_conf(conf);
+
+        Ok(Self {
             client,
-            credentials,
+            bucket: config.bucket,
             prefix: config.bucket_prefix,
-        }
+            _bucket_checked: OnceLock::new(),
+        })
     }
 
-    pub async fn generate_upload_presigned_url(&self, key: &str) -> Result<String> {
-        self.init().await?;
-        let prefixed_key = self.prefixed_key(key);
-        let action = self
-            .bucket
-            .put_object(Some(&self.credentials), &prefixed_key);
-        let url = action.sign_with_time(UPLOAD_PRESIGNED_URL_DURATION, &OffsetDateTime::now_utc());
-        Ok(url.to_string())
-    }
-
-    pub async fn generate_download_presigned_url(&self, key: &str) -> Result<String> {
-        self.init().await?;
-        let prefixed_key = self.prefixed_key(key);
-        let action = self
-            .bucket
-            .get_object(Some(&self.credentials), &prefixed_key);
-        let url = action.sign_with_time(PRESIGNED_URL_DURATION, &OffsetDateTime::now_utc());
-        Ok(url.to_string())
-    }
-
-    pub async fn list_objects(&self, prefix: &str) -> Result<Vec<String>> {
-        self.init().await?;
-        let prefixed_prefix = self.prefixed_key(prefix);
-        let mut action = self.bucket.list_objects_v2(Some(&self.credentials));
-        action.with_prefix(&prefixed_prefix);
-        let url = action.sign_with_time(PRESIGNED_URL_DURATION, &OffsetDateTime::now_utc());
-
-        let response = self
-            .client
-            .get(url)
-            .send()
-            .await
-            .map_err(|e| StoreError::ConnectionError(e.to_string()))?;
-
-        if !response.status().is_success() {
-            return Err(StoreError::ConnectionError(format!(
-                "Received {} from S3-compatible API.",
-                response.status()
-            )));
-        }
-
-        let body = response
-            .text()
-            .await
-            .map_err(|e| StoreError::ConnectionError(e.to_string()))?;
-
-        // Parse XML response to extract object keys
-        let objects = self.parse_list_objects_response(&body, prefix)?;
-        Ok(objects)
-    }
-
-    fn parse_list_objects_response(&self, xml: &str, prefix: &str) -> Result<Vec<String>> {
-        // Simple XML parsing for ListObjectsV2 response
-        let mut objects = Vec::new();
-        let lines: Vec<&str> = xml.lines().collect();
-
-        for line in lines {
-            if line.trim().starts_with("<Key>") && line.trim().ends_with("</Key>") {
-                let key = line
-                    .trim()
-                    .trim_start_matches("<Key>")
-                    .trim_end_matches("</Key>");
-
-                // Remove the prefix from the key to get relative path
-                if let Some(relative_key) = key.strip_prefix(&self.prefixed_key(prefix)) {
-                    if !relative_key.is_empty() {
-                        objects.push(relative_key.trim_start_matches('/').to_string());
-                    }
-                }
-            }
-        }
-
-        Ok(objects)
-    }
-
-    async fn store_request<'a, A: S3Action<'a>>(
-        &self,
-        method: Method,
-        action: A,
-        body: Option<Vec<u8>>,
-    ) -> Result<Response> {
-        let url = action.sign_with_time(PRESIGNED_URL_DURATION, &OffsetDateTime::now_utc());
-        let mut request = self.client.request(method, url);
-
-        request = if let Some(body) = body {
-            request.body(body.to_vec())
-        } else {
-            request
-        };
-
-        let response = request.send().await;
-
-        let response = match response {
-            Ok(response) => response,
-            Err(e) => return Err(StoreError::ConnectionError(e.to_string())),
-        };
-
-        match response.status() {
-            StatusCode::OK => Ok(response),
-            StatusCode::NOT_FOUND => Err(StoreError::DoesNotExist(
-                "Received NOT_FOUND from S3-compatible API.".to_string(),
-            )),
-            StatusCode::FORBIDDEN => Err(StoreError::NotAuthorized(
-                "Received FORBIDDEN from S3-compatible API.".to_string(),
-            )),
-            StatusCode::UNAUTHORIZED => Err(StoreError::NotAuthorized(
-                "Received UNAUTHORIZED from S3-compatible API.".to_string(),
-            )),
-            _ => Err(StoreError::ConnectionError(format!(
-                "Received {} from S3-compatible API.",
-                response.status()
-            ))),
-        }
-    }
-
-    async fn read_response_bytes(response: Response) -> Result<Bytes> {
-        match response.bytes().await {
-            Ok(bytes) => Ok(bytes),
-            Err(e) => Err(StoreError::ConnectionError(e.to_string())),
-        }
-    }
-
+    /// Check bucket existence (HeadBucket)
     pub async fn init(&self) -> Result<()> {
         if self._bucket_checked.get().is_some() {
             return Ok(());
         }
 
-        let action = self.bucket.head_bucket(Some(&self.credentials));
-        let result = self.store_request(Method::HEAD, action, None).await;
-
-        match result {
-            // Normally a 404 indicates that we are attempting to fetch an object that does
-            // not exist, but we have only attempted to retrieve a bucket, so here it
-            // indicates that the bucket does not exist.
-            Err(StoreError::DoesNotExist(_)) => {
-                return Err(StoreError::BucketDoesNotExist(
-                    "Bucket does not exist.".to_string(),
-                ))
+        // Check existence with HeadBucket
+        match self.client.head_bucket().bucket(&self.bucket).send().await {
+            Ok(_) => {
+                self._bucket_checked.set(()).ok();
+                Ok(())
             }
-            Err(e) => return Err(e),
-            Ok(response) => response,
-        };
-
-        self._bucket_checked.set(()).unwrap();
-        Ok(())
+            Err(e) => {
+                // AWS SDK v1.x has changed detailed error classification,
+                // so use message-based detection
+                let err_str = format!("{e:?}");
+                if err_str.contains("NoSuchBucket") {
+                    Err(StoreError::BucketDoesNotExist(format!(
+                        "Bucket '{}' does not exist: {e}",
+                        self.bucket
+                    )))
+                } else if err_str.contains("AccessDenied") || err_str.contains("Forbidden") {
+                    Err(StoreError::ConnectionError(format!(
+                        "Not authorized to access bucket '{}': {e}",
+                        self.bucket
+                    )))
+                } else {
+                    Err(StoreError::ConnectionError(format!(
+                        "Failed to access bucket '{}': {e}",
+                        self.bucket
+                    )))
+                }
+            }
+        }
     }
 
     fn prefixed_key(&self, key: &str) -> String {
-        if let Some(path_prefix) = &self.prefix {
-            format!("{}/{}", path_prefix, key)
+        if let Some(pref) = &self.prefix {
+            if key.is_empty() {
+                pref.clone()
+            } else {
+                format!(
+                    "{}/{}",
+                    pref.trim_end_matches('/'),
+                    key.trim_start_matches('/')
+                )
+            }
         } else {
             key.to_string()
         }
     }
 
+    // ========== Single Object Operations ==========
     async fn get(&self, key: &str) -> Result<Option<Vec<u8>>> {
         self.init().await?;
-        let prefixed_key = self.prefixed_key(key);
-        let object_get = self
-            .bucket
-            .get_object(Some(&self.credentials), &prefixed_key);
-        let response = self.store_request(Method::GET, object_get, None).await;
+        let k = self.prefixed_key(key);
 
-        match response {
-            Ok(response) => {
-                let result = Self::read_response_bytes(response).await?;
-                Ok(Some(result.to_vec()))
+        match self
+            .client
+            .get_object()
+            .bucket(&self.bucket)
+            .key(k)
+            .send()
+            .await
+        {
+            Ok(out) => {
+                let data = out
+                    .body
+                    .collect()
+                    .await
+                    .map_err(|e| {
+                        StoreError::ConnectionError(format!(
+                            "Failed to read object body for key '{}': {e}",
+                            key
+                        ))
+                    })?
+                    .into_bytes()
+                    .to_vec();
+                Ok(Some(data))
             }
-            Err(StoreError::DoesNotExist(_)) => Ok(None),
-            Err(e) => Err(e),
+            Err(err) => {
+                // NotFound -> None
+                if is_not_found(&err) {
+                    Ok(None)
+                } else {
+                    Err(StoreError::ConnectionError(format!(
+                        "Failed to get object '{}' from bucket '{}': {err}",
+                        key, self.bucket
+                    )))
+                }
+            }
         }
     }
 
     async fn set(&self, key: &str, value: Vec<u8>) -> Result<()> {
         self.init().await?;
-        let prefixed_key = self.prefixed_key(key);
-        let action = self
-            .bucket
-            .put_object(Some(&self.credentials), &prefixed_key);
-        self.store_request(Method::PUT, action, Some(value)).await?;
+        let k = self.prefixed_key(key);
+
+        self.client
+            .put_object()
+            .bucket(&self.bucket)
+            .key(k)
+            .body(ByteStream::from(value))
+            .send()
+            .await
+            .map_err(|e| {
+                StoreError::ConnectionError(format!(
+                    "Failed to put object '{}' to bucket '{}': {e}",
+                    key, self.bucket
+                ))
+            })?;
+
         Ok(())
     }
 
     async fn remove(&self, key: &str) -> Result<()> {
         self.init().await?;
-        let prefixed_key = self.prefixed_key(key);
-        let action = self
-            .bucket
-            .delete_object(Some(&self.credentials), &prefixed_key);
-        self.store_request(Method::DELETE, action, None).await?;
+        let k = self.prefixed_key(key);
+
+        self.client
+            .delete_object()
+            .bucket(&self.bucket)
+            .key(k)
+            .send()
+            .await
+            .map_err(|e| {
+                StoreError::ConnectionError(format!(
+                    "Failed to delete object '{}' from bucket '{}': {e}",
+                    key, self.bucket
+                ))
+            })?;
+
         Ok(())
     }
 
     async fn exists(&self, key: &str) -> Result<bool> {
         self.init().await?;
-        let prefixed_key = self.prefixed_key(key);
-        let action = self
-            .bucket
-            .head_object(Some(&self.credentials), &prefixed_key);
-        let response = self.store_request(Method::HEAD, action, None).await;
-        match response {
+        let k = self.prefixed_key(key);
+
+        match self
+            .client
+            .head_object()
+            .bucket(&self.bucket)
+            .key(k)
+            .send()
+            .await
+        {
             Ok(_) => Ok(true),
-            Err(StoreError::DoesNotExist(_)) => Ok(false),
-            Err(e) => Err(e),
+            Err(err) => {
+                if is_not_found(&err) {
+                    Ok(false)
+                } else {
+                    Err(StoreError::ConnectionError(format!(
+                        "Failed to check existence of object '{}' in bucket '{}': {err}",
+                        key, self.bucket
+                    )))
+                }
+            }
         }
     }
 
+    // ========== Presigned URL ==========
+    pub async fn generate_upload_presigned_url(&self, key: &str) -> Result<String> {
+        self.init().await?;
+        let k = self.prefixed_key(key);
+
+        let presign_conf =
+            aws_sdk_s3::presigning::PresigningConfig::expires_in(UPLOAD_PRESIGNED_URL_DURATION)
+                .map_err(|e| {
+                    StoreError::ConnectionError(format!("Failed to create presigning config: {e}"))
+                })?;
+
+        let req = self
+            .client
+            .put_object()
+            .bucket(&self.bucket)
+            .key(k)
+            // 必要に応じて content_type 等をここで指定
+            .presigned(presign_conf)
+            .await
+            .map_err(|e| {
+                StoreError::ConnectionError(format!(
+                    "Failed to generate upload presigned URL for '{}' in bucket '{}': {e}",
+                    key, self.bucket
+                ))
+            })?;
+
+        Ok(req.uri().to_string())
+    }
+
+    pub async fn generate_download_presigned_url(&self, key: &str) -> Result<String> {
+        self.init().await?;
+        let k = self.prefixed_key(key);
+
+        let presign_conf =
+            aws_sdk_s3::presigning::PresigningConfig::expires_in(PRESIGNED_URL_DURATION).map_err(
+                |e| StoreError::ConnectionError(format!("Failed to create presigning config: {e}")),
+            )?;
+
+        let req = self
+            .client
+            .get_object()
+            .bucket(&self.bucket)
+            .key(k)
+            .presigned(presign_conf)
+            .await
+            .map_err(|e| {
+                StoreError::ConnectionError(format!(
+                    "Failed to generate download presigned URL for '{}' in bucket '{}': {e}",
+                    key, self.bucket
+                ))
+            })?;
+
+        Ok(req.uri().to_string())
+    }
+
+    // ========== List Objects (prefix) ==========
+    pub async fn list_objects(&self, prefix: &str) -> Result<Vec<String>> {
+        self.init().await?;
+        let full_prefix = self.prefixed_key(prefix).trim_end_matches('/').to_string() + "/";
+
+        let mut results = Vec::new();
+        let mut cont: Option<String> = None;
+
+        loop {
+            let mut req = self
+                .client
+                .list_objects_v2()
+                .bucket(&self.bucket)
+                .prefix(&full_prefix);
+
+            if let Some(token) = &cont {
+                req = req.continuation_token(token);
+            }
+
+            let out = req.send().await.map_err(|e| {
+                StoreError::ConnectionError(format!(
+                    "Failed to list objects with prefix '{}' in bucket '{}': {e}",
+                    prefix, self.bucket
+                ))
+            })?;
+
+            // AWS SDK v1.x returns &[Object] from contents()
+            for obj in out.contents() {
+                if let Some(key) = obj.key() {
+                    // Remove bucket prefix to get relative path
+                    if let Some(rel) = key.strip_prefix(&full_prefix) {
+                        if !rel.is_empty() {
+                            results.push(rel.to_string());
+                        }
+                    }
+                }
+            }
+
+            if out.is_truncated().unwrap_or(false) {
+                cont = out.next_continuation_token().map(|s| s.to_string());
+            } else {
+                break;
+            }
+        }
+
+        Ok(results)
+    }
+
+    // ========== Prefix Copy (Server Side) ==========
+    async fn copy_object(&self, source_key: &str, destination_key: &str) -> Result<()> {
+        // copy_source format is "bucket/source_key" (SDK handles proper encoding)
+        let copy_source = format!("{}/{}", self.bucket, self.prefixed_key(source_key));
+
+        // destination should already be prefixed_key
+        let dest = self.prefixed_key(destination_key);
+
+        self.client
+            .copy_object()
+            .bucket(&self.bucket)
+            .copy_source(copy_source)
+            .key(dest)
+            .send()
+            .await
+            .map_err(|e| {
+                StoreError::ConnectionError(format!(
+                    "Failed to copy object from '{}' to '{}' in bucket '{}': {e}",
+                    source_key, destination_key, self.bucket
+                ))
+            })?;
+
+        Ok(())
+    }
+
+    /// Copy all objects under source_doc_id to destination_doc_id
     async fn copy_document(&self, source_doc_id: &str, destination_doc_id: &str) -> Result<()> {
         self.init().await?;
 
-        // List all objects with the source document prefix
-        let source_prefix = format!("{}/", source_doc_id);
-        let source_objects = self.list_objects(&source_prefix).await?;
+        // 1) Get relative key list from source full prefix
+        let source_prefix = format!("{}/", source_doc_id.trim_matches('/'));
+        let entries = self.list_objects(&source_prefix).await?;
 
-        // Copy each object from source to destination (overwrite if exists)
-        for relative_path in source_objects {
-            // Create the source key (with prefix if configured)
-            let source_key = format!("{}/{}", source_doc_id, relative_path);
-
-            // Create the destination key (with prefix if configured)
-            let destination_key = format!("{}/{}", destination_doc_id, relative_path);
-
-            // Get the source object content using the full source key
-            if let Some(content) = self.get(&source_key).await? {
-                // Set the content to the destination (this will overwrite if exists)
-                self.set(&destination_key, content).await?;
-            }
+        // 2) Copy each object server-side
+        for rel in entries {
+            let src_key = format!("{}/{}", source_doc_id.trim_matches('/'), rel);
+            let dst_key = format!("{}/{}", destination_doc_id.trim_matches('/'), rel);
+            self.copy_object(&src_key, &dst_key).await?;
         }
 
         Ok(())
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
+// S3 NotFound detection utility
+fn is_not_found(err: &aws_sdk_s3::error::SdkError<impl std::fmt::Debug>) -> bool {
+    // AWS SDK v1.x has changed detailed error classification,
+    // so use message-based detection
+    let s = format!("{err:?}");
+    s.contains("NotFound")
+        || s.contains("404")
+        || s.contains("NoSuchKey")
+        || s.contains("NoSuchBucket")
+}
+
 #[async_trait]
 impl Store for S3Store {
     async fn init(&self) -> Result<()> {
-        self.init().await
+        S3Store::init(self).await
     }
 
     async fn get(&self, key: &str) -> Result<Option<Vec<u8>>> {
-        self.get(key).await
+        S3Store::get(self, key).await
     }
 
     async fn set(&self, key: &str, value: Vec<u8>) -> Result<()> {
-        self.set(key, value).await
+        S3Store::set(self, key, value).await
     }
 
     async fn remove(&self, key: &str) -> Result<()> {
-        self.remove(key).await
+        S3Store::remove(self, key).await
     }
 
     async fn exists(&self, key: &str) -> Result<bool> {
-        self.exists(key).await
+        S3Store::exists(self, key).await
     }
 
     async fn generate_upload_presigned_url(&self, key: &str) -> Result<String> {
-        self.generate_upload_presigned_url(key).await
+        S3Store::generate_upload_presigned_url(self, key).await
     }
 
     async fn generate_download_presigned_url(&self, key: &str) -> Result<String> {
-        self.generate_download_presigned_url(key).await
+        S3Store::generate_download_presigned_url(self, key).await
     }
 
     async fn list_objects(&self, prefix: &str) -> Result<Vec<String>> {
-        self.list_objects(prefix).await
+        S3Store::list_objects(self, prefix).await
     }
 
     async fn copy_document(&self, source_doc_id: &str, destination_doc_id: &str) -> Result<()> {
-        self.copy_document(source_doc_id, destination_doc_id).await
-    }
-}
-
-#[cfg(target_arch = "wasm32")]
-#[async_trait(?Send)]
-impl Store for S3Store {
-    async fn init(&self) -> Result<()> {
-        self.init().await
-    }
-
-    async fn get(&self, key: &str) -> Result<Option<Vec<u8>>> {
-        self.get(key).await
-    }
-
-    async fn set(&self, key: &str, value: Vec<u8>) -> Result<()> {
-        self.set(key, value).await
-    }
-
-    async fn remove(&self, key: &str) -> Result<()> {
-        self.remove(key).await
-    }
-
-    async fn exists(&self, key: &str) -> Result<bool> {
-        self.exists(key).await
-    }
-
-    async fn generate_upload_presigned_url(&self, key: &str) -> Result<String> {
-        self.generate_upload_presigned_url(key).await
-    }
-
-    async fn generate_download_presigned_url(&self, key: &str) -> Result<String> {
-        self.generate_download_presigned_url(key).await
-    }
-
-    async fn list_objects(&self, prefix: &str) -> Result<Vec<String>> {
-        self.list_objects(prefix).await
-    }
-
-    async fn copy_document(&self, source_doc_id: &str, destination_doc_id: &str) -> Result<()> {
-        self.copy_document(source_doc_id, destination_doc_id).await
+        S3Store::copy_document(self, source_doc_id, destination_doc_id).await
     }
 }

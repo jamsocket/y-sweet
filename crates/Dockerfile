@@ -1,15 +1,14 @@
-FROM rust:1.83-slim-bookworm AS builder
+FROM rust:1.88-slim-bookworm AS builder
 
 WORKDIR /build
 
 COPY . .
 RUN cargo build --release
 
-FROM debian:bookworm-slim
+FROM debian:bookworm-slim AS runtime
 
 COPY --from=builder /build/target/release/y-sweet /usr/local/bin/y-sweet
 
-# Create entrypoint script to pass DATA_DIR as the third argument
 COPY <<EOF /entrypoint.sh
 #!/bin/sh
 if [ "\${ENV:-}" = "prod" ]; then

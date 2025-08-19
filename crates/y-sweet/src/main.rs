@@ -130,7 +130,7 @@ fn parse_s3_config_from_env_and_args(
     })
 }
 
-fn get_store_from_opts(store_path: &str) -> Result<Box<dyn Store>> {
+async fn get_store_from_opts(store_path: &str) -> Result<Box<dyn Store>> {
     if store_path.starts_with("s3://") {
         let url = url::Url::parse(store_path)?;
         let bucket = url
@@ -140,7 +140,7 @@ fn get_store_from_opts(store_path: &str) -> Result<Box<dyn Store>> {
         let bucket_prefix = url.path().trim_start_matches('/').to_owned();
         let bucket_prefix = (!bucket_prefix.is_empty()).then_some(bucket_prefix); // "" => None
         let config = parse_s3_config_from_env_and_args(bucket, bucket_prefix)?;
-        let store = S3Store::new(config);
+        let store = S3Store::new(config).await?;
         Ok(Box::new(store))
     } else {
         Ok(Box::new(FileSystemStore::new(PathBuf::from(store_path))?))
@@ -204,7 +204,7 @@ async fn main() -> Result<()> {
             let addr = listener.local_addr()?;
 
             let store = if let Some(store) = store {
-                let store = get_store_from_opts(store)?;
+                let store = get_store_from_opts(store).await?;
                 store.init().await?;
                 Some(store)
             } else {
@@ -273,7 +273,7 @@ async fn main() -> Result<()> {
             }
         }
         ServSubcommand::ConvertFromUpdate { store, doc_id } => {
-            let store = get_store_from_opts(store)?;
+            let store = get_store_from_opts(store).await?;
             store.init().await?;
 
             let mut stdin = tokio::io::stdin();
@@ -314,7 +314,7 @@ async fn main() -> Result<()> {
                 };
 
                 let s3_config = parse_s3_config_from_env_and_args(bucket, prefix)?;
-                let store = S3Store::new(s3_config);
+                let store = S3Store::new(s3_config).await?;
                 let store: Box<dyn Store> = Box::new(store);
                 store.init().await?;
                 Some(store)
