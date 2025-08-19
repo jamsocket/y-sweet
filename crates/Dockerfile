@@ -3,9 +3,15 @@ FROM rust:1.88-slim-bookworm AS builder
 WORKDIR /build
 
 COPY . .
-RUN cargo build --release
+
+RUN apt-get update && apt-get install -y pkg-config libssl-dev ca-certificates && \
+  update-ca-certificates && \
+  cargo build --release
 
 FROM debian:bookworm-slim AS runtime
+
+RUN apt-get update && apt-get install -y pkg-config libssl-dev ca-certificates && \
+  update-ca-certificates
 
 COPY --from=builder /build/target/release/y-sweet /usr/local/bin/y-sweet
 
