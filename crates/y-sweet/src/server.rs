@@ -1052,7 +1052,18 @@ fn get_authorization_from_plane_header(headers: HeaderMap) -> Result<Authorizati
     }
 }
 
-fn get_extension_from_content_type(content_type: &str) -> String {
+pub fn is_allowed_content_type(content_type: &str) -> bool {
+    let mime = match content_type.parse::<mime::Mime>() {
+        Ok(m) => m,
+        Err(_) => return false,
+    };
+
+    // Check if it's an image or video
+    let type_str = mime.type_().as_str();
+    type_str == "image" || type_str == "video"
+}
+
+pub fn get_extension_from_content_type(content_type: &str) -> String {
     let mime = content_type
         .parse::<mime::Mime>()
         .unwrap_or(mime::APPLICATION_OCTET_STREAM);
@@ -1085,6 +1096,17 @@ async fn generate_upload_presigned_url(
     // Check if document exists
     if !server_state.doc_exists(&doc_id).await {
         Err((StatusCode::NOT_FOUND, anyhow!("Doc {} not found", doc_id)))?;
+    }
+
+    // Validate content type - only allow images and videos
+    if !is_allowed_content_type(&body.content_type) {
+        Err((
+            StatusCode::BAD_REQUEST,
+            anyhow!(
+                "Content type '{}' is not allowed. Only image and video files are supported.",
+                body.content_type
+            ),
+        ))?;
     }
 
     // Generate asset ID with cuid and extension
@@ -1126,6 +1148,17 @@ async fn generate_upload_presigned_url_single(
     // the doc server is meant to be run in Plane, so we expect verified plane
     // headers to be used for authorization.
     let _ = get_authorization_from_plane_header(headers)?;
+
+    // Validate content type - only allow images and videos
+    if !is_allowed_content_type(&body.content_type) {
+        Err((
+            StatusCode::BAD_REQUEST,
+            anyhow!(
+                "Content type '{}' is not allowed. Only image and video files are supported.",
+                body.content_type
+            ),
+        ))?;
+    }
 
     // Generate asset ID with cuid and extension
     let asset_id = cuid2();
