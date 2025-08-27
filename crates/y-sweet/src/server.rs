@@ -3,7 +3,7 @@ use axum::{
     body::Bytes,
     extract::{
         ws::{Message, WebSocket},
-        Path, Query, Request, State, WebSocketUpgrade,
+        DefaultBodyLimit, Path, Query, Request, State, WebSocketUpgrade,
     },
     http::{
         header::{HeaderMap, HeaderName},
@@ -85,6 +85,7 @@ pub struct Server {
     /// Whether to garbage collect docs that are no longer in use.
     /// Disabled for single-doc mode, since we only have one doc.
     doc_gc: bool,
+    max_body_size: Option<usize>,
 }
 
 impl Server {
@@ -95,6 +96,7 @@ impl Server {
         url_prefix: Option<Url>,
         cancellation_token: CancellationToken,
         doc_gc: bool,
+        max_body_size: Option<usize>,
     ) -> Result<Self> {
         Ok(Self {
             docs: Arc::new(DashMap::new()),
@@ -105,6 +107,7 @@ impl Server {
             url_prefix,
             cancellation_token,
             doc_gc,
+            max_body_size,
         })
     }
 
@@ -359,10 +362,16 @@ impl Server {
     ) -> Result<()> {
         let token = self.cancellation_token.clone();
 
-        let app = if redact_errors {
-            routes
+        let mut app = if let Some(max_body_size) = self.max_body_size {
+            routes.layer(DefaultBodyLimit::max(max_body_size))
         } else {
-            routes.layer(middleware::from_fn(Self::redact_error_middleware))
+            routes
+        };
+
+        app = if redact_errors {
+            app
+        } else {
+            app.layer(middleware::from_fn(Self::redact_error_middleware))
         };
 
         axum::serve(listener, app.into_make_service())
@@ -793,6 +802,7 @@ mod test {
             None,
             CancellationToken::new(),
             true,
+            None,
         )
         .await
         .unwrap();
@@ -831,6 +841,7 @@ mod test {
             Some(prefix),
             CancellationToken::new(),
             true,
+            None,
         )
         .await
         .unwrap();
