@@ -736,7 +736,12 @@ async fn auth_doc(
         let mut url = url_prefix.clone();
         let scheme = if url.scheme() == "https" { "wss" } else { "ws" };
         url.set_scheme(scheme).unwrap();
-        url = url.join(&format!("/d/{doc_id}/ws")).unwrap();
+
+        // Preserve the existing path and append the WebSocket path
+        let mut path = url.path().trim_end_matches('/').to_string();
+        path.push_str(&format!("/d/{doc_id}/ws"));
+        url.set_path(&path);
+
         url.to_string()
     } else {
         format!("ws://{host}/d/{doc_id}/ws")
@@ -833,7 +838,7 @@ mod test {
 
     #[tokio::test]
     async fn test_auth_doc_with_prefix() {
-        let prefix: Url = "https://foo.bar".parse().unwrap();
+        let prefix: Url = "https://foo.bar:8443/prefix".parse().unwrap();
         let server_state = Server::new(
             None,
             Duration::from_secs(60),
@@ -860,8 +865,11 @@ mod test {
         .await
         .unwrap();
 
-        let expected_url = format!("wss://foo.bar/d/{doc_id}/ws");
+        let expected_url = format!("wss://foo.bar:8443/prefix/d/{doc_id}/ws");
+        let expected_base_url = format!("https://foo.bar:8443/prefix/d/{doc_id}");
+
         assert_eq!(token.url, expected_url);
+        assert_eq!(token.base_url, Some(expected_base_url));
         assert_eq!(token.doc_id, doc_id);
         assert!(token.token.is_none());
     }
