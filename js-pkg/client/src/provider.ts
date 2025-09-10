@@ -485,11 +485,13 @@ export class YSweetProvider {
   }
 
   generateUrl(clientToken: ClientToken) {
-    const url = clientToken.url + `/${clientToken.docId}`
+    const url = new URL(clientToken.url)
+    if (!url.pathname.endsWith('/')) url.pathname += '/'
+    url.pathname += clientToken.docId
     if (clientToken.token) {
-      return `${url}?token=${clientToken.token}`
+      url.searchParams.set('token', clientToken.token)
     }
-    return url
+    return url.toString()
   }
 
   private syncStep1() {
