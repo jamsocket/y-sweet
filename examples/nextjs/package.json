@@ -12,9 +12,10 @@
     "y-sweet": "y-sweet serve"
   },
   "dependencies": {
-    "@blocknote/core": "^0.19.2",
-    "@blocknote/mantine": "^0.19.2",
-    "@blocknote/react": "^0.19.2",
+    "@blocknote/core": "^0.23.6",
+    "@blocknote/mantine": "^0.23.6",
+    "@blocknote/react": "^0.23.6",
+     "@headlessui/react": "1.7.16",
     "@headlessui/react": "1.7.16",
     "@heroicons/react": "2.0.18",
     "@monaco-editor/react": "^4.6.0",
