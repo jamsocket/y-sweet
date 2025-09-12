@@ -53,7 +53,7 @@ impl Store for FileSystemStore {
         Ok(path.exists())
     }
 
-    async fn generate_upload_presigned_url(&self, key: &str) -> Result<String> {
+    async fn generate_upload_presigned_url(&self, key: &str, _content_type: &str) -> Result<String> {
         // For local filesystem, return a dummy URL that indicates local storage
         // This is not a real upload URL, but serves as a placeholder for local development
         Ok(format!("file://localhost/{}", key))

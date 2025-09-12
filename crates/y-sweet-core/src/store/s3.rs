@@ -232,7 +232,7 @@ impl S3Store {
     }
 
     // ========== Presigned URL ==========
-    pub async fn generate_upload_presigned_url(&self, key: &str) -> Result<String> {
+    pub async fn generate_upload_presigned_url(&self, key: &str, content_type: &str) -> Result<String> {
         self.init().await?;
         let k = self.prefixed_key(key);
 
@@ -248,6 +248,7 @@ impl S3Store {
             .bucket(&self.bucket)
             .key(k)
             // 必要に応じて content_type 等をここで指定
+            .content_type(content_type)
             .presigned(presign_conf)
             .await
             .map_err(|e| {
@@ -411,8 +412,8 @@ impl Store for S3Store {
         S3Store::exists(self, key).await
     }
 
-    async fn generate_upload_presigned_url(&self, key: &str) -> Result<String> {
-        S3Store::generate_upload_presigned_url(self, key).await
+    async fn generate_upload_presigned_url(&self, key: &str, content_type: &str) -> Result<String> {
+        S3Store::generate_upload_presigned_url(self, key, content_type).await
     }
 
     async fn generate_download_presigned_url(&self, key: &str) -> Result<String> {

@@ -244,7 +244,7 @@ mod test {
             Ok(self.data.contains_key(key))
         }
 
-        async fn generate_upload_presigned_url(&self, key: &str) -> Result<String> {
+        async fn generate_upload_presigned_url(&self, key: &str, _content_type: &str) -> Result<String> {
             // For memory store, return a dummy URL
             Ok(format!("memory://localhost/{}", key))
         }

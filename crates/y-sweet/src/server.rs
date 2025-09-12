@@ -1119,7 +1119,7 @@ async fn generate_upload_presigned_url(
 
     let upload_url = if let Some(store) = &server_state.store {
         store
-            .generate_upload_presigned_url(&key)
+            .generate_upload_presigned_url(&key, &body.content_type)
             .await
             .map_err(|e| {
                 (
@@ -1170,7 +1170,7 @@ async fn generate_upload_presigned_url_single(
 
     let upload_url = if let Some(store) = &server_state.store {
         store
-            .generate_upload_presigned_url(&key)
+            .generate_upload_presigned_url(&key, &body.content_type)
             .await
             .map_err(|e| {
                 (
