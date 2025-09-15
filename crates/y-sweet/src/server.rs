@@ -45,6 +45,12 @@ use y_sweet_core::{
 
 const PLANE_VERIFIED_USER_DATA_HEADER: &str = "x-verified-user-data";
 
+// Every 20 seconds, we send a ping to the client.
+const PING_EVERY: Duration = Duration::from_secs(20);
+// If we haven't received a pong in the last 40 seconds, we close the connection.
+// All modern browsers will respond to websocket pings with a pong message.
+const PONG_TIMEOUT: Duration = Duration::from_secs(40);
+
 fn current_time_epoch_millis() -> u64 {
     let now = std::time::SystemTime::now();
     let duration_since_epoch = now.duration_since(std::time::UNIX_EPOCH).unwrap();
@@ -600,9 +606,26 @@ async fn handle_socket(
     let (mut sink, mut stream) = socket.split();
     let (send, mut recv) = channel(1024);
 
+    let last_pong = Arc::new(RwLock::new(tokio::time::Instant::now()));
+    let last_pong_clone = last_pong.clone();
+
     tokio::spawn(async move {
-        while let Some(msg) = recv.recv().await {
-            let _ = sink.send(Message::Binary(msg)).await;
+        let mut ticker = tokio::time::interval(PING_EVERY);
+        ticker.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+
+        loop {
+            tokio::select! {
+                Some(msg) = recv.recv() => {
+                    let _ = sink.send(Message::Binary(msg)).await;
+                }
+                _ = ticker.tick() => {
+                    if last_pong_clone.read().expect("Failed to get read lock on last_pong").elapsed() > PONG_TIMEOUT {
+                        tracing::info!("Pong timeout, closing connection");
+                        break;
+                    }
+                    let _ = sink.send(Message::Ping(vec![])).await;
+                }
+            }
         }
     });
 
@@ -618,6 +641,10 @@ async fn handle_socket(
                 let msg = match msg {
                     Ok(Message::Binary(bytes)) => bytes,
                     Ok(Message::Close(_)) => break,
+                    Ok(Message::Pong(_)) => {
+                        *last_pong.write().expect("Failed to get write lock on last_pong") = tokio::time::Instant::now();
+                        continue;
+                    }
                     Err(_e) => {
                         // The stream will complain about things like
                         // connections being lost without handshake.
