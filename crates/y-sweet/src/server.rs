@@ -615,7 +615,10 @@ async fn handle_socket(
 
         loop {
             tokio::select! {
-                Some(msg) = recv.recv() => {
+                msg = recv.recv() => {
+                    let Some(msg) = msg else {
+                        break;
+                    };
                     let _ = sink.send(Message::Binary(msg)).await;
                 }
                 _ = ticker.tick() => {
@@ -637,7 +640,10 @@ async fn handle_socket(
 
     loop {
         tokio::select! {
-            Some(msg) = stream.next() => {
+            msg = stream.next() => {
+                let Some(msg) = msg else {
+                    break;
+                };
                 let msg = match msg {
                     Ok(Message::Binary(bytes)) => bytes,
                     Ok(Message::Close(_)) => break,
