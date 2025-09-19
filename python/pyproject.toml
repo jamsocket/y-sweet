@@ -16,7 +16,7 @@ classifiers = [
 ]
 dependencies = [
     "requests~=2.32.2",
-    "pycrdt~=0.9.11",
+    "pycrdt>=0.9.11,<0.13.0",
 ]
 requires-python = ">=3.12"
 
