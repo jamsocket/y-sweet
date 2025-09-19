@@ -11,7 +11,7 @@ use axum::{
     },
     middleware::{self, Next},
     response::{IntoResponse, Response},
-    routing::{get, post},
+    routing::{delete, get, post},
     Json, Router,
 };
 use axum_extra::typed_header::TypedHeader;
@@ -345,6 +345,7 @@ impl Server {
             .route("/doc/:doc_id/update", post(update_doc_deprecated))
             .route("/d/:doc_id/as-update", get(get_doc_as_update))
             .route("/d/:doc_id/update", post(update_doc))
+            .route("/d/:doc_id/delete", delete(delete_doc))
             .route(
                 "/d/:doc_id/ws/:doc_id2",
                 get(handle_socket_upgrade_full_path),
@@ -509,6 +510,31 @@ async fn update_doc_inner(
     }
 
     Ok(StatusCode::OK.into_response())
+}
+
+async fn delete_doc(
+    Path(doc_id): Path<String>,
+    State(server_state): State<Arc<Server>>,
+    auth_header: Option<TypedHeader<headers::Authorization<headers::authorization::Bearer>>>,
+) -> Result<Response, AppError> {
+    server_state.check_auth(auth_header)?;
+
+    // Remove from in-memory cache
+    if let Some(doc) = server_state.docs.remove(&doc_id) {
+        doc.1.sync_kv().shutdown();
+    }
+
+    // Remove from persistent store if configured
+    if let Some(store) = &server_state.store {
+        let key = format!("{}/data.ysweet", doc_id);
+        store.remove(&key).await.map_err(|e| {
+            tracing::error!(?e, "Failed to remove doc from store");
+            (StatusCode::INTERNAL_SERVER_ERROR, anyhow!("Failed to delete document from store"))
+        })?;
+    }
+
+    tracing::info!(doc_id=?doc_id, "Document deleted");
+    Ok(StatusCode::NO_CONTENT.into_response())
 }
 
 async fn update_doc_single(
