@@ -137,6 +137,22 @@ export class DocumentManager {
   }
 
   /**
+   * Deletes a document from the y-sweet server.
+   *
+   * @param docId The ID of the document to delete.
+   */
+  public async deleteDoc(docId: string | DocCreationResult): Promise<void> {
+    if (typeof docId !== 'string') {
+      docId = docId.docId
+    }
+
+    const result = await this.client.request(`d/${docId}/delete`, 'DELETE')
+    if (!result.ok) {
+      throw new Error(`Failed to delete doc ${docId}: ${result.status} ${result.statusText}`)
+    }
+  }
+
+  /**
    * Creates a new document with initial content.
    *
    * @param update A Yjs update byte string representing the initial content.
@@ -198,4 +214,18 @@ export async function createDoc(
 ): Promise<DocCreationResult> {
   const manager = new DocumentManager(connectionString)
   return await manager.createDoc(docId)
+}
+
+/**
+ * A convenience wrapper around {@link DocumentManager.deleteDoc} for deleting a document.
+ *
+ * @param connectionString A connection string (starting with `ys://` or `yss://`) referring to a y-sweet server.
+ * @param docId The ID of the document to delete.
+ */
+export async function deleteDoc(
+  connectionString: string,
+  docId: string | DocCreationResult,
+): Promise<void> {
+  const manager = new DocumentManager(connectionString)
+  return await manager.deleteDoc(docId)
 }
