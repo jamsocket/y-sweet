@@ -56,7 +56,17 @@ impl SyncKv {
         }
     }
 
+    pub fn is_dirty(&self) -> bool {
+        self.dirty.load(Ordering::Relaxed)
+    }
+
     pub async fn persist(&self) -> Result<(), Box<dyn std::error::Error>> {
+        // Only persist if actually dirty
+        if !self.is_dirty() {
+            tracing::info!("Not persisting, no changes detected");
+            return Ok(());
+        }
+
         if let Some(store) = &self.store {
             let snapshot = {
                 let data = self.data.lock().unwrap();
@@ -298,5 +308,30 @@ mod test {
 
             assert_eq!(sync_kv.get(b"foo"), Some(b"bar".to_vec()));
         }
+    }
+
+    #[tokio::test]
+    async fn only_persists_when_dirty() {
+        let store = MemoryStore::default();
+        let sync_kv = SyncKv::new(Some(Arc::new(Box::new(store.clone()))), "foo", || ())
+            .await
+            .unwrap();
+
+        assert!(!sync_kv.is_dirty());
+
+        sync_kv.set(b"foo", b"bar");
+        assert!(sync_kv.is_dirty());
+
+        sync_kv.persist().await.unwrap();
+        assert!(!sync_kv.is_dirty());
+        assert_eq!(store.data.len(), 1);
+
+        store.data.clear();
+
+        assert!(!sync_kv.is_dirty());
+        sync_kv.persist().await.unwrap();
+
+        // Should not persist when not dirty
+        assert!(store.data.is_empty());
     }
 }
