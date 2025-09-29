@@ -50,19 +50,17 @@ impl SyncKv {
     }
 
     fn mark_dirty(&self) {
-        if !self.dirty.load(Ordering::Relaxed) && !self.shutdown.load(Ordering::SeqCst) {
-            self.dirty.store(true, Ordering::Relaxed);
-            (self.dirty_callback)();
+        if !self.shutdown.load(Ordering::SeqCst) {
+            let was_updated = !self.dirty.swap(true, Ordering::SeqCst);
+            if was_updated {
+                (self.dirty_callback)();
+            }
         }
-    }
-
-    pub fn is_dirty(&self) -> bool {
-        self.dirty.load(Ordering::Relaxed)
     }
 
     pub async fn persist(&self) -> Result<(), Box<dyn std::error::Error>> {
         // Only persist if actually dirty
-        if !self.is_dirty() {
+        if !self.dirty.load(Ordering::SeqCst) {
             tracing::info!("Not persisting, no changes detected");
             return Ok(());
         }
@@ -76,7 +74,7 @@ impl SyncKv {
             tracing::info!(size=?snapshot.len(), "Persisting snapshot");
             store.set(&self.key, snapshot).await?;
         }
-        self.dirty.store(false, Ordering::Relaxed);
+        self.dirty.store(false, Ordering::SeqCst);
         Ok(())
     }
 
@@ -317,18 +315,18 @@ mod test {
             .await
             .unwrap();
 
-        assert!(!sync_kv.is_dirty());
+        assert!(!sync_kv.dirty.load(Ordering::SeqCst));
 
         sync_kv.set(b"foo", b"bar");
-        assert!(sync_kv.is_dirty());
+        assert!(sync_kv.dirty.load(Ordering::SeqCst));
 
         sync_kv.persist().await.unwrap();
-        assert!(!sync_kv.is_dirty());
+        assert!(!sync_kv.dirty.load(Ordering::SeqCst));
         assert_eq!(store.data.len(), 1);
 
         store.data.clear();
 
-        assert!(!sync_kv.is_dirty());
+        assert!(!sync_kv.dirty.load(Ordering::SeqCst));
         sync_kv.persist().await.unwrap();
 
         // Should not persist when not dirty
