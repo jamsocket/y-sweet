@@ -1,6 +1,8 @@
 use super::{Result, StoreError};
 use crate::store::Store;
 use async_trait::async_trait;
+use aws_config::BehaviorVersion;
+use aws_credential_types::provider::ProvideCredentials;
 use bytes::Bytes;
 use reqwest::{Client, Method, Response, StatusCode, Url};
 use rusty_s3::{Bucket, Credentials, S3Action};
@@ -8,6 +10,43 @@ use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
 use std::time::Duration;
 use time::OffsetDateTime;
+
+/// Resolves AWS credentials and region using the Default Credential Chain.
+/// This supports environment variables, IAM roles, ~/.aws/credentials, SSO, etc.
+/// Returns (access_key, secret_key, session_token, region)
+pub async fn resolve_credentials_from_chain(
+    region: Option<String>,
+) -> anyhow::Result<(String, String, Option<String>, String)> {
+    let config_loader = aws_config::defaults(BehaviorVersion::latest());
+
+    let config = if let Some(region_str) = region {
+        config_loader
+            .region(aws_config::Region::new(region_str))
+            .load()
+            .await
+    } else {
+        config_loader.load().await
+    };
+
+    let credentials = config
+        .credentials_provider()
+        .ok_or_else(|| anyhow::anyhow!("No credentials provider found in AWS config"))?
+        .provide_credentials()
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to resolve AWS credentials: {}", e))?;
+
+    let access_key = credentials.access_key_id().to_string();
+    let secret_key = credentials.secret_access_key().to_string();
+    let session_token = credentials.session_token().map(|s| s.to_string());
+
+    // Get the actual region from the config
+    let resolved_region = config
+        .region()
+        .ok_or_else(|| anyhow::anyhow!("No region found in AWS config"))?
+        .to_string();
+
+    Ok((access_key, secret_key, session_token, resolved_region))
+}
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct S3Config {
