@@ -122,29 +122,27 @@ async fn parse_s3_config_from_env_and_args(
         false
     };
 
-    let region = env::var(S3_REGION).unwrap_or_else(|_| DEFAULT_S3_REGION.to_string());
-    let endpoint = env::var(S3_ENDPOINT).unwrap_or_else(|_| {
-        format!(
-            "https://s3.dualstack.{}.amazonaws.com",
-            region
-        )
-    });
-
     // Try to get manual credentials from environment variables
     let manual_key = env::var(S3_ACCESS_KEY_ID).ok();
     let manual_secret = env::var(S3_SECRET_ACCESS_KEY).ok();
     let manual_token = env::var(S3_SESSION_TOKEN).ok();
 
-    let (key, secret, token) = match (manual_key, manual_secret) {
+    let (key, secret, token, region) = match (manual_key, manual_secret) {
         (Some(key), Some(secret)) => {
             // Manual credentials are provided - use them directly
             tracing::info!("Using manual AWS credentials from environment variables");
-            (key, secret, manual_token)
+            let region = env::var(S3_REGION).unwrap_or_else(|_| DEFAULT_S3_REGION.to_string());
+            (key, secret, manual_token, region)
         }
         (None, None) => {
             // No manual credentials - use AWS Default Credential Chain
             tracing::info!("No manual AWS credentials found, using AWS Default Credential Chain");
-            resolve_credentials_from_chain(Some(region.clone()))
+
+            // If AWS_REGION is explicitly set, pass it to the credential chain
+            // Otherwise, let the credential chain determine the region from the AWS config
+            let explicit_region = env::var(S3_REGION).ok();
+
+            resolve_credentials_from_chain(explicit_region)
                 .await
                 .context("Failed to resolve credentials from AWS Default Credential Chain. Either set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables, or configure AWS credentials via IAM role, ~/.aws/credentials, or AWS SSO.")?
         }
@@ -157,6 +155,13 @@ async fn parse_s3_config_from_env_and_args(
             );
         }
     };
+
+    let endpoint = env::var(S3_ENDPOINT).unwrap_or_else(|_| {
+        format!(
+            "https://s3.dualstack.{}.amazonaws.com",
+            region
+        )
+    });
 
     Ok(S3Config {
         key,

@@ -11,11 +11,12 @@ use std::sync::OnceLock;
 use std::time::Duration;
 use time::OffsetDateTime;
 
-/// Resolves AWS credentials using the Default Credential Chain.
+/// Resolves AWS credentials and region using the Default Credential Chain.
 /// This supports environment variables, IAM roles, ~/.aws/credentials, SSO, etc.
+/// Returns (access_key, secret_key, session_token, region)
 pub async fn resolve_credentials_from_chain(
     region: Option<String>,
-) -> anyhow::Result<(String, String, Option<String>)> {
+) -> anyhow::Result<(String, String, Option<String>, String)> {
     let config_loader = aws_config::defaults(BehaviorVersion::latest());
 
     let config = if let Some(region_str) = region {
@@ -38,7 +39,13 @@ pub async fn resolve_credentials_from_chain(
     let secret_key = credentials.secret_access_key().to_string();
     let session_token = credentials.session_token().map(|s| s.to_string());
 
-    Ok((access_key, secret_key, session_token))
+    // Get the actual region from the config
+    let resolved_region = config
+        .region()
+        .ok_or_else(|| anyhow::anyhow!("No region found in AWS config"))?
+        .to_string();
+
+    Ok((access_key, secret_key, session_token, resolved_region))
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
