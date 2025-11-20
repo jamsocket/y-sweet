@@ -18,7 +18,7 @@ use y_sweet::stores::filesystem::FileSystemStore;
 use y_sweet_core::{
     auth::Authenticator,
     store::{
-        s3::{S3Config, S3Store},
+        s3::{resolve_credentials_from_chain, S3Config, S3Store},
         Store,
     },
 };
@@ -97,7 +97,13 @@ const S3_SESSION_TOKEN: &str = "AWS_SESSION_TOKEN";
 const S3_REGION: &str = "AWS_REGION";
 const S3_ENDPOINT: &str = "AWS_ENDPOINT_URL_S3";
 const S3_USE_PATH_STYLE: &str = "AWS_S3_USE_PATH_STYLE";
-fn parse_s3_config_from_env_and_args(
+
+/// Parse S3 configuration from environment variables and arguments.
+///
+/// Priority order for credentials:
+/// 1. Manual credentials via AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables
+/// 2. AWS Default Credential Chain (IAM roles, ~/.aws/credentials, SSO, etc.)
+async fn parse_s3_config_from_env_and_args(
     bucket: String,
     prefix: Option<String>,
 ) -> anyhow::Result<S3Config> {
@@ -116,27 +122,55 @@ fn parse_s3_config_from_env_and_args(
         false
     };
 
+    let region = env::var(S3_REGION).unwrap_or_else(|_| DEFAULT_S3_REGION.to_string());
+    let endpoint = env::var(S3_ENDPOINT).unwrap_or_else(|_| {
+        format!(
+            "https://s3.dualstack.{}.amazonaws.com",
+            region
+        )
+    });
+
+    // Try to get manual credentials from environment variables
+    let manual_key = env::var(S3_ACCESS_KEY_ID).ok();
+    let manual_secret = env::var(S3_SECRET_ACCESS_KEY).ok();
+    let manual_token = env::var(S3_SESSION_TOKEN).ok();
+
+    let (key, secret, token) = match (manual_key, manual_secret) {
+        (Some(key), Some(secret)) => {
+            // Manual credentials are provided - use them directly
+            tracing::info!("Using manual AWS credentials from environment variables");
+            (key, secret, manual_token)
+        }
+        (None, None) => {
+            // No manual credentials - use AWS Default Credential Chain
+            tracing::info!("No manual AWS credentials found, using AWS Default Credential Chain");
+            resolve_credentials_from_chain(Some(region.clone()))
+                .await
+                .context("Failed to resolve credentials from AWS Default Credential Chain. Either set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables, or configure AWS credentials via IAM role, ~/.aws/credentials, or AWS SSO.")?
+        }
+        _ => {
+            // Only one of key or secret is provided - this is an error
+            anyhow::bail!(
+                "Both {} and {} must be set together, or neither should be set to use AWS Default Credential Chain",
+                S3_ACCESS_KEY_ID,
+                S3_SECRET_ACCESS_KEY
+            );
+        }
+    };
+
     Ok(S3Config {
-        key: env::var(S3_ACCESS_KEY_ID)
-            .map_err(|_| anyhow::anyhow!("{} env var not supplied", S3_ACCESS_KEY_ID))?,
-        region: env::var(S3_REGION).unwrap_or_else(|_| DEFAULT_S3_REGION.to_string()),
-        endpoint: env::var(S3_ENDPOINT).unwrap_or_else(|_| {
-            format!(
-                "https://s3.dualstack.{}.amazonaws.com",
-                env::var(S3_REGION).unwrap_or_else(|_| DEFAULT_S3_REGION.to_string())
-            )
-        }),
-        secret: env::var(S3_SECRET_ACCESS_KEY)
-            .map_err(|_| anyhow::anyhow!("{} env var not supplied", S3_SECRET_ACCESS_KEY))?,
-        token: env::var(S3_SESSION_TOKEN).ok(),
+        key,
+        secret,
+        token,
+        region,
+        endpoint,
         bucket,
         bucket_prefix: prefix,
-        // If the endpoint is overridden, we assume that the user wants path-style URLs.
         path_style,
     })
 }
 
-fn get_store_from_opts(store_path: &str) -> Result<Box<dyn Store>> {
+async fn get_store_from_opts(store_path: &str) -> Result<Box<dyn Store>> {
     if store_path.starts_with("s3://") {
         let url = url::Url::parse(store_path)?;
         let bucket = url
@@ -145,7 +179,7 @@ fn get_store_from_opts(store_path: &str) -> Result<Box<dyn Store>> {
             .to_owned();
         let bucket_prefix = url.path().trim_start_matches('/').to_owned();
         let bucket_prefix = (!bucket_prefix.is_empty()).then_some(bucket_prefix); // "" => None
-        let config = parse_s3_config_from_env_and_args(bucket, bucket_prefix)?;
+        let config = parse_s3_config_from_env_and_args(bucket, bucket_prefix).await?;
         let store = S3Store::new(config);
         Ok(Box::new(store))
     } else {
@@ -192,7 +226,7 @@ async fn main() -> Result<()> {
             let addr = listener.local_addr()?;
 
             let store = if let Some(store) = store {
-                let store = get_store_from_opts(store)?;
+                let store = get_store_from_opts(store).await?;
                 store.init().await?;
                 Some(store)
             } else {
@@ -249,7 +283,7 @@ async fn main() -> Result<()> {
             }
         }
         ServSubcommand::ConvertFromUpdate { store, doc_id } => {
-            let store = get_store_from_opts(store)?;
+            let store = get_store_from_opts(store).await?;
             store.init().await?;
 
             let mut stdin = tokio::io::stdin();
@@ -290,7 +324,7 @@ async fn main() -> Result<()> {
                     None
                 };
 
-                let s3_config = parse_s3_config_from_env_and_args(bucket, prefix)?;
+                let s3_config = parse_s3_config_from_env_and_args(bucket, prefix).await?;
                 let store = S3Store::new(s3_config);
                 let store: Box<dyn Store> = Box::new(store);
                 store.init().await?;
