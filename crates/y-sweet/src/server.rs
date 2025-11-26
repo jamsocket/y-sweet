@@ -92,6 +92,8 @@ pub struct Server {
     /// Disabled for single-doc mode, since we only have one doc.
     doc_gc: bool,
     max_body_size: Option<usize>,
+    /// Whether to skip garbage collection in Yrs documents.
+    skip_gc: bool,
 }
 
 impl Server {
@@ -103,6 +105,7 @@ impl Server {
         cancellation_token: CancellationToken,
         doc_gc: bool,
         max_body_size: Option<usize>,
+        skip_gc: bool,
     ) -> Result<Self> {
         Ok(Self {
             docs: Arc::new(DashMap::new()),
@@ -114,6 +117,7 @@ impl Server {
             cancellation_token,
             doc_gc,
             max_body_size,
+            skip_gc,
         })
     }
 
@@ -141,9 +145,14 @@ impl Server {
     pub async fn load_doc(&self, doc_id: &str) -> Result<()> {
         let (send, recv) = channel(1024);
 
-        let dwskv = DocWithSyncKv::new(doc_id, self.store.clone(), move || {
-            send.try_send(()).unwrap();
-        })
+        let dwskv = DocWithSyncKv::new(
+            doc_id,
+            self.store.clone(),
+            move || {
+                send.try_send(()).unwrap();
+            },
+            self.skip_gc,
+        )
         .await?;
 
         dwskv
@@ -836,6 +845,7 @@ mod test {
             CancellationToken::new(),
             true,
             None,
+            false,
         )
         .await
         .unwrap();
@@ -875,6 +885,7 @@ mod test {
             CancellationToken::new(),
             true,
             None,
+            false,
         )
         .await
         .unwrap();
