@@ -1,7 +1,7 @@
 use crate::{doc_connection::DOC_NAME, store::Store, sync::awareness::Awareness, sync_kv::SyncKv};
 use anyhow::{anyhow, Context, Result};
 use std::sync::{Arc, RwLock};
-use yrs::{updates::decoder::Decode, Doc, ReadTxn, StateVector, Subscription, Transact, Update};
+use yrs::{updates::decoder::Decode, ReadTxn, StateVector, Subscription, Transact, Update};
 use yrs_kvstore::DocOps;
 
 pub struct DocWithSyncKv {
@@ -24,6 +24,7 @@ impl DocWithSyncKv {
         key: &str,
         store: Option<Arc<Box<dyn Store>>>,
         dirty_callback: F,
+        skip_gc: bool,
     ) -> Result<Self>
     where
         F: Fn() + Send + Sync + 'static,
@@ -33,7 +34,10 @@ impl DocWithSyncKv {
             .context("Failed to create SyncKv")?;
 
         let sync_kv = Arc::new(sync_kv);
-        let doc = Doc::new();
+        let doc = yrs::Doc::with_options(yrs::Options {
+            skip_gc,
+            ..yrs::Options::default()
+        });
 
         {
             let mut txn = doc.transact_mut();

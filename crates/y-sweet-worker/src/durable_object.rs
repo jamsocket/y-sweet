@@ -40,15 +40,20 @@ impl YServe {
                 .try_into()
                 .expect("Should be able to convert timeout interval to i64");
 
-            let doc = DocWithSyncKv::new(doc_id, store, move || {
-                let storage = storage.clone();
-                wasm_bindgen_futures::spawn_local(async move {
-                    console_log!("Setting alarm.");
-                    if let Err(e) = storage.0.set_alarm(timeout_interval_ms).await {
-                        console_log!("Error setting alarm: {:?}", e);
-                    }
-                });
-            })
+            let doc = DocWithSyncKv::new(
+                doc_id,
+                store,
+                move || {
+                    let storage = storage.clone();
+                    wasm_bindgen_futures::spawn_local(async move {
+                        console_log!("Setting alarm.");
+                        if let Err(e) = storage.0.set_alarm(timeout_interval_ms).await {
+                            console_log!("Error setting alarm: {:?}", e);
+                        }
+                    });
+                },
+                false,
+            )
             .await
             .map_err(|e| format!("Error creating doc: {:?}", e))?;
 

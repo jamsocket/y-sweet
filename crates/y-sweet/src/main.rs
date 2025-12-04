@@ -56,6 +56,9 @@ enum ServSubcommand {
 
         #[clap(long, env = "Y_SWEET_MAX_BODY_SIZE")]
         max_body_size: Option<usize>,
+
+        #[clap(long, default_value = "false", env = "Y_SWEET_SKIP_GC")]
+        skip_gc: bool,
     },
 
     GenAuth {
@@ -88,6 +91,9 @@ enum ServSubcommand {
 
         #[clap(long, env = "Y_SWEET_MAX_BODY_SIZE")]
         max_body_size: Option<usize>,
+
+        #[clap(long, default_value = "false", env = "Y_SWEET_SKIP_GC")]
+        skip_gc: bool,
     },
 }
 
@@ -175,6 +181,7 @@ async fn main() -> Result<()> {
             url_prefix,
             prod,
             max_body_size,
+            skip_gc,
         } => {
             let auth = if let Some(auth) = auth {
                 Some(Authenticator::new(auth)?)
@@ -214,6 +221,7 @@ async fn main() -> Result<()> {
                 token.clone(),
                 true,
                 *max_body_size,
+                *skip_gc,
             )
             .await?;
 
@@ -266,6 +274,7 @@ async fn main() -> Result<()> {
             host,
             checkpoint_freq_seconds,
             max_body_size,
+            skip_gc,
         } => {
             let doc_id = env::var("SESSION_BACKEND_KEY").expect("SESSION_BACKEND_KEY must be set");
 
@@ -312,6 +321,7 @@ async fn main() -> Result<()> {
                 cancellation_token.clone(),
                 false,
                 *max_body_size,
+                *skip_gc,
             )
             .await?;
 
