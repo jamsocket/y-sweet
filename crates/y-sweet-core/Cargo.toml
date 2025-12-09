@@ -22,6 +22,8 @@ getrandom = { version = "0.2.10", features = ["js"] }
 rand = "0.8.5"
 reqwest = { version = "0.12.5", default-features = false, features = ["rustls-tls-webpki-roots"] }
 rusty-s3 = "0.5.0"
+aws-config = { version = "1.5", features = ["behavior-version-latest"] }
+aws-credential-types = "1.2"
 serde = { version = "1.0.173", features = ["derive"] }
 serde_json = "1.0.103"
 sha2 = "0.10.7"
