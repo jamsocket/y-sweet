@@ -588,10 +588,12 @@ export class YSweetProvider {
 
   private websocketClose(event: CloseEvent) {
     this.emit(EVENT_CONNECTION_CLOSE, event)
-    this.setStatus(STATUS_ERROR)
-    this.clearHeartbeat()
-    this.clearConnectionTimeout()
-    this.connect()
+    if (this.status !== STATUS_OFFLINE) {
+      this.setStatus(STATUS_ERROR)
+      this.clearHeartbeat()
+      this.clearConnectionTimeout()
+      this.connect()
+    }
 
     // Remove all awareness states except for our own.
     awarenessProtocol.removeAwarenessStates(
@@ -605,11 +607,12 @@ export class YSweetProvider {
 
   private websocketError(event: Event) {
     this.emit(EVENT_CONNECTION_ERROR, event)
-    this.setStatus(STATUS_ERROR)
-    this.clearHeartbeat()
-    this.clearConnectionTimeout()
-
-    this.connect()
+    if (this.status !== STATUS_OFFLINE) {
+      this.setStatus(STATUS_ERROR)
+      this.clearHeartbeat()
+      this.clearConnectionTimeout()
+      this.connect()
+    }
   }
 
   public emit(eventName: YSweetEvent | YWebsocketEvent, data: any = null): void {
@@ -635,6 +638,16 @@ export class YSweetProvider {
   }
 
   public destroy() {
+    // Set status to OFFLINE first to prevent websocketClose from reconnecting
+    this.setStatus(STATUS_OFFLINE)
+    this.clearHeartbeat()
+    this.clearConnectionTimeout()
+
+    // Wake any pending reconnection attempts so they exit immediately
+    if (this.reconnectSleeper) {
+      this.reconnectSleeper.wake()
+    }
+
     if (this.websocket) {
       this.websocket.close()
     }
