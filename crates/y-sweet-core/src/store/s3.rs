@@ -89,7 +89,10 @@ impl S3Store {
         };
 
         match response.status() {
-            StatusCode::OK => Ok(response),
+            // Accept any 2xx as success. A successful DELETE returns 204 No
+            // Content (not 200), which previously fell through to the catch-all
+            // below and was misreported as a ConnectionError.
+            s if s.is_success() => Ok(response),
             StatusCode::NOT_FOUND => Err(StoreError::DoesNotExist(
                 "Received NOT_FOUND from S3-compatible API.".to_string(),
             )),
