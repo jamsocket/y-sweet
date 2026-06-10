@@ -50,13 +50,21 @@ impl SyncKv {
     }
 
     fn mark_dirty(&self) {
-        if !self.dirty.load(Ordering::Relaxed) && !self.shutdown.load(Ordering::SeqCst) {
-            self.dirty.store(true, Ordering::Relaxed);
-            (self.dirty_callback)();
+        if !self.shutdown.load(Ordering::SeqCst) {
+            let was_updated = !self.dirty.swap(true, Ordering::SeqCst);
+            if was_updated {
+                (self.dirty_callback)();
+            }
         }
     }
 
     pub async fn persist(&self) -> Result<(), Box<dyn std::error::Error>> {
+        // Only persist if actually dirty
+        if !self.dirty.load(Ordering::SeqCst) {
+            tracing::info!("Not persisting, no changes detected");
+            return Ok(());
+        }
+
         if let Some(store) = &self.store {
             let snapshot = {
                 let data = self.data.lock().unwrap();
@@ -66,7 +74,7 @@ impl SyncKv {
             tracing::info!(size=?snapshot.len(), "Persisting snapshot");
             store.set(&self.key, snapshot).await?;
         }
-        self.dirty.store(false, Ordering::Relaxed);
+        self.dirty.store(false, Ordering::SeqCst);
         Ok(())
     }
 
@@ -298,5 +306,30 @@ mod test {
 
             assert_eq!(sync_kv.get(b"foo"), Some(b"bar".to_vec()));
         }
+    }
+
+    #[tokio::test]
+    async fn only_persists_when_dirty() {
+        let store = MemoryStore::default();
+        let sync_kv = SyncKv::new(Some(Arc::new(Box::new(store.clone()))), "foo", || ())
+            .await
+            .unwrap();
+
+        assert!(!sync_kv.dirty.load(Ordering::SeqCst));
+
+        sync_kv.set(b"foo", b"bar");
+        assert!(sync_kv.dirty.load(Ordering::SeqCst));
+
+        sync_kv.persist().await.unwrap();
+        assert!(!sync_kv.dirty.load(Ordering::SeqCst));
+        assert_eq!(store.data.len(), 1);
+
+        store.data.clear();
+
+        assert!(!sync_kv.dirty.load(Ordering::SeqCst));
+        sync_kv.persist().await.unwrap();
+
+        // Should not persist when not dirty
+        assert!(store.data.is_empty());
     }
 }
