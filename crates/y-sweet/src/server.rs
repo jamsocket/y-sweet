@@ -645,10 +645,13 @@ async fn handle_socket(
     let last_pong_clone = last_pong.clone();
     let pong_metrics = metrics.clone();
     let pong_doc_id = doc_id.clone();
+    let conn_cancel = CancellationToken::new();
+    let conn_cancel_ping = conn_cancel.clone();
 
     tokio::spawn(async move {
         let mut ticker = tokio::time::interval(PING_EVERY);
         ticker.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+        let mut last_ping_sent: Option<tokio::time::Instant> = None;
 
         loop {
             tokio::select! {
@@ -659,12 +662,20 @@ async fn handle_socket(
                     let _ = sink.send(Message::Binary(msg)).await;
                 }
                 _ = ticker.tick() => {
-                    if last_pong_clone.read().expect("Failed to get read lock on last_pong").elapsed() > PONG_TIMEOUT {
+                    let pong_overdue = last_pong_clone.read().expect("Failed to get read lock on last_pong").elapsed() > PONG_TIMEOUT;
+                    if pong_overdue && last_ping_sent.is_some_and(|t| t.elapsed() < PONG_TIMEOUT) {
                         tracing::info!(doc_id = %pong_doc_id, "Pong timeout, closing connection");
                         pong_metrics.pong_timeouts.add(1, &[]);
+                        let _ = sink.send(Message::Close(None)).await;
+                        conn_cancel_ping.cancel();
                         break;
                     }
-                    let _ = sink.send(Message::Ping(vec![])).await;
+                    if sink.send(Message::Ping(vec![])).await.is_ok() {
+                        last_ping_sent = Some(tokio::time::Instant::now());
+                    } else {
+                        conn_cancel_ping.cancel();
+                        break;
+                    }
                 }
             }
         }
@@ -692,7 +703,7 @@ async fn handle_socket(
                     Err(_e) => {
                         tracing::warn!(doc_id = %doc_id, "WebSocket stream error");
                         metrics.websocket_failures.add(1, &[]);
-                        continue;
+                        break;
                     }
                     msg => {
                         tracing::warn!(doc_id = %doc_id, ?msg, "Received non-binary message");
@@ -710,6 +721,10 @@ async fn handle_socket(
             }
             _ = cancellation_token.cancelled() => {
                 tracing::debug!(doc_id = %doc_id, "Closing doc connection due to server cancel...");
+                break;
+            }
+            _ = conn_cancel.cancelled() => {
+                tracing::debug!(doc_id = %doc_id, "Closing doc connection after pong timeout");
                 break;
             }
         }
