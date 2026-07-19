@@ -3,6 +3,7 @@ use crate::sync::{
     self, awareness::Awareness, DefaultProtocol, Message, Protocol, SyncMessage, MSG_SYNC,
     MSG_SYNC_UPDATE,
 };
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, OnceLock, RwLock};
 use yrs::{
     block::ClientID,
@@ -25,6 +26,11 @@ type Callback = Arc<dyn Fn(&[u8]) + 'static + Send + Sync>;
 
 const SYNC_STATUS_MESSAGE: u8 = 102;
 
+/// Source of unique per-process connection IDs, used as the origin of awareness
+/// updates so a connection can recognize (and skip) its own updates when they
+/// are broadcast.
+static NEXT_CONNECTION_ID: AtomicU64 = AtomicU64::new(1);
+
 pub struct DocConnection {
     awareness: Arc<RwLock<Awareness>>,
     #[allow(unused)] // acts as RAII guard
@@ -34,6 +40,7 @@ pub struct DocConnection {
     authorization: Authorization,
     callback: Callback,
     closed: Arc<OnceLock<()>>,
+    connection_id: u64,
 
     /// If the client sends an awareness state, this will be set to its client ID.
     /// It is used to clear the awareness state when a client disconnects.
@@ -71,6 +78,7 @@ impl DocConnection {
         callback: Callback,
     ) -> Self {
         let closed = Arc::new(OnceLock::new());
+        let connection_id = NEXT_CONNECTION_ID.fetch_add(1, Ordering::Relaxed);
 
         let (doc_subscription, awareness_subscription) = {
             let mut awareness = awareness.write().unwrap();
@@ -119,6 +127,12 @@ impl DocConnection {
                     return;
                 }
 
+                // Don't echo an awareness update back to the connection that
+                // sent it; the sender already has that state.
+                if e.origin() == Some(connection_id) {
+                    return;
+                }
+
                 // https://github.com/y-crdt/y-sync/blob/56958e83acfd1f3c09f5dd67cf23c9c72f000707/src/net/broadcast.rs#L59
                 let added = e.added();
                 let updated = e.updated();
@@ -143,6 +157,7 @@ impl DocConnection {
             awareness_subscription,
             authorization,
             callback,
+            connection_id,
             client_id: OnceLock::new(),
             closed,
         }
@@ -212,7 +227,7 @@ impl DocConnection {
                     tracing::warn!("Received awareness update with more than one client");
                 }
                 let mut awareness = a.write().unwrap();
-                protocol.handle_awareness_update(&mut awareness, update)
+                protocol.handle_awareness_update_from(&mut awareness, update, Some(self.connection_id))
             }
             Message::Custom(SYNC_STATUS_MESSAGE, data) => {
                 // Respond to the client with the same payload it sent.
@@ -235,5 +250,82 @@ impl Drop for DocConnection {
             let mut awareness = self.awareness.write().unwrap();
             awareness.remove_state(*client_id);
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::sync::awareness::{AwarenessUpdate, AwarenessUpdateEntry};
+    use crate::sync::MSG_AWARENESS;
+    use std::collections::HashMap;
+    use std::sync::Mutex;
+    use yrs::Doc;
+
+    type Frames = Arc<Mutex<Vec<Vec<u8>>>>;
+
+    fn new_conn(awareness: &Arc<RwLock<Awareness>>) -> (DocConnection, Frames) {
+        let frames: Frames = Arc::default();
+        let conn = {
+            let frames = frames.clone();
+            DocConnection::new(awareness.clone(), Authorization::Full, move |bytes: &[u8]| {
+                frames.lock().unwrap().push(bytes.to_vec());
+            })
+        };
+        // Discard the initial handshake (sync step 1 + initial awareness).
+        frames.lock().unwrap().clear();
+        (conn, frames)
+    }
+
+    fn awareness_message(client_id: ClientID, clock: u32, json: &str) -> Message {
+        let mut clients = HashMap::new();
+        clients.insert(
+            client_id,
+            AwarenessUpdateEntry {
+                clock,
+                json: json.to_string(),
+            },
+        );
+        Message::Awareness(AwarenessUpdate { clients })
+    }
+
+    #[test]
+    fn awareness_update_is_not_echoed_to_sender() {
+        let awareness = Arc::new(RwLock::new(Awareness::new(Doc::new())));
+        let (conn_a, frames_a) = new_conn(&awareness);
+        let (_conn_b, frames_b) = new_conn(&awareness);
+
+        conn_a
+            .handle_msg(&DefaultProtocol, awareness_message(7, 1, "{}"))
+            .unwrap();
+
+        assert!(
+            frames_a.lock().unwrap().is_empty(),
+            "sender must not receive its own awareness update"
+        );
+        let frames_b = frames_b.lock().unwrap();
+        assert_eq!(frames_b.len(), 1, "other connections must receive the update");
+        assert_eq!(frames_b[0][0], MSG_AWARENESS);
+    }
+
+    #[test]
+    fn awareness_removal_on_drop_reaches_remaining_connections() {
+        let awareness = Arc::new(RwLock::new(Awareness::new(Doc::new())));
+        let (_conn_a, frames_a) = new_conn(&awareness);
+        let (conn_b, frames_b) = new_conn(&awareness);
+
+        conn_b
+            .handle_msg(&DefaultProtocol, awareness_message(7, 1, "{}"))
+            .unwrap();
+        frames_a.lock().unwrap().clear();
+
+        // Dropping B removes client 7's state; that change has no connection
+        // origin, so remaining connections must be notified.
+        drop(conn_b);
+        drop(frames_b);
+
+        let frames_a = frames_a.lock().unwrap();
+        assert_eq!(frames_a.len(), 1);
+        assert_eq!(frames_a[0][0], MSG_AWARENESS);
     }
 }

@@ -621,9 +621,21 @@ export class YSweetProvider {
 
   private handleAwarenessUpdate(
     { added, updated, removed }: { added: Array<any>; updated: Array<any>; removed: Array<any> },
-    _origin: any,
+    origin: any,
   ) {
-    const changedClients = added.concat(updated).concat(removed)
+    let changedClients = added.concat(updated).concat(removed)
+
+    if (origin === this) {
+      // This update was received from the server, so broadcasting it back
+      // would just echo it. The exception is our own client ID: when a remote
+      // update tries to remove our state, applyAwarenessUpdate keeps the state
+      // and bumps its clock, and that re-assertion must reach the server.
+      changedClients = changedClients.filter((client) => client === this.doc.clientID)
+      if (changedClients.length === 0) {
+        return
+      }
+    }
+
     const encoder = encoding.createEncoder()
     encoding.writeVarUint(encoder, MESSAGE_AWARENESS)
     encoding.writeVarUint8Array(

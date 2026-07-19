@@ -3,12 +3,23 @@ use std::collections::HashMap;
 use std::fmt::Formatter;
 use std::sync::Arc;
 use thiserror::Error;
+use time::OffsetDateTime;
 use yrs::block::ClientID;
 use yrs::updates::decoder::{Decode, Decoder};
 use yrs::updates::encoder::{Encode, Encoder};
 use yrs::{Doc, Observer, Subscription};
 
 const NULL_STR: &str = "null";
+
+/// How long the metadata (logical clock) of a client is retained after its
+/// state has been removed. Within this window, stale updates from the
+/// disconnected client are still rejected by the clock check in
+/// [Awareness::apply_update]. Matches the `outdatedTimeout` convention of the
+/// reference y-protocols implementation (30s).
+///
+/// Without pruning, a long-lived server-side [Awareness] instance grows by one
+/// `meta` entry for every client that ever connected to the document.
+const DISCONNECTED_META_TTL: time::Duration = time::Duration::seconds(30);
 
 #[cfg(not(feature = "sync"))]
 type AwarenessObserver = Observer<Arc<dyn Fn(&Awareness, &Event) + 'static>>;
@@ -128,6 +139,7 @@ impl Awareness {
     pub fn remove_state(&mut self, client_id: ClientID) {
         let prev_state = self.states.remove(&client_id);
         self.update_meta(client_id);
+        self.prune_disconnected_meta(DISCONNECTED_META_TTL);
         if let Some(eh) = self.on_update.as_ref() {
             if prev_state.is_some() {
                 let e = Event::new(Vec::default(), Vec::default(), vec![client_id]);
@@ -156,6 +168,18 @@ impl Awareness {
                 e.insert(MetaClientState::new(1));
             }
         }
+    }
+
+    /// Drop metadata entries of clients that no longer have a state and whose
+    /// metadata hasn't been touched for `ttl`. The entry of a client that was
+    /// just removed always survives at least one full `ttl` window, so its
+    /// clock keeps guarding against stale updates while they can still arrive.
+    fn prune_disconnected_meta(&mut self, ttl: time::Duration) {
+        let now = OffsetDateTime::now_utc();
+        let states = &self.states;
+        self.meta.retain(|client_id, meta| {
+            states.contains_key(client_id) || now - meta.last_updated < ttl
+        });
     }
 
     /// Returns a serializable update object which is representation of a current Awareness state.
@@ -192,6 +216,17 @@ impl Awareness {
     /// Applies an update (incoming from remote channel or generated using [Awareness::update] /
     /// [Awareness::update_with_clients] methods) and modifies a state of a current instance.
     pub fn apply_update(&mut self, update: AwarenessUpdate) -> Result<(), Error> {
+        self.apply_update_from(update, None)
+    }
+
+    /// Like [Awareness::apply_update], but tags the emitted [Event] with an `origin`
+    /// identifying where the update came from (e.g. a connection ID), so that
+    /// subscribers can avoid echoing an update back to its sender.
+    pub fn apply_update_from(
+        &mut self,
+        update: AwarenessUpdate,
+        origin: Option<u64>,
+    ) -> Result<(), Error> {
         let mut added = Vec::new();
         let mut updated = Vec::new();
         let mut removed = Vec::new();
@@ -255,7 +290,7 @@ impl Awareness {
 
         if let Some(eh) = self.on_update.as_ref() {
             if !added.is_empty() || !updated.is_empty() || !removed.is_empty() {
-                let e = Event::new(added, updated, removed);
+                let e = Event::with_origin(added, updated, removed, origin);
                 eh.trigger(|cb| {
                     cb(self, &e);
                 });
@@ -333,11 +368,20 @@ pub enum Error {
 #[derive(Debug, Clone)]
 struct MetaClientState {
     clock: u32,
+    /// When this entry was last created or bumped. Used by
+    /// [Awareness::prune_disconnected_meta] to expire entries of
+    /// disconnected clients. `OffsetDateTime` (not `std::time::Instant`)
+    /// because y-sweet-worker compiles this crate to wasm32, where
+    /// `Instant::now` panics.
+    last_updated: OffsetDateTime,
 }
 
 impl MetaClientState {
     fn new(clock: u32) -> Self {
-        MetaClientState { clock }
+        MetaClientState {
+            clock,
+            last_updated: OffsetDateTime::now_utc(),
+        }
     }
 }
 
@@ -347,15 +391,34 @@ pub struct Event {
     added: Vec<ClientID>,
     updated: Vec<ClientID>,
     removed: Vec<ClientID>,
+    /// Identifies where the change came from (e.g. a connection ID), if known.
+    /// `None` for changes made directly on this instance (e.g. state removal
+    /// on disconnect).
+    origin: Option<u64>,
 }
 
 impl Event {
     pub fn new(added: Vec<ClientID>, updated: Vec<ClientID>, removed: Vec<ClientID>) -> Self {
+        Self::with_origin(added, updated, removed, None)
+    }
+
+    pub fn with_origin(
+        added: Vec<ClientID>,
+        updated: Vec<ClientID>,
+        removed: Vec<ClientID>,
+        origin: Option<u64>,
+    ) -> Self {
         Event {
             added,
             updated,
             removed,
+            origin,
         }
+    }
+
+    /// The origin passed to [Awareness::apply_update_from], if any.
+    pub fn origin(&self) -> Option<u64> {
+        self.origin
     }
 
     /// Collection of new clients that have been added to an [Awareness] struct, that was not known
@@ -427,6 +490,134 @@ mod test {
         assert_eq!(e_remote.removed.len(), 1);
         assert_eq!(local.clients().get(&1), None);
         assert_eq!(e_remote, e_local);
+        Ok(())
+    }
+
+    #[test]
+    fn apply_update_from_carries_origin() -> Result<(), Box<dyn std::error::Error>> {
+        let (tx, rx) = channel();
+        let mut server = Awareness::new(Doc::with_client_id(0));
+        let _sub = server.on_update(move |_, e| {
+            tx.send(e.clone()).unwrap();
+        });
+
+        let mut update = HashMap::new();
+        update.insert(
+            1,
+            AwarenessUpdateEntry {
+                clock: 1,
+                json: "{}".to_string(),
+            },
+        );
+        server.apply_update_from(AwarenessUpdate { clients: update }, Some(42))?;
+        assert_eq!(rx.try_recv()?.origin(), Some(42));
+
+        let mut update = HashMap::new();
+        update.insert(
+            1,
+            AwarenessUpdateEntry {
+                clock: 2,
+                json: "{\"x\":1}".to_string(),
+            },
+        );
+        server.apply_update(AwarenessUpdate { clients: update })?;
+        assert_eq!(rx.try_recv()?.origin(), None);
+        Ok(())
+    }
+
+    /// Backdate a meta entry so it looks like the client disconnected `secs`
+    /// seconds ago.
+    fn backdate_meta(awareness: &mut Awareness, client_id: ClientID, secs: i64) {
+        let meta = awareness.meta.get_mut(&client_id).unwrap();
+        meta.last_updated -= time::Duration::seconds(secs);
+    }
+
+    #[test]
+    fn remove_state_prunes_stale_disconnected_meta() -> Result<(), Box<dyn std::error::Error>> {
+        let mut server = Awareness::new(Doc::with_client_id(0));
+
+        // Three clients connect and announce a state.
+        for client_id in 1..=3 {
+            let mut update = HashMap::new();
+            update.insert(
+                client_id,
+                AwarenessUpdateEntry {
+                    clock: 1,
+                    json: "{}".to_string(),
+                },
+            );
+            server.apply_update(AwarenessUpdate { clients: update })?;
+        }
+
+        // Clients 1 and 2 disconnect; their meta tombstones age past the TTL.
+        server.remove_state(1);
+        server.remove_state(2);
+        backdate_meta(&mut server, 1, 60);
+        backdate_meta(&mut server, 2, 60);
+        assert_eq!(server.meta.len(), 3);
+
+        // The next disconnect prunes the stale tombstones; client 3's own
+        // fresh tombstone and any connected clients' entries survive.
+        server.remove_state(3);
+        assert!(!server.meta.contains_key(&1));
+        assert!(!server.meta.contains_key(&2));
+        assert!(server.meta.contains_key(&3));
+        Ok(())
+    }
+
+    #[test]
+    fn stale_update_still_rejected_within_ttl() -> Result<(), Box<dyn std::error::Error>> {
+        let mut server = Awareness::new(Doc::with_client_id(0));
+
+        let mut update = HashMap::new();
+        update.insert(
+            1,
+            AwarenessUpdateEntry {
+                clock: 5,
+                json: "{}".to_string(),
+            },
+        );
+        server.apply_update(AwarenessUpdate { clients: update })?;
+
+        // Client 1 disconnects. remove_state bumps its meta clock to 6 and
+        // keeps the entry for the TTL window.
+        server.remove_state(1);
+        assert!(server.clients().get(&1).is_none());
+
+        // A delayed update with an older clock must not resurrect the state.
+        let mut stale = HashMap::new();
+        stale.insert(
+            1,
+            AwarenessUpdateEntry {
+                clock: 4,
+                json: "{\"ghost\":true}".to_string(),
+            },
+        );
+        server.apply_update(AwarenessUpdate { clients: stale })?;
+        assert!(server.clients().get(&1).is_none());
+        Ok(())
+    }
+
+    #[test]
+    fn prune_keeps_connected_clients() -> Result<(), Box<dyn std::error::Error>> {
+        let mut server = Awareness::new(Doc::with_client_id(0));
+
+        let mut update = HashMap::new();
+        update.insert(
+            1,
+            AwarenessUpdateEntry {
+                clock: 1,
+                json: "{}".to_string(),
+            },
+        );
+        server.apply_update(AwarenessUpdate { clients: update })?;
+
+        // Even with an ancient last_updated, a client that still has a state
+        // is never pruned.
+        backdate_meta(&mut server, 1, 3600);
+        server.prune_disconnected_meta(DISCONNECTED_META_TTL);
+        assert!(server.meta.contains_key(&1));
+        assert_eq!(server.clients()[&1], "{}");
         Ok(())
     }
 }

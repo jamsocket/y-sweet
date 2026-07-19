@@ -121,6 +121,19 @@ pub trait Protocol {
         Ok(None)
     }
 
+    /// Like [Protocol::handle_awareness_update], but tags the update with an `origin`
+    /// identifying the connection it arrived on, so that awareness subscribers can
+    /// avoid echoing the update back to its sender.
+    fn handle_awareness_update_from(
+        &self,
+        awareness: &mut Awareness,
+        update: AwarenessUpdate,
+        origin: Option<u64>,
+    ) -> Result<Option<Message>, Error> {
+        awareness.apply_update_from(update, origin)?;
+        Ok(None)
+    }
+
     /// Y-sync protocol enables to extend its own settings with custom handles. These can be
     /// implemented here. By default, it returns an [Error::Unsupported].
     fn missing_handle(
