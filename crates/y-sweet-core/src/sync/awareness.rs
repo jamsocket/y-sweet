@@ -216,6 +216,17 @@ impl Awareness {
     /// Applies an update (incoming from remote channel or generated using [Awareness::update] /
     /// [Awareness::update_with_clients] methods) and modifies a state of a current instance.
     pub fn apply_update(&mut self, update: AwarenessUpdate) -> Result<(), Error> {
+        self.apply_update_from(update, None)
+    }
+
+    /// Like [Awareness::apply_update], but tags the emitted [Event] with an `origin`
+    /// identifying where the update came from (e.g. a connection ID), so that
+    /// subscribers can avoid echoing an update back to its sender.
+    pub fn apply_update_from(
+        &mut self,
+        update: AwarenessUpdate,
+        origin: Option<u64>,
+    ) -> Result<(), Error> {
         let mut added = Vec::new();
         let mut updated = Vec::new();
         let mut removed = Vec::new();
@@ -279,7 +290,7 @@ impl Awareness {
 
         if let Some(eh) = self.on_update.as_ref() {
             if !added.is_empty() || !updated.is_empty() || !removed.is_empty() {
-                let e = Event::new(added, updated, removed);
+                let e = Event::with_origin(added, updated, removed, origin);
                 eh.trigger(|cb| {
                     cb(self, &e);
                 });
@@ -380,15 +391,34 @@ pub struct Event {
     added: Vec<ClientID>,
     updated: Vec<ClientID>,
     removed: Vec<ClientID>,
+    /// Identifies where the change came from (e.g. a connection ID), if known.
+    /// `None` for changes made directly on this instance (e.g. state removal
+    /// on disconnect).
+    origin: Option<u64>,
 }
 
 impl Event {
     pub fn new(added: Vec<ClientID>, updated: Vec<ClientID>, removed: Vec<ClientID>) -> Self {
+        Self::with_origin(added, updated, removed, None)
+    }
+
+    pub fn with_origin(
+        added: Vec<ClientID>,
+        updated: Vec<ClientID>,
+        removed: Vec<ClientID>,
+        origin: Option<u64>,
+    ) -> Self {
         Event {
             added,
             updated,
             removed,
+            origin,
         }
+    }
+
+    /// The origin passed to [Awareness::apply_update_from], if any.
+    pub fn origin(&self) -> Option<u64> {
+        self.origin
     }
 
     /// Collection of new clients that have been added to an [Awareness] struct, that was not known
@@ -460,6 +490,38 @@ mod test {
         assert_eq!(e_remote.removed.len(), 1);
         assert_eq!(local.clients().get(&1), None);
         assert_eq!(e_remote, e_local);
+        Ok(())
+    }
+
+    #[test]
+    fn apply_update_from_carries_origin() -> Result<(), Box<dyn std::error::Error>> {
+        let (tx, rx) = channel();
+        let mut server = Awareness::new(Doc::with_client_id(0));
+        let _sub = server.on_update(move |_, e| {
+            tx.send(e.clone()).unwrap();
+        });
+
+        let mut update = HashMap::new();
+        update.insert(
+            1,
+            AwarenessUpdateEntry {
+                clock: 1,
+                json: "{}".to_string(),
+            },
+        );
+        server.apply_update_from(AwarenessUpdate { clients: update }, Some(42))?;
+        assert_eq!(rx.try_recv()?.origin(), Some(42));
+
+        let mut update = HashMap::new();
+        update.insert(
+            1,
+            AwarenessUpdateEntry {
+                clock: 2,
+                json: "{\"x\":1}".to_string(),
+            },
+        );
+        server.apply_update(AwarenessUpdate { clients: update })?;
+        assert_eq!(rx.try_recv()?.origin(), None);
         Ok(())
     }
 
