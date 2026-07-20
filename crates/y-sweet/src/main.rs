@@ -51,6 +51,9 @@ enum ServSubcommand {
         #[clap(long, env = "Y_SWEET_URL_PREFIX")]
         url_prefix: Option<Url>,
 
+        #[clap(long, env = "Y_SWEET_PATH_PREFIX")]
+        path_prefix: Option<String>,
+
         #[clap(long)]
         prod: bool,
 
@@ -197,6 +200,7 @@ async fn main() -> Result<()> {
             store,
             auth,
             url_prefix,
+            path_prefix,
             prod,
             max_body_size,
             skip_gc,
@@ -244,6 +248,7 @@ async fn main() -> Result<()> {
                 std::time::Duration::from_secs(*checkpoint_freq_seconds),
                 auth,
                 url_prefix.clone(),
+                path_prefix.clone(),
                 token.clone(),
                 true,
                 *max_body_size,
@@ -356,6 +361,7 @@ async fn main() -> Result<()> {
                 std::time::Duration::from_secs(*checkpoint_freq_seconds),
                 None, // No authenticator
                 None, // No URL prefix
+                None, // No path prefix
                 cancellation_token.clone(),
                 false,
                 *max_body_size,

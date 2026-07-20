@@ -81,6 +81,18 @@ impl std::fmt::Display for AppError {
     }
 }
 
+fn normalize_path_prefix(prefix: String) -> String {
+    let trimmed = prefix.trim().trim_end_matches('/');
+    if trimmed.is_empty() {
+        return String::new();
+    }
+    if trimmed.starts_with('/') {
+        trimmed.to_string()
+    } else {
+        format!("/{trimmed}")
+    }
+}
+
 pub struct Server {
     docs: Arc<DashMap<String, DocWithSyncKv>>,
     doc_worker_tracker: TaskTracker,
@@ -88,6 +100,7 @@ pub struct Server {
     checkpoint_freq: Duration,
     authenticator: Option<Authenticator>,
     url_prefix: Option<Url>,
+    path_prefix: Option<String>,
     cancellation_token: CancellationToken,
     /// Whether to garbage collect docs that are no longer in use.
     /// Disabled for single-doc mode, since we only have one doc.
@@ -104,6 +117,7 @@ impl Server {
         checkpoint_freq: Duration,
         authenticator: Option<Authenticator>,
         url_prefix: Option<Url>,
+        path_prefix: Option<String>,
         cancellation_token: CancellationToken,
         doc_gc: bool,
         max_body_size: Option<usize>,
@@ -118,6 +132,9 @@ impl Server {
             checkpoint_freq,
             authenticator,
             url_prefix,
+            path_prefix: path_prefix
+                .map(normalize_path_prefix)
+                .filter(|p| !p.is_empty()),
             cancellation_token,
             doc_gc,
             max_body_size,
@@ -406,6 +423,10 @@ impl Server {
         } else {
             app.layer(middleware::from_fn(Self::redact_error_middleware))
         };
+
+        if let Some(path_prefix) = &self.path_prefix {
+            app = Router::new().nest(path_prefix, app);
+        }
 
         axum::serve(listener, app.into_make_service())
             .with_graceful_shutdown(async move { token.cancelled().await })
@@ -895,6 +916,7 @@ mod test {
             Duration::from_secs(60),
             None,
             None,
+            None,
             CancellationToken::new(),
             true,
             None,
@@ -935,6 +957,7 @@ mod test {
             Duration::from_secs(60),
             None,
             Some(prefix),
+            None,
             CancellationToken::new(),
             true,
             None,
@@ -971,6 +994,7 @@ mod test {
             Duration::from_secs(60),
             None,
             Some(prefix),
+            None,
             CancellationToken::new(),
             true,
             None,
@@ -999,5 +1023,54 @@ mod test {
         assert_eq!(token.base_url, Some(expected_base_url));
         assert_eq!(token.doc_id, doc_id);
         assert!(token.token.is_none());
+    }
+
+    #[test]
+    fn test_normalize_path_prefix() {
+        assert_eq!(normalize_path_prefix("/ysweet".to_string()), "/ysweet");
+        assert_eq!(normalize_path_prefix("ysweet".to_string()), "/ysweet");
+        assert_eq!(normalize_path_prefix("/ysweet/".to_string()), "/ysweet");
+        assert_eq!(normalize_path_prefix("  /ysweet/  ".to_string()), "/ysweet");
+        assert_eq!(normalize_path_prefix("/a/b/c".to_string()), "/a/b/c");
+        assert_eq!(normalize_path_prefix("".to_string()), "");
+        assert_eq!(normalize_path_prefix("/".to_string()), "");
+    }
+
+    #[tokio::test]
+    async fn test_empty_path_prefix_is_none() {
+        for p in ["", "/", "   "] {
+            let server = Server::new(
+                None,
+                Duration::from_secs(60),
+                None,
+                None,
+                Some(p.to_string()),
+                CancellationToken::new(),
+                true,
+                None,
+                false,
+            )
+            .await
+            .unwrap();
+            assert_eq!(server.path_prefix, None, "prefix {p:?} should be None");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_path_prefix_normalized_on_server() {
+        let server = Server::new(
+            None,
+            Duration::from_secs(60),
+            None,
+            None,
+            Some("ysweet/".to_string()),
+            CancellationToken::new(),
+            true,
+            None,
+            false,
+        )
+        .await
+        .unwrap();
+        assert_eq!(server.path_prefix.as_deref(), Some("/ysweet"));
     }
 }
