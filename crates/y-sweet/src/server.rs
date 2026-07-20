@@ -425,7 +425,7 @@ impl Server {
         };
 
         if let Some(path_prefix) = &self.path_prefix {
-            app = Router::new().nest(path_prefix, app);
+            app = app.clone().nest(path_prefix, app);
         }
 
         axum::serve(listener, app.into_make_service())
