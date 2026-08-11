@@ -1,5 +1,5 @@
-# google-cloud-storage requires rustc >= 1.88; its deps use edition 2024 (cargo >= 1.85)
-FROM rust:1.90-slim-bookworm AS builder
+# google-cloud-storage requires rustc >= 1.88; aws-smithy-xml (locked) requires >= 1.91.1
+FROM rust:1.93-slim-bookworm AS builder
 
 WORKDIR /build
 
