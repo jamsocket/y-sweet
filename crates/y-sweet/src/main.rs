@@ -175,6 +175,10 @@ async fn get_store_from_opts(store_path: &str) -> Result<Box<dyn Store>> {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    rustls::crypto::aws_lc_rs::default_provider()
+        .install_default()
+        .ok();
+
     let opts = Opts::parse();
 
     let filter = EnvFilter::builder()
