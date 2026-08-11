@@ -335,7 +335,7 @@ impl Server {
     pub async fn get_or_create_doc(
         &self,
         doc_id: &str,
-    ) -> Result<MappedRef<String, DocWithSyncKv, DocWithSyncKv>> {
+    ) -> Result<MappedRef<'_, String, DocWithSyncKv, DocWithSyncKv>> {
         if !self.docs.contains_key(doc_id) {
             tracing::info!(doc_id=%doc_id, "Loading doc");
             self.load_doc(doc_id).await?;
