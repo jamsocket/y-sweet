@@ -118,7 +118,11 @@ By default, `y-sweet serve` does not write data to disk. You can specify a direc
 npx y-sweet@latest serve /path/to/data
 ```
 
-If the directory starts with `s3://`, Y-Sweet will treat it as an S3-compatible bucket path. In this case, Y-Sweet will pick up your local AWS credentials from the environment. If you do not have AWS credentials set up, you can set them up with `aws configure`.
+If the directory starts with `s3://`, Y-Sweet will treat it as an S3-compatible bucket path. Credentials are resolved through the AWS SDK default chain: static keys from the environment (`AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_SESSION_TOKEN`), your local AWS profile (`aws configure`), an EKS service account (IRSA, via `AWS_WEB_IDENTITY_TOKEN_FILE`), EKS Pod Identity, or an EC2/ECS instance role — in that order. Static keys are optional; on Kubernetes with an IRSA-annotated service account, setting only `Y_SWEET_STORE=s3://bucket/prefix` (plus `AWS_REGION`) is enough. `AWS_ENDPOINT_URL_S3` (for MinIO and other S3-compatible stores) and `AWS_S3_USE_PATH_STYLE=true` are still supported.
+
+If the directory starts with `gs://`, Y-Sweet will treat it as a Google Cloud Storage bucket path, using [Application Default Credentials](https://cloud.google.com/docs/authentication/application-default-credentials): a service-account key file pointed to by `GOOGLE_APPLICATION_CREDENTIALS`, your local `gcloud auth application-default login` credentials, or the metadata server on GKE/GCE. On GKE with Workload Identity, binding the pod's Kubernetes service account to a Google service account that has access to the bucket is enough — set only `Y_SWEET_STORE=gs://bucket/prefix`.
+
+In `serve-doc` (session backend) mode, `STORAGE_BUCKET` accepts a bare bucket name (S3, as before) or a `gs://bucket` value to select Google Cloud Storage.
 
 ## Packages
 

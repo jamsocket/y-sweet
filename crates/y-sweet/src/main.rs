@@ -15,15 +15,11 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilte
 use url::Url;
 use y_sweet::cli::{print_auth_message, print_server_url};
 use y_sweet::stores::filesystem::FileSystemStore;
-use y_sweet_core::{
-    auth::Authenticator,
-    store::{
-        s3::{S3Config, S3Store},
-        Store,
-    },
-};
+use y_sweet::stores::gcs::GcsStore;
+use y_sweet::stores::s3::{S3Store, S3StoreConfig};
+use y_sweet::stores::{parse_store_target, target_from_bucket_env, StoreTarget};
+use y_sweet_core::{auth::Authenticator, store::Store};
 
-const DEFAULT_S3_REGION: &str = "us-east-1";
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(Parser)]
@@ -118,18 +114,13 @@ enum ServSubcommand {
     },
 }
 
-const S3_ACCESS_KEY_ID: &str = "AWS_ACCESS_KEY_ID";
-const S3_SECRET_ACCESS_KEY: &str = "AWS_SECRET_ACCESS_KEY";
-const S3_SESSION_TOKEN: &str = "AWS_SESSION_TOKEN";
 const S3_REGION: &str = "AWS_REGION";
 const S3_ENDPOINT: &str = "AWS_ENDPOINT_URL_S3";
 const S3_USE_PATH_STYLE: &str = "AWS_S3_USE_PATH_STYLE";
-fn parse_s3_config_from_env_and_args(
-    bucket: String,
-    prefix: Option<String>,
-) -> anyhow::Result<S3Config> {
+
+fn s3_store_config_from_env(bucket: String, prefix: Option<String>) -> Result<S3StoreConfig> {
     let use_path_style = env::var(S3_USE_PATH_STYLE).ok();
-    let path_style = if let Some(use_path_style) = use_path_style {
+    let mut force_path_style = if let Some(use_path_style) = use_path_style {
         if use_path_style.to_lowercase() == "true" {
             true
         } else if use_path_style.to_lowercase() == "false" || use_path_style.is_empty() {
@@ -143,41 +134,43 @@ fn parse_s3_config_from_env_and_args(
         false
     };
 
-    Ok(S3Config {
-        key: env::var(S3_ACCESS_KEY_ID)
-            .map_err(|_| anyhow::anyhow!("{} env var not supplied", S3_ACCESS_KEY_ID))?,
-        region: env::var(S3_REGION).unwrap_or_else(|_| DEFAULT_S3_REGION.to_string()),
-        endpoint: env::var(S3_ENDPOINT).unwrap_or_else(|_| {
-            format!(
-                "https://s3.dualstack.{}.amazonaws.com",
-                env::var(S3_REGION).unwrap_or_else(|_| DEFAULT_S3_REGION.to_string())
-            )
-        }),
-        secret: env::var(S3_SECRET_ACCESS_KEY)
-            .map_err(|_| anyhow::anyhow!("{} env var not supplied", S3_SECRET_ACCESS_KEY))?,
-        token: env::var(S3_SESSION_TOKEN).ok(),
+    let endpoint = env::var(S3_ENDPOINT).ok().filter(|e| !e.is_empty());
+
+    if !force_path_style {
+        if let Some(endpoint) = &endpoint {
+            if url::Url::parse(endpoint)
+                .ok()
+                .and_then(|u| u.host_str().map(|h| h == "localhost"))
+                .unwrap_or(false)
+            {
+                tracing::warn!("Inferring path-style URLs for localhost for backwards-compatibility. Set AWS_S3_USE_PATH_STYLE=true to ensure that path-style URLs are used.");
+                force_path_style = true;
+            }
+        }
+    }
+
+    Ok(S3StoreConfig {
         bucket,
-        bucket_prefix: prefix,
-        // If the endpoint is overridden, we assume that the user wants path-style URLs.
-        path_style,
+        prefix,
+        endpoint,
+        region: env::var(S3_REGION).ok().filter(|r| !r.is_empty()),
+        force_path_style,
     })
 }
 
-fn get_store_from_opts(store_path: &str) -> Result<Box<dyn Store>> {
-    if store_path.starts_with("s3://") {
-        let url = url::Url::parse(store_path)?;
-        let bucket = url
-            .host_str()
-            .ok_or_else(|| anyhow::anyhow!("Invalid S3 URL"))?
-            .to_owned();
-        let bucket_prefix = url.path().trim_start_matches('/').to_owned();
-        let bucket_prefix = (!bucket_prefix.is_empty()).then_some(bucket_prefix); // "" => None
-        let config = parse_s3_config_from_env_and_args(bucket, bucket_prefix)?;
-        let store = S3Store::new(config);
-        Ok(Box::new(store))
-    } else {
-        Ok(Box::new(FileSystemStore::new(PathBuf::from(store_path))?))
+async fn get_store_from_target(target: StoreTarget) -> Result<Box<dyn Store>> {
+    match target {
+        StoreTarget::S3 { bucket, prefix } => {
+            let config = s3_store_config_from_env(bucket, prefix)?;
+            Ok(Box::new(S3Store::new(config).await))
+        }
+        StoreTarget::Gcs { bucket, prefix } => Ok(Box::new(GcsStore::new(bucket, prefix).await?)),
+        StoreTarget::Filesystem(path) => Ok(Box::new(FileSystemStore::new(PathBuf::from(path))?)),
     }
+}
+
+async fn get_store_from_opts(store_path: &str) -> Result<Box<dyn Store>> {
+    get_store_from_target(parse_store_target(store_path)?).await
 }
 
 #[tokio::main]
@@ -229,7 +222,7 @@ async fn main() -> Result<()> {
             let addr = listener.local_addr()?;
 
             let store = if let Some(store) = store {
-                let store = get_store_from_opts(store)?;
+                let store = get_store_from_opts(store).await?;
                 store.init().await?;
                 Some(store)
             } else {
@@ -291,7 +284,7 @@ async fn main() -> Result<()> {
             }
         }
         ServSubcommand::ConvertFromUpdate { store, doc_id } => {
-            let store = get_store_from_opts(store)?;
+            let store = get_store_from_opts(store).await?;
             store.init().await?;
 
             let mut stdin = tokio::io::stdin();
@@ -342,9 +335,8 @@ async fn main() -> Result<()> {
                     None
                 };
 
-                let s3_config = parse_s3_config_from_env_and_args(bucket, prefix)?;
-                let store = S3Store::new(s3_config);
-                let store: Box<dyn Store> = Box::new(store);
+                let target = target_from_bucket_env(&bucket, prefix)?;
+                let store: Box<dyn Store> = get_store_from_target(target).await?;
                 store.init().await?;
                 Some(store)
             } else {
