@@ -53,6 +53,12 @@ const PING_EVERY: Duration = Duration::from_secs(20);
 // All modern browsers will respond to websocket pings with a pong message.
 const PONG_TIMEOUT: Duration = Duration::from_secs(40);
 
+// Defaults for the periodic mid-session access re-check; overridable via
+// Server::new (see main.rs's Y_SWEET_VALIDATE_* CLI/env options).
+pub const DEFAULT_VALIDATE_POLL_EVERY: Duration = Duration::from_secs(10);
+pub const DEFAULT_VALIDATE_RETRY_ATTEMPTS: u32 = 3;
+pub const DEFAULT_VALIDATE_RETRY_DELAY: Duration = Duration::from_millis(500);
+
 fn current_time_epoch_millis() -> u64 {
     let now = std::time::SystemTime::now();
     let duration_since_epoch = now.duration_since(std::time::UNIX_EPOCH).unwrap();
@@ -112,9 +118,13 @@ pub struct Server {
     metrics: Metrics,
     backend_url: Option<String>,
     http_client: reqwest::Client,
+    validate_poll_every: Duration,
+    validate_retry_attempts: u32,
+    validate_retry_delay: Duration,
 }
 
 impl Server {
+    #[allow(clippy::too_many_arguments)]
     pub async fn new(
         store: Option<Box<dyn Store>>,
         checkpoint_freq: Duration,
@@ -126,6 +136,9 @@ impl Server {
         max_body_size: Option<usize>,
         skip_gc: bool,
         backend_url: Option<String>,
+        validate_poll_every: Duration,
+        validate_retry_attempts: u32,
+        validate_retry_delay: Duration,
     ) -> Result<Self> {
         let docs = Arc::new(DashMap::new());
         let metrics = Metrics::new(docs.clone());
@@ -151,6 +164,9 @@ impl Server {
             metrics,
             backend_url,
             http_client: reqwest::Client::new(),
+            validate_poll_every,
+            validate_retry_attempts,
+            validate_retry_delay,
         })
     }
 
@@ -175,6 +191,22 @@ impl Server {
                 false
             }
         }
+    }
+
+    /// Like `validate_user_access`, but retries transient failures (network
+    /// errors, backend hiccups) up to `VALIDATE_RETRY_ATTEMPTS` times before
+    /// treating the check as a real denial. Used by the periodic mid-session
+    /// poll, where a brief backend blip shouldn't kick an otherwise-valid user.
+    async fn validate_user_access_with_retry(&self, doc_id: &str, user_id: &str) -> bool {
+        for attempt in 1..=self.validate_retry_attempts {
+            if self.validate_user_access(doc_id, user_id).await {
+                return true;
+            }
+            if attempt < self.validate_retry_attempts {
+                tokio::time::sleep(self.validate_retry_delay).await;
+            }
+        }
+        false
     }
 
     pub async fn doc_exists(&self, doc_id: &str) -> bool {
@@ -624,6 +656,7 @@ async fn handle_socket_upgrade(
     ws: WebSocketUpgrade,
     Path(doc_id): Path<String>,
     authorization: Authorization,
+    user_id: Option<String>,
     State(server_state): State<Arc<Server>>,
 ) -> Result<Response, AppError> {
     if !matches!(authorization, Authorization::Full) && !server_state.docs.contains_key(&doc_id) {
@@ -640,9 +673,19 @@ async fn handle_socket_upgrade(
     let awareness = dwskv.awareness();
     let cancellation_token = server_state.cancellation_token.clone();
     let metrics = server_state.metrics.clone();
+    let server_state_for_socket = server_state.clone();
 
     Ok(ws.on_upgrade(move |socket| {
-        handle_socket(socket, awareness, authorization, cancellation_token, metrics, doc_id)
+        handle_socket(
+            socket,
+            awareness,
+            authorization,
+            user_id,
+            cancellation_token,
+            metrics,
+            doc_id,
+            server_state_for_socket,
+        )
     }))
 }
 
@@ -655,8 +698,8 @@ async fn handle_socket_upgrade_deprecated(
     tracing::warn!(
         "/doc/ws/:doc_id is deprecated; call /doc/:doc_id/auth instead and use the returned URL."
     );
-    let (authorization, _user_id) = server_state.verify_doc_token(params.token.as_deref(), &doc_id)?;
-    handle_socket_upgrade(ws, Path(doc_id), authorization, State(server_state)).await
+    let (authorization, user_id) = server_state.verify_doc_token(params.token.as_deref(), &doc_id)?;
+    handle_socket_upgrade(ws, Path(doc_id), authorization, user_id, State(server_state)).await
 }
 
 async fn handle_socket_upgrade_full_path(
@@ -671,8 +714,8 @@ async fn handle_socket_upgrade_full_path(
             anyhow!("For Yjs compatibility, the doc_id appears twice in the URL. It must be the same in both places, but we got {} and {}.", doc_id, doc_id2),
         ));
     }
-    let (authorization, _user_id) = server_state.verify_doc_token(params.token.as_deref(), &doc_id)?;
-    handle_socket_upgrade(ws, Path(doc_id), authorization, State(server_state)).await
+    let (authorization, user_id) = server_state.verify_doc_token(params.token.as_deref(), &doc_id)?;
+    handle_socket_upgrade(ws, Path(doc_id), authorization, user_id, State(server_state)).await
 }
 
 async fn handle_socket_upgrade_single(
@@ -690,18 +733,21 @@ async fn handle_socket_upgrade_single(
     }
 
     // the doc server is meant to be run in Plane, so we expect verified plane
-    // headers to be used for authorization.
+    // headers to be used for authorization. Plane mode carries no userId claim,
+    // so the periodic mid-session poll never runs for these connections.
     let authorization = get_authorization_from_plane_header(headers)?;
-    handle_socket_upgrade(ws, Path(single_doc_id), authorization, State(server_state)).await
+    handle_socket_upgrade(ws, Path(single_doc_id), authorization, None, State(server_state)).await
 }
 
 async fn handle_socket(
     socket: WebSocket,
     awareness: Arc<RwLock<Awareness>>,
     authorization: Authorization,
+    user_id: Option<String>,
     cancellation_token: CancellationToken,
     metrics: Metrics,
     doc_id: String,
+    server_state: Arc<Server>,
 ) {
     metrics.active_connections.add(1, &[]);
     let (mut sink, mut stream) = socket.split();
@@ -746,6 +792,39 @@ async fn handle_socket(
             }
         }
     });
+
+    // Periodically re-checks with the Xyne backend that this connection's
+    // user still has access, so a mid-session permission revocation closes
+    // the connection instead of leaving it open until the client reconnects.
+    // Only runs when the token carried a userId (i.e. a signing key is
+    // configured) — see validate_user_middleware for why that's optional.
+    if let Some(user_id) = user_id {
+        let server_state_poll = server_state.clone();
+        let doc_id_poll = doc_id.clone();
+        let conn_cancel_poll = conn_cancel.clone();
+        tokio::spawn(async move {
+            let mut ticker = tokio::time::interval(server_state_poll.validate_poll_every);
+            ticker.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+            // The first tick fires immediately; skip it since access was
+            // already checked once by validate_user_middleware at connect time.
+            ticker.tick().await;
+
+            loop {
+                tokio::select! {
+                    _ = ticker.tick() => {
+                        if !server_state_poll.validate_user_access_with_retry(&doc_id_poll, &user_id).await {
+                            tracing::info!(doc_id = %doc_id_poll, user_id = %user_id, "Access revoked mid-session; closing connection");
+                            conn_cancel_poll.cancel();
+                            break;
+                        }
+                    }
+                    _ = conn_cancel_poll.cancelled() => {
+                        break;
+                    }
+                }
+            }
+        });
+    }
 
     let connection = DocConnection::new(awareness, authorization, move |bytes| {
         if let Err(e) = send.try_send(bytes.to_vec()) {
