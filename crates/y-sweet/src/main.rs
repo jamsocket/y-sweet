@@ -44,6 +44,9 @@ enum ServSubcommand {
         #[clap(long, env = "Y_SWEET_AUTH")]
         auth: Option<String>,
 
+        #[clap(long, env = "Y_SWEET_BACKEND_URL")]
+        backend_url: Option<String>,
+
         #[clap(long, env = "Y_SWEET_URL_PREFIX")]
         url_prefix: Option<Url>,
 
@@ -196,6 +199,7 @@ async fn main() -> Result<()> {
             checkpoint_freq_seconds,
             store,
             auth,
+            backend_url,
             url_prefix,
             path_prefix,
             prod,
@@ -250,6 +254,7 @@ async fn main() -> Result<()> {
                 true,
                 *max_body_size,
                 *skip_gc,
+                backend_url.clone(),
             )
             .await?;
 
@@ -362,6 +367,7 @@ async fn main() -> Result<()> {
                 false,
                 *max_body_size,
                 *skip_gc,
+                None, // No backend URL in single-doc mode
             )
             .await?;
 

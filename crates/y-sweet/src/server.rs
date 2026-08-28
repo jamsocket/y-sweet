@@ -21,6 +21,7 @@ use futures::{SinkExt, StreamExt};
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::{
+    collections::HashMap,
     sync::{Arc, RwLock},
     time::Duration,
 };
@@ -109,6 +110,8 @@ pub struct Server {
     /// Whether to skip garbage collection in Yrs documents.
     skip_gc: bool,
     metrics: Metrics,
+    backend_url: Option<String>,
+    http_client: reqwest::Client,
 }
 
 impl Server {
@@ -122,9 +125,15 @@ impl Server {
         doc_gc: bool,
         max_body_size: Option<usize>,
         skip_gc: bool,
+        backend_url: Option<String>,
     ) -> Result<Self> {
         let docs = Arc::new(DashMap::new());
         let metrics = Metrics::new(docs.clone());
+        if backend_url.is_none() {
+            tracing::warn!(
+                "Y_SWEET_BACKEND_URL is not set. All access-validated requests will be denied."
+            );
+        }
         Ok(Self {
             docs,
             doc_worker_tracker: TaskTracker::new(),
@@ -140,7 +149,32 @@ impl Server {
             max_body_size,
             skip_gc,
             metrics,
+            backend_url,
+            http_client: reqwest::Client::new(),
         })
+    }
+
+    /// Calls the Xyne backend to check whether `user_id` currently has access
+    /// to `doc_id`. Fails closed (denies) if the backend is unconfigured,
+    /// unreachable, or returns a non-2xx response.
+    async fn validate_user_access(&self, doc_id: &str, user_id: &str) -> bool {
+        let Some(backend_url) = &self.backend_url else {
+            return false;
+        };
+        let url = format!("{}/api/ysweet/validate", backend_url.trim_end_matches('/'));
+        match self
+            .http_client
+            .post(&url)
+            .json(&serde_json::json!({ "docId": doc_id, "userId": user_id }))
+            .send()
+            .await
+        {
+            Ok(resp) => resp.status().is_success(),
+            Err(e) => {
+                tracing::error!(?e, doc_id = %doc_id, user_id = %user_id, "Failed to reach backend for access validation");
+                false
+            }
+        }
     }
 
     pub async fn doc_exists(&self, doc_id: &str) -> bool {
@@ -378,13 +412,8 @@ impl Server {
     }
 
     pub fn routes(self: &Arc<Self>) -> Router {
-        Router::new()
-            .route("/ready", get(ready))
-            .route("/check_store", post(check_store))
-            .route("/check_store", get(check_store_deprecated))
+        let protected = Router::new()
             .route("/doc/ws/:doc_id", get(handle_socket_upgrade_deprecated))
-            .route("/doc/new", post(new_doc))
-            .route("/doc/:doc_id/auth", post(auth_doc))
             .route("/doc/:doc_id/as-update", get(get_doc_as_update_deprecated))
             .route("/doc/:doc_id/update", post(update_doc_deprecated))
             .route("/d/:doc_id/as-update", get(get_doc_as_update))
@@ -393,6 +422,18 @@ impl Server {
                 "/d/:doc_id/ws/:doc_id2",
                 get(handle_socket_upgrade_full_path),
             )
+            .route_layer(middleware::from_fn_with_state(
+                self.clone(),
+                validate_user_middleware,
+            ));
+
+        Router::new()
+            .route("/ready", get(ready))
+            .route("/check_store", post(check_store))
+            .route("/check_store", get(check_store_deprecated))
+            .route("/doc/new", post(new_doc))
+            .route("/doc/:doc_id/auth", post(auth_doc))
+            .merge(protected)
             .with_state(self.clone())
     }
 
@@ -450,18 +491,22 @@ impl Server {
         s.serve_internal(listener, redact_errors, routes).await
     }
 
-    fn verify_doc_token(&self, token: Option<&str>, doc: &str) -> Result<Authorization, AppError> {
+    fn verify_doc_token(
+        &self,
+        token: Option<&str>,
+        doc: &str,
+    ) -> Result<(Authorization, Option<String>), AppError> {
         if let Some(authenticator) = &self.authenticator {
             if let Some(token) = token {
-                let authorization = authenticator
+                let claims = authenticator
                     .verify_doc_token(token, doc, current_time_epoch_millis())
                     .map_err(|e| (StatusCode::UNAUTHORIZED, e))?;
-                Ok(authorization)
+                Ok((claims.authorization, claims.user_id))
             } else {
                 Err((StatusCode::UNAUTHORIZED, anyhow!("No token provided.")))?
             }
         } else {
-            Ok(Authorization::Full)
+            Ok((Authorization::Full, None))
         }
     }
 
@@ -532,7 +577,7 @@ async fn update_doc(
     body: Bytes,
 ) -> Result<Response, AppError> {
     let token = get_token_from_header(auth_header);
-    let authorization = server_state.verify_doc_token(token.as_deref(), &doc_id)?;
+    let (authorization, _user_id) = server_state.verify_doc_token(token.as_deref(), &doc_id)?;
     update_doc_inner(doc_id, server_state, authorization, body).await
 }
 
@@ -610,7 +655,7 @@ async fn handle_socket_upgrade_deprecated(
     tracing::warn!(
         "/doc/ws/:doc_id is deprecated; call /doc/:doc_id/auth instead and use the returned URL."
     );
-    let authorization = server_state.verify_doc_token(params.token.as_deref(), &doc_id)?;
+    let (authorization, _user_id) = server_state.verify_doc_token(params.token.as_deref(), &doc_id)?;
     handle_socket_upgrade(ws, Path(doc_id), authorization, State(server_state)).await
 }
 
@@ -626,7 +671,7 @@ async fn handle_socket_upgrade_full_path(
             anyhow!("For Yjs compatibility, the doc_id appears twice in the URL. It must be the same in both places, but we got {} and {}.", doc_id, doc_id2),
         ));
     }
-    let authorization = server_state.verify_doc_token(params.token.as_deref(), &doc_id)?;
+    let (authorization, _user_id) = server_state.verify_doc_token(params.token.as_deref(), &doc_id)?;
     handle_socket_upgrade(ws, Path(doc_id), authorization, State(server_state)).await
 }
 
@@ -826,9 +871,13 @@ async fn auth_doc(
 
     let Json(AuthDocRequest {
         authorization,
+        user_id,
         valid_for_seconds,
-        ..
     }) = body.unwrap_or_default();
+
+    let Some(user_id) = user_id else {
+        Err((StatusCode::FORBIDDEN, anyhow!("userId is required")))?
+    };
 
     if !server_state.doc_exists(&doc_id).await {
         Err((StatusCode::NOT_FOUND, anyhow!("Doc {} not found", doc_id)))?;
@@ -838,12 +887,10 @@ async fn auth_doc(
     let expiration_time =
         ExpirationTimeEpochMillis(current_time_epoch_millis() + valid_for_seconds * 1000);
 
-    let token = if let Some(auth) = &server_state.authenticator {
-        let token = auth.gen_doc_token(&doc_id, authorization, expiration_time);
-        Some(token)
-    } else {
-        None
-    };
+    let token = server_state
+        .authenticator
+        .as_ref()
+        .map(|auth| auth.gen_doc_token(&doc_id, Some(user_id), authorization, expiration_time));
 
     let url = if let Some(url_prefix) = &server_state.url_prefix {
         let mut url_prefix = url_prefix.clone();
@@ -876,6 +923,59 @@ async fn auth_doc(
         token,
         authorization,
     }))
+}
+
+/// Runs in front of `as-update`, `update`, and the WebSocket-upgrade routes.
+/// Resolves the request's token to a userId (via `token_identities`, set at
+/// `/doc/:doc_id/auth` time) and asks the Xyne backend whether that user
+/// still has access to this doc. Rejects with 403 if there's no token, no
+/// associated userId, or the backend denies access.
+async fn validate_user_middleware(
+    State(server_state): State<Arc<Server>>,
+    Path(params): Path<HashMap<String, String>>,
+    req: Request,
+    next: Next,
+) -> Result<Response, AppError> {
+    if server_state.authenticator.is_none() {
+        return Ok(next.run(req).await);
+    }
+
+    let doc_id = params
+        .get("doc_id")
+        .cloned()
+        .ok_or_else(|| AppError(StatusCode::BAD_REQUEST, anyhow!("Missing doc_id")))?;
+
+    let token = extract_request_token(&req)
+        .ok_or_else(|| AppError(StatusCode::FORBIDDEN, anyhow!("Missing token")))?;
+
+    let (_authorization, user_id) = server_state.verify_doc_token(Some(&token), &doc_id)?;
+
+    let Some(user_id) = user_id else {
+        return Err(AppError(
+            StatusCode::FORBIDDEN,
+            anyhow!("Token has no associated userId"),
+        ));
+    };
+
+    if !server_state.validate_user_access(&doc_id, &user_id).await {
+        return Err(AppError(StatusCode::FORBIDDEN, anyhow!("Access denied")));
+    }
+
+    Ok(next.run(req).await)
+}
+
+fn extract_request_token(req: &Request) -> Option<String> {
+    if let Some(query) = req.uri().query() {
+        if let Some((_, v)) = url::form_urlencoded::parse(query.as_bytes()).find(|(k, _)| k == "token")
+        {
+            return Some(v.into_owned());
+        }
+    }
+    req.headers()
+        .get(axum::http::header::AUTHORIZATION)
+        .and_then(|h| h.to_str().ok())
+        .and_then(|s| s.strip_prefix("Bearer "))
+        .map(|s| s.to_string())
 }
 
 fn get_token_from_header(
