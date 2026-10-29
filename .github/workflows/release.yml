@@ -2,16 +2,17 @@ name: Build Rust binary and create release
 
 # Note: If you add or remove binaries, you should also update the list in releaser/src/check_binaries.rs
 
-on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Release Version'
-        required: true
-  pull_request:
-    branches: [ "main" ]
-    paths:
-      - ".github/workflows/release.yml"
+# on:
+#   workflow_dispatch:
+#     inputs:
+#       version:
+#         description: 'Release Version'
+#         required: true
+#   pull_request:
+#     branches: [ "main" ]
+#     paths:
+#       - ".github/workflows/release.yml"
+on: workflow_dispatch
 
 jobs:
   build-macos-arm64:

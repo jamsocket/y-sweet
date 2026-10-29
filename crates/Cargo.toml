@@ -9,3 +9,11 @@ members = [
 exclude = [
     "y-sweet-worker",
 ]
+
+# Smaller, symbol-free release binary for the container image. panic is left at
+# the default (unwind) on purpose: with abort, one panicking request task would
+# take down the whole server instead of just that task.
+[profile.release]
+strip = true
+lto = "thin"
+codegen-units = 1

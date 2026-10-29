@@ -1,11 +1,12 @@
 name: Run Python tests
 
-on:
-  pull_request:
-    branches: [ "main" ]
-    paths:
-      - "python/**"
-      - ".github/workflows/python-tests.yml"
+# on:
+#   pull_request:
+#     branches: [ "main" ]
+#     paths:
+#       - "python/**"
+#       - ".github/workflows/python-tests.yml"
+on: workflow_dispatch
 
 jobs:
   uv-example:

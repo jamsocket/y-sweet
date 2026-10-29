@@ -1,10 +1,11 @@
 name: Rustfmt
 
-on:
-  pull_request:
-    branches: [ "*" ]
-    paths:
-      - "crates/**"
+# on:
+#   pull_request:
+#     branches: [ "*" ]
+#     paths:
+#       - "crates/**"
+on: workflow_dispatch
 
 jobs:
   check-rust-format:

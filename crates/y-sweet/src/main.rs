@@ -15,15 +15,11 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilte
 use url::Url;
 use y_sweet::cli::{print_auth_message, print_server_url};
 use y_sweet::stores::filesystem::FileSystemStore;
-use y_sweet_core::{
-    auth::Authenticator,
-    store::{
-        s3::{S3Config, S3Store},
-        Store,
-    },
-};
+use y_sweet::stores::gcs::GcsStore;
+use y_sweet::stores::s3::{S3Store, S3StoreConfig};
+use y_sweet::stores::{parse_store_target, target_from_bucket_env, StoreTarget};
+use y_sweet_core::{auth::Authenticator, store::Store};
 
-const DEFAULT_S3_REGION: &str = "us-east-1";
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(Parser)]
@@ -48,8 +44,26 @@ enum ServSubcommand {
         #[clap(long, env = "Y_SWEET_AUTH")]
         auth: Option<String>,
 
+        #[clap(long, env = "Y_SWEET_BACKEND_URL")]
+        backend_url: Option<String>,
+
+        #[clap(long, env = "Y_SWEET_SERVER_TOKEN")]
+        server_token: Option<String>,
+
+        #[clap(long, default_value = "10", env = "Y_SWEET_VALIDATE_POLL_SECONDS")]
+        validate_poll_seconds: u64,
+
+        #[clap(long, default_value = "3", env = "Y_SWEET_VALIDATE_RETRY_ATTEMPTS")]
+        validate_retry_attempts: u32,
+
+        #[clap(long, default_value = "500", env = "Y_SWEET_VALIDATE_RETRY_DELAY_MS")]
+        validate_retry_delay_ms: u64,
+
         #[clap(long, env = "Y_SWEET_URL_PREFIX")]
         url_prefix: Option<Url>,
+
+        #[clap(long, env = "Y_SWEET_PATH_PREFIX")]
+        path_prefix: Option<String>,
 
         #[clap(long)]
         prod: bool,
@@ -59,6 +73,15 @@ enum ServSubcommand {
 
         #[clap(long, default_value = "false", env = "Y_SWEET_SKIP_GC")]
         skip_gc: bool,
+
+        #[clap(long, env = "Y_SWEET_OTEL_ENDPOINT")]
+        otel_endpoint: Option<String>,
+
+        #[clap(long, default_value = "y-sweet", env = "Y_SWEET_OTEL_SERVICE_NAME")]
+        otel_service_name: String,
+
+        #[clap(long, default_value = "30", env = "Y_SWEET_OTEL_PUSH_INTERVAL")]
+        otel_push_interval_secs: u64,
     },
 
     GenAuth {
@@ -94,21 +117,25 @@ enum ServSubcommand {
 
         #[clap(long, default_value = "false", env = "Y_SWEET_SKIP_GC")]
         skip_gc: bool,
+
+        #[clap(long, env = "Y_SWEET_OTEL_ENDPOINT")]
+        otel_endpoint: Option<String>,
+
+        #[clap(long, default_value = "y-sweet", env = "Y_SWEET_OTEL_SERVICE_NAME")]
+        otel_service_name: String,
+
+        #[clap(long, default_value = "30", env = "Y_SWEET_OTEL_PUSH_INTERVAL")]
+        otel_push_interval_secs: u64,
     },
 }
 
-const S3_ACCESS_KEY_ID: &str = "AWS_ACCESS_KEY_ID";
-const S3_SECRET_ACCESS_KEY: &str = "AWS_SECRET_ACCESS_KEY";
-const S3_SESSION_TOKEN: &str = "AWS_SESSION_TOKEN";
 const S3_REGION: &str = "AWS_REGION";
 const S3_ENDPOINT: &str = "AWS_ENDPOINT_URL_S3";
 const S3_USE_PATH_STYLE: &str = "AWS_S3_USE_PATH_STYLE";
-fn parse_s3_config_from_env_and_args(
-    bucket: String,
-    prefix: Option<String>,
-) -> anyhow::Result<S3Config> {
+
+fn s3_store_config_from_env(bucket: String, prefix: Option<String>) -> Result<S3StoreConfig> {
     let use_path_style = env::var(S3_USE_PATH_STYLE).ok();
-    let path_style = if let Some(use_path_style) = use_path_style {
+    let mut force_path_style = if let Some(use_path_style) = use_path_style {
         if use_path_style.to_lowercase() == "true" {
             true
         } else if use_path_style.to_lowercase() == "false" || use_path_style.is_empty() {
@@ -122,52 +149,58 @@ fn parse_s3_config_from_env_and_args(
         false
     };
 
-    Ok(S3Config {
-        key: env::var(S3_ACCESS_KEY_ID)
-            .map_err(|_| anyhow::anyhow!("{} env var not supplied", S3_ACCESS_KEY_ID))?,
-        region: env::var(S3_REGION).unwrap_or_else(|_| DEFAULT_S3_REGION.to_string()),
-        endpoint: env::var(S3_ENDPOINT).unwrap_or_else(|_| {
-            format!(
-                "https://s3.dualstack.{}.amazonaws.com",
-                env::var(S3_REGION).unwrap_or_else(|_| DEFAULT_S3_REGION.to_string())
-            )
-        }),
-        secret: env::var(S3_SECRET_ACCESS_KEY)
-            .map_err(|_| anyhow::anyhow!("{} env var not supplied", S3_SECRET_ACCESS_KEY))?,
-        token: env::var(S3_SESSION_TOKEN).ok(),
+    let endpoint = env::var(S3_ENDPOINT).ok().filter(|e| !e.is_empty());
+
+    if !force_path_style {
+        if let Some(endpoint) = &endpoint {
+            if url::Url::parse(endpoint)
+                .ok()
+                .and_then(|u| u.host_str().map(|h| h == "localhost"))
+                .unwrap_or(false)
+            {
+                tracing::warn!("Inferring path-style URLs for localhost for backwards-compatibility. Set AWS_S3_USE_PATH_STYLE=true to ensure that path-style URLs are used.");
+                force_path_style = true;
+            }
+        }
+    }
+
+    Ok(S3StoreConfig {
         bucket,
-        bucket_prefix: prefix,
-        // If the endpoint is overridden, we assume that the user wants path-style URLs.
-        path_style,
+        prefix,
+        endpoint,
+        region: env::var(S3_REGION).ok().filter(|r| !r.is_empty()),
+        force_path_style,
     })
 }
 
-fn get_store_from_opts(store_path: &str) -> Result<Box<dyn Store>> {
-    if store_path.starts_with("s3://") {
-        let url = url::Url::parse(store_path)?;
-        let bucket = url
-            .host_str()
-            .ok_or_else(|| anyhow::anyhow!("Invalid S3 URL"))?
-            .to_owned();
-        let bucket_prefix = url.path().trim_start_matches('/').to_owned();
-        let bucket_prefix = (!bucket_prefix.is_empty()).then_some(bucket_prefix); // "" => None
-        let config = parse_s3_config_from_env_and_args(bucket, bucket_prefix)?;
-        let store = S3Store::new(config);
-        Ok(Box::new(store))
-    } else {
-        Ok(Box::new(FileSystemStore::new(PathBuf::from(store_path))?))
+async fn get_store_from_target(target: StoreTarget) -> Result<Box<dyn Store>> {
+    match target {
+        StoreTarget::S3 { bucket, prefix } => {
+            let config = s3_store_config_from_env(bucket, prefix)?;
+            Ok(Box::new(S3Store::new(config).await))
+        }
+        StoreTarget::Gcs { bucket, prefix } => Ok(Box::new(GcsStore::new(bucket, prefix).await?)),
+        StoreTarget::Filesystem(path) => Ok(Box::new(FileSystemStore::new(PathBuf::from(path))?)),
     }
+}
+
+async fn get_store_from_opts(store_path: &str) -> Result<Box<dyn Store>> {
+    get_store_from_target(parse_store_target(store_path)?).await
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    rustls::crypto::aws_lc_rs::default_provider()
+        .install_default()
+        .ok();
+
     let opts = Opts::parse();
 
     let filter = EnvFilter::builder()
         .with_default_directive(LevelFilter::INFO.into())
         .from_env_lossy();
     tracing_subscriber::registry()
-        .with(tracing_subscriber::fmt::layer())
+        .with(tracing_subscriber::fmt::layer().json().flatten_event(true))
         .with(filter)
         .init();
 
@@ -178,11 +211,25 @@ async fn main() -> Result<()> {
             checkpoint_freq_seconds,
             store,
             auth,
+            backend_url,
+            server_token,
+            validate_poll_seconds,
+            validate_retry_attempts,
+            validate_retry_delay_ms,
             url_prefix,
+            path_prefix,
             prod,
             max_body_size,
             skip_gc,
+            otel_endpoint,
+            otel_service_name,
+            otel_push_interval_secs,
         } => {
+            let meter_provider = y_sweet::otel::init_meter_provider(
+                otel_endpoint.as_deref(),
+                otel_service_name,
+                std::time::Duration::from_secs(*otel_push_interval_secs),
+            );
             let auth = if let Some(auth) = auth {
                 Some(Authenticator::new(auth)?)
             } else {
@@ -199,7 +246,7 @@ async fn main() -> Result<()> {
             let addr = listener.local_addr()?;
 
             let store = if let Some(store) = store {
-                let store = get_store_from_opts(store)?;
+                let store = get_store_from_opts(store).await?;
                 store.init().await?;
                 Some(store)
             } else {
@@ -218,10 +265,16 @@ async fn main() -> Result<()> {
                 std::time::Duration::from_secs(*checkpoint_freq_seconds),
                 auth,
                 url_prefix.clone(),
+                path_prefix.clone(),
                 token.clone(),
                 true,
                 *max_body_size,
                 *skip_gc,
+                backend_url.clone(),
+                server_token.clone(),
+                std::time::Duration::from_secs(*validate_poll_seconds),
+                *validate_retry_attempts,
+                std::time::Duration::from_millis(*validate_retry_delay_ms),
             )
             .await?;
 
@@ -240,6 +293,9 @@ async fn main() -> Result<()> {
             token.cancel();
 
             handle.await?;
+            if let Err(e) = meter_provider.shutdown() {
+                tracing::error!(?e, "Error shutting down OTel meter provider");
+            }
             tracing::info!("Server shut down.");
         }
         ServSubcommand::GenAuth { json } => {
@@ -257,7 +313,7 @@ async fn main() -> Result<()> {
             }
         }
         ServSubcommand::ConvertFromUpdate { store, doc_id } => {
-            let store = get_store_from_opts(store)?;
+            let store = get_store_from_opts(store).await?;
             store.init().await?;
 
             let mut stdin = tokio::io::stdin();
@@ -275,7 +331,16 @@ async fn main() -> Result<()> {
             checkpoint_freq_seconds,
             max_body_size,
             skip_gc,
+            otel_endpoint,
+            otel_service_name,
+            otel_push_interval_secs,
         } => {
+            let meter_provider = y_sweet::otel::init_meter_provider(
+                otel_endpoint.as_deref(),
+                otel_service_name,
+                std::time::Duration::from_secs(*otel_push_interval_secs),
+            );
+
             let doc_id = env::var("SESSION_BACKEND_KEY").expect("SESSION_BACKEND_KEY must be set");
 
             let store = if let Ok(bucket) = env::var("STORAGE_BUCKET") {
@@ -299,9 +364,8 @@ async fn main() -> Result<()> {
                     None
                 };
 
-                let s3_config = parse_s3_config_from_env_and_args(bucket, prefix)?;
-                let store = S3Store::new(s3_config);
-                let store: Box<dyn Store> = Box::new(store);
+                let target = target_from_bucket_env(&bucket, prefix)?;
+                let store: Box<dyn Store> = get_store_from_target(target).await?;
                 store.init().await?;
                 Some(store)
             } else {
@@ -318,10 +382,16 @@ async fn main() -> Result<()> {
                 std::time::Duration::from_secs(*checkpoint_freq_seconds),
                 None, // No authenticator
                 None, // No URL prefix
+                None, // No path prefix
                 cancellation_token.clone(),
                 false,
                 *max_body_size,
                 *skip_gc,
+                None, // No backend URL in single-doc mode
+                None, // No server token in single-doc mode
+                y_sweet::server::DEFAULT_VALIDATE_POLL_EVERY,
+                y_sweet::server::DEFAULT_VALIDATE_RETRY_ATTEMPTS,
+                y_sweet::server::DEFAULT_VALIDATE_RETRY_DELAY,
             )
             .await?;
 
@@ -367,6 +437,9 @@ async fn main() -> Result<()> {
             }
 
             cancellation_token.cancel();
+            if let Err(e) = meter_provider.shutdown() {
+                tracing::error!(?e, "Error shutting down OTel meter provider");
+            }
             tracing::info!("Server shut down.");
         }
     }

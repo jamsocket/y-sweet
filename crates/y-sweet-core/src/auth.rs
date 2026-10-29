@@ -95,6 +95,13 @@ pub struct Authenticator {
 pub struct DocPermission {
     pub doc_id: String,
     pub authorization: Authorization,
+    pub user_id: Option<String>,
+}
+
+/// The claims recovered from a verified doc-scoped token.
+pub struct DocTokenClaims {
+    pub authorization: Authorization,
+    pub user_id: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -323,6 +330,7 @@ impl Authenticator {
     pub fn gen_doc_token(
         &self,
         doc_id: &str,
+        user_id: Option<String>,
         authorization: Authorization,
         expiration_time: ExpirationTimeEpochMillis,
     ) -> String {
@@ -330,6 +338,7 @@ impl Authenticator {
             Permission::Doc(DocPermission {
                 doc_id: doc_id.to_string(),
                 authorization,
+                user_id,
             }),
             expiration_time,
         );
@@ -350,18 +359,25 @@ impl Authenticator {
         token: &str,
         doc: &str,
         current_time_epoch_millis: u64,
-    ) -> Result<Authorization, AuthError> {
+    ) -> Result<DocTokenClaims, AuthError> {
         let payload = self.verify_token(token, current_time_epoch_millis)?;
 
         match payload {
             Permission::Doc(doc_permission) => {
                 if doc_permission.doc_id == doc {
-                    Ok(doc_permission.authorization)
+                    Ok(DocTokenClaims {
+                        authorization: doc_permission.authorization,
+                        user_id: doc_permission.user_id,
+                    })
                 } else {
                     Err(AuthError::InvalidResource)
                 }
             }
-            Permission::Server => Ok(Authorization::Full), // Server tokens can access any doc.
+            // Server tokens can access any doc, but carry no specific user identity.
+            Permission::Server => Ok(DocTokenClaims {
+                authorization: Authorization::Full,
+                user_id: None,
+            }),
         }
     }
 
@@ -401,13 +417,13 @@ mod tests {
         let authenticator = Authenticator::gen_key().unwrap();
         let token = authenticator.gen_doc_token(
             "doc123",
+            Some("user1".to_string()),
             Authorization::Full,
             ExpirationTimeEpochMillis(0),
         );
-        assert!(matches!(
-            authenticator.verify_doc_token(&token, "doc123", 0),
-            Ok(Authorization::Full)
-        ));
+        let claims = authenticator.verify_doc_token(&token, "doc123", 0).unwrap();
+        assert!(matches!(claims.authorization, Authorization::Full));
+        assert_eq!(claims.user_id.as_deref(), Some("user1"));
         assert!(matches!(
             authenticator.verify_doc_token(&token, "doc123", DEFAULT_EXPIRATION_SECONDS + 1),
             Err(AuthError::Expired)
@@ -423,23 +439,22 @@ mod tests {
         let authenticator = Authenticator::gen_key().unwrap();
         let token = authenticator.gen_doc_token(
             "doc123",
+            Some("user1".to_string()),
             Authorization::ReadOnly,
             ExpirationTimeEpochMillis(0),
         );
-        assert!(matches!(
-            authenticator.verify_doc_token(&token, "doc123", 0),
-            Ok(Authorization::ReadOnly)
-        ));
+        let claims = authenticator.verify_doc_token(&token, "doc123", 0).unwrap();
+        assert!(matches!(claims.authorization, Authorization::ReadOnly));
     }
 
     #[test]
     fn test_server_token_for_doc_auth() {
         let authenticator = Authenticator::gen_key().unwrap();
         let server_token = authenticator.server_token();
-        assert!(matches!(
-            authenticator.verify_doc_token(&server_token, "doc123", 0),
-            Ok(Authorization::Full)
-        ));
+        let claims = authenticator
+            .verify_doc_token(&server_token, "doc123", 0)
+            .unwrap();
+        assert!(matches!(claims.authorization, Authorization::Full));
     }
 
     #[test]
@@ -449,6 +464,7 @@ mod tests {
             .with_key_id("myKeyId".try_into().unwrap());
         let token = authenticator.gen_doc_token(
             "doc123",
+            Some("user1".to_string()),
             Authorization::Full,
             ExpirationTimeEpochMillis(0),
         );
@@ -457,10 +473,8 @@ mod tests {
             "Token {} does not start with myKeyId.",
             token
         );
-        assert!(matches!(
-            authenticator.verify_doc_token(&token, "doc123", 0),
-            Ok(Authorization::Full)
-        ));
+        let claims = authenticator.verify_doc_token(&token, "doc123", 0).unwrap();
+        assert!(matches!(claims.authorization, Authorization::Full));
 
         let token = authenticator.server_token();
         assert!(
@@ -491,6 +505,7 @@ mod tests {
             .with_key_id("myKeyId".try_into().unwrap());
         let token = authenticator.gen_doc_token(
             "doc123",
+            Some("user1".to_string()),
             Authorization::Full,
             ExpirationTimeEpochMillis(0),
         );
@@ -509,6 +524,7 @@ mod tests {
             .with_key_id("myKeyId".try_into().unwrap());
         let token = authenticator.gen_doc_token(
             "doc123",
+            Some("user1".to_string()),
             Authorization::Full,
             ExpirationTimeEpochMillis(0),
         );
@@ -524,6 +540,7 @@ mod tests {
         let authenticator = Authenticator::gen_key().unwrap();
         let token = authenticator.gen_doc_token(
             "doc123",
+            Some("user1".to_string()),
             Authorization::Full,
             ExpirationTimeEpochMillis(0),
         );
@@ -540,6 +557,7 @@ mod tests {
         let actual_payload = Payload::new(Permission::Doc(DocPermission {
             doc_id: "doc123".to_string(),
             authorization: Authorization::Full,
+            user_id: Some("user1".to_string()),
         }));
         let mut encoded_payload =
             bincode_encode(&actual_payload).expect("Bincode serialization should not fail.");
@@ -551,6 +569,7 @@ mod tests {
             payload: Payload::new(Permission::Doc(DocPermission {
                 doc_id: "abc123".to_string(),
                 authorization: Authorization::Full,
+                user_id: Some("user1".to_string()),
             })),
             token,
         };

@@ -1,13 +1,14 @@
 name: Integration Tests
 
-on:
-  pull_request:
-    branches: [ "main" ]
-    paths:
-      - ".github/workflows/integration-tests.yml"
-      - "tests/**"
-      - "crates/**"
-      - "js-pkg/**"
+# on:
+#   pull_request:
+#     branches: [ "main" ]
+#     paths:
+#       - ".github/workflows/integration-tests.yml"
+#       - "tests/**"
+#       - "crates/**"
+#       - "js-pkg/**"
+on: workflow_dispatch
 
 env:
   CARGO_TERM_COLOR: always

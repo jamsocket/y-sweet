@@ -243,7 +243,11 @@ async fn auth_doc(
                 })
             }
         };
-        format!("{parsed}/doc/ws")
+        let mut url_str = parsed.to_string();
+        if !url_str.ends_with('/') {
+            url_str.push('/');
+        }
+        format!("{url_str}doc/ws")
     } else {
         let host = req
             .headers()

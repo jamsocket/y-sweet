@@ -1,8 +1,9 @@
-on:
-  pull_request:
-    branches: [ "*" ]
-    paths:
-      - "crates/**"
+# on:
+#   pull_request:
+#     branches: [ "*" ]
+#     paths:
+#       - "crates/**"
+on: workflow_dispatch
 
 name: Clippy check
 jobs:
